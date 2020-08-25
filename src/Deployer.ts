@@ -1,5 +1,7 @@
 import CloudFormation, {StackEvent} from 'aws-sdk/clients/cloudformation';
 import {Stack} from "./Stack";
+import ora from "ora";
+import logSymbols from "log-symbols";
 
 class NeedToDeleteStack implements Error {
     message = 'The stack is in a failed state because its creation failed. You need to delete it before attempting to deploy again.';
@@ -12,9 +14,14 @@ export class Deployer {
             region: stack.region,
         });
 
+        let progress = ora('Checking if the stack already exists').start();
+
         const changeSetName = `${stack.name}-${Date.now()}`;
 
         let operation = await this.deployOperation(cloudFormation, stack.name);
+
+        progress.succeed();
+        progress = ora('Preparing the list of changes ("change set") to deploy').start();
 
         await cloudFormation.createChangeSet({
             StackName: stack.name,
@@ -24,16 +31,52 @@ export class Deployer {
             Parameters: [],
             TemplateBody: JSON.stringify(stack.compile()),
         }).promise();
-        console.log('Deploying')
 
-        await cloudFormation.waitFor('changeSetCreateComplete', {
+        try {
+            await cloudFormation.waitFor('changeSetCreateComplete', {
+                StackName: stack.name,
+                ChangeSetName: changeSetName,
+                $waiter: {
+                    delay: 5, // check every 5 seconds
+                },
+            }).promise();
+        } catch (e) {
+            progress.fail();
+            const changeSet = await cloudFormation.describeChangeSet({
+                StackName: stack.name,
+                ChangeSetName: changeSetName,
+            }).promise();
+            if (changeSet.Status === 'FAILED') {
+                const reason = changeSet.StatusReason ? changeSet.StatusReason : 'run "lift status" to learn more';
+                if (reason.includes('The submitted information didn\'t contain changes.')) {
+                    console.log('Nothing to deploy, the stack is up to date 👌');
+                    progress = ora('Cleaning up the change set').start();
+                    await cloudFormation.deleteChangeSet({
+                        StackName: stack.name,
+                        ChangeSetName: changeSetName,
+                    }).promise();
+                    progress.succeed();
+                    console.log('All good, have a great day!');
+                    return;
+                }
+                throw new Error(`Failed creating the changes to deploy. ${reason}`);
+            }
+
+            throw e;
+        }
+
+        const changeSet = await cloudFormation.describeChangeSet({
             StackName: stack.name,
             ChangeSetName: changeSetName,
-            $waiter: {
-                delay: 5, // check every 5 seconds
-            },
         }).promise();
-        console.log('changeSetCreateComplete')
+        if (changeSet.Status === 'FAILED') {
+            progress.fail();
+            const reason = changeSet.StatusReason ? changeSet.StatusReason : 'Run "lift status" to learn more.';
+            throw new Error(`Failed creating the changes to deploy. ${reason}`);
+        }
+
+        progress.succeed();
+        progress = ora('Applying changes').start();
 
         await cloudFormation.executeChangeSet({
             StackName: stack.name,
@@ -66,7 +109,8 @@ export class Deployer {
             }
         }
 
-        console.log('Deployment finished')
+        progress.succeed();
+        console.log('Deployment success 🎉');
     }
 
     async getLastDeployEvents(stack: Stack): Promise<Array<StackEvent>> {
