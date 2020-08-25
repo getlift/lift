@@ -3,6 +3,7 @@ import {pascalCaseTransformMerge} from "pascal-case";
 
 export abstract class Component {
     abstract compile(): Record<string, any>;
+    abstract outputs(): Record<string, any>;
 
     formatResourceName(name: string): string {
         return pascalCase(name, {

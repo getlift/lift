@@ -2,15 +2,16 @@ import {Component} from "./Component";
 
 export class StaticWebsite extends Component {
     private props: Record<string, any>;
+    private bucketResourceName: string;
 
     constructor(props: Record<string, any> | null) {
         super();
         this.props = props ? props : {};
+
+        this.bucketResourceName = this.formatResourceName('StaticWebsite');
     }
 
     compile(): Record<string, any> {
-        const resourceName = this.formatResourceName('StaticWebsite');
-
         const bucket: any = {
             Type: 'AWS::S3::Bucket',
             Properties: {
@@ -34,13 +35,13 @@ export class StaticWebsite extends Component {
         }
 
         const resources: Record<string, any> = {
-            [resourceName]: bucket,
+            [this.bucketResourceName]: bucket,
         };
 
-        resources[resourceName + 'BucketPolicy'] = {
+        resources[this.bucketResourceName + 'BucketPolicy'] = {
             Type: 'AWS::S3::BucketPolicy',
             Properties: {
-                Bucket: this.fnRef(resourceName),
+                Bucket: this.fnRef(this.bucketResourceName),
                 PolicyDocument: {
                     Statement: [
                         {
@@ -48,7 +49,7 @@ export class StaticWebsite extends Component {
                             Principal: '*',
                             Action: 's3:GetObject',
                             Resource: this.fnJoin('', [
-                                this.fnGetAtt(resourceName, 'Arn'),
+                                this.fnGetAtt(this.bucketResourceName, 'Arn'),
                                 '/*',
                             ]),
                         },
@@ -73,7 +74,7 @@ export class StaticWebsite extends Component {
                             DomainName: {
                                 'Fn::Select': [
                                     2,
-                                    { 'Fn::Split': ['/', this.fnGetAtt('StaticWebsite', 'WebsiteURL')] },
+                                    { 'Fn::Split': ['/', this.fnGetAtt(this.bucketResourceName, 'WebsiteURL')] },
                                 ],
                             },
                             CustomOriginConfig: {
@@ -119,5 +120,18 @@ export class StaticWebsite extends Component {
         }
 
         return resources;
+    }
+
+    outputs() {
+        return {
+            [this.bucketResourceName + 'Bucket']: {
+                Description: 'Name of the bucket that stores the static website.',
+                Value: this.fnRef(this.bucketResourceName),
+            },
+            CloudFrontDomain: {
+                Description: 'CloudFront domain name.',
+                Value: this.fnGetAtt('WebsiteCDN', 'DomainName'),
+            },
+        };
     }
 }

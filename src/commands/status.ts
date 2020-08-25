@@ -23,7 +23,6 @@ export default class Status extends Command {
             StackName: stack.name,
         }).promise();
         const cfStack = response.Stacks ? response.Stacks[0] : undefined;
-
         if (!cfStack) {
             this.error('The stack does not exist in CloudFormation');
             this.exit(1);
@@ -40,6 +39,13 @@ export default class Status extends Command {
             this.log(chalk`\t{gray The stack is in a failed state because its creation failed. You need to delete it before attempting to deploy again.}`);
         }
         this.log(chalk`{green last update:} ${cfStack.LastUpdatedTime?.toLocaleString()}`);
+        this.log();
+
+        // Outputs
+        this.log(chalk.underline('Stack outputs:'));
+        for (const output of cfStack.Outputs!) {
+            this.log(chalk`{green ${output.OutputKey}:} ${output.OutputValue} {gray - (${output.Description})}`);
+        }
         this.log();
 
         this.log(chalk.underline('Last deployment:'));

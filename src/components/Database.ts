@@ -3,11 +3,14 @@ import {Component} from "./Component";
 export class Database extends Component {
     private name: string;
     private props: Record<string, any>;
+    private dbResourceName: string;
 
     constructor(name: string, props: Record<string, any> | null) {
         super();
         this.name = name;
         this.props = props ? props : {};
+
+        this.dbResourceName = this.formatResourceName(this.name);
     }
 
     compile(): Record<string, any> {
@@ -41,10 +44,21 @@ export class Database extends Component {
             },
         };
 
-        const resourceName = this.formatResourceName(this.name);
-
         return {
-            [resourceName]: db,
+            [this.dbResourceName]: db,
+        };
+    }
+
+    outputs() {
+        return {
+            [this.dbResourceName + 'Host']: {
+                Description: 'Hostname of the database.',
+                Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Address'),
+            },
+            [this.dbResourceName + 'Port']: {
+                Description: 'Port of the database.',
+                Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Port'),
+            },
         };
     }
 }

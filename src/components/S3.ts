@@ -3,11 +3,14 @@ import {Component} from "./Component";
 export class S3 extends Component {
     private name: string;
     private props: Record<string, any>;
+    private bucketResourceName: string;
 
     constructor(name: string, props: Record<string, any> | null) {
         super();
         this.name = name;
         this.props = props ? props : {};
+
+        this.bucketResourceName = this.formatResourceName(this.name);
     }
 
     compile(): Record<string, any> {
@@ -30,17 +33,15 @@ export class S3 extends Component {
             }
         }
 
-        const resourceName = this.formatResourceName(this.name);
-
         const resources: Record<string, any> = {
-            [resourceName]: bucket,
+            [this.bucketResourceName]: bucket,
         };
 
         if (this.props.public) {
-            resources[resourceName + 'BucketPolicy'] = {
+            resources[this.bucketResourceName + 'BucketPolicy'] = {
                 Type: 'AWS::S3::BucketPolicy',
                 Properties: {
-                    Bucket: this.fnRef(resourceName),
+                    Bucket: this.fnRef(this.bucketResourceName),
                     PolicyDocument: {
                         Statement: [
                             {
@@ -48,7 +49,7 @@ export class S3 extends Component {
                                 Principal: '*',
                                 Action: 's3:GetObject',
                                 Resource: this.fnJoin('', [
-                                    this.fnGetAtt(resourceName, 'Arn'),
+                                    this.fnGetAtt(this.bucketResourceName, 'Arn'),
                                     '/*',
                                 ]),
                             },
@@ -59,5 +60,14 @@ export class S3 extends Component {
         }
 
         return resources;
+    }
+
+    outputs() {
+        return {
+            [this.bucketResourceName + 'Bucket']: {
+                Description: 'Name of the S3 bucket.',
+                Value: this.fnRef(this.bucketResourceName),
+            },
+        };
     }
 }
