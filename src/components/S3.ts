@@ -40,7 +40,7 @@ export class S3 extends Component {
             resources[resourceName + 'BucketPolicy'] = {
                 Type: 'AWS::S3::BucketPolicy',
                 Properties: {
-                    Bucket: { Ref: this.name },
+                    Bucket: { Ref: resourceName },
                     PolicyDocument: {
                         Statement: [
                             {
@@ -48,7 +48,7 @@ export class S3 extends Component {
                                 Principal: '*',
                                 Action: 's3:GetObject',
                                 Resource: {
-                                    'Fn::Join': [ '', [ `${this.name}.Arn`, '/*' ] ],
+                                    'Fn::Join': [ '', [ `${resourceName}.Arn`, '/*' ] ],
                                 },
                             },
                         ],
