@@ -40,16 +40,17 @@ export class S3 extends Component {
             resources[resourceName + 'BucketPolicy'] = {
                 Type: 'AWS::S3::BucketPolicy',
                 Properties: {
-                    Bucket: { Ref: resourceName },
+                    Bucket: this.fnRef(resourceName),
                     PolicyDocument: {
                         Statement: [
                             {
                                 Effect: 'Allow',
                                 Principal: '*',
                                 Action: 's3:GetObject',
-                                Resource: {
-                                    'Fn::Join': [ '', [ `${resourceName}.Arn`, '/*' ] ],
-                                },
+                                Resource: this.fnJoin('', [
+                                    this.fnGetAtt(resourceName, 'Arn'),
+                                    '/*',
+                                ]),
                             },
                         ],
                     },

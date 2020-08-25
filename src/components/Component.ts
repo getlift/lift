@@ -9,4 +9,23 @@ export abstract class Component {
             transform: pascalCaseTransformMerge,
         });
     }
+
+    fnRef(resource: string): object {
+        return { Ref: resource };
+    }
+
+    fnGetAtt(resource: string, attribute: string): object {
+        return {
+            'Fn::GetAtt': [resource, attribute]
+        }
+    }
+
+    fnJoin(glue: string, strings: Array<any>): object {
+        return {
+            'Fn::Join': [
+                glue,
+                strings,
+            ],
+        }
+    }
 }

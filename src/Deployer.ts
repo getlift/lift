@@ -1,7 +1,6 @@
 import CloudFormation, {StackEvent} from 'aws-sdk/clients/cloudformation';
 import {Stack} from "./Stack";
 import ora from "ora";
-import logSymbols from "log-symbols";
 
 class NeedToDeleteStack implements Error {
     message = 'The stack is in a failed state because its creation failed. You need to delete it before attempting to deploy again.';
@@ -59,7 +58,7 @@ export class Deployer {
                     console.log('All good, have a great day!');
                     return;
                 }
-                throw new Error(`Failed creating the changes to deploy. ${reason}`);
+                throw new Error(`Failed creating the change set containing the changes to deploy. ${reason}`);
             }
 
             throw e;
@@ -71,8 +70,8 @@ export class Deployer {
         }).promise();
         if (changeSet.Status === 'FAILED') {
             progress.fail();
-            const reason = changeSet.StatusReason ? changeSet.StatusReason : 'Run "lift status" to learn more.';
-            throw new Error(`Failed creating the changes to deploy. ${reason}`);
+            const reason = changeSet.StatusReason ? changeSet.StatusReason : '';
+            throw new Error(`Failed creating the change set containing the changes to deploy. ${reason}`);
         }
 
         progress.succeed();
@@ -89,6 +88,7 @@ export class Deployer {
                     StackName: stack.name,
                     $waiter: {
                         delay: 5, // check every 5 seconds
+                        maxAttempts: 20 * (60 / 5), // wait for up to 20 minutes
                     },
                 }).promise();
             } else {
@@ -96,17 +96,27 @@ export class Deployer {
                     StackName: stack.name,
                     $waiter: {
                         delay: 5, // check every 5 seconds
+                        maxAttempts: 20 * (60 / 5), // wait for up to 20 minutes
                     },
                 }).promise();
             }
-        } finally {
+        } catch (e) {
+            progress.fail();
             const response = await cloudFormation.describeStacks({
                 StackName: stack.name,
             }).promise();
-            const stackStatus = response.Stacks ? response.Stacks[0].StackStatus : undefined;
-            if (stackStatus === 'CREATE_FAILED' || stackStatus === 'ROLLBACK_COMPLETE') {
-                throw new Error('Deployment failed: ' + response.Stacks![0].StackStatusReason ? response.Stacks![0].StackStatusReason : stackStatus);
-            }
+            const stackStatus = response.Stacks![0].StackStatus;
+            const reason = response.Stacks![0].StackStatusReason ? response.Stacks![0].StackStatusReason : stackStatus;
+            throw new Error(reason);
+        }
+
+        const response = await cloudFormation.describeStacks({
+            StackName: stack.name,
+        }).promise();
+        const stackStatus = response.Stacks ? response.Stacks[0].StackStatus : undefined;
+        if (stackStatus === 'CREATE_FAILED' || stackStatus === 'ROLLBACK_COMPLETE') {
+            progress.fail();
+            throw new Error(response.Stacks![0].StackStatusReason ? response.Stacks![0].StackStatusReason : stackStatus);
         }
 
         progress.succeed();
@@ -177,6 +187,9 @@ export class Deployer {
     }
 
     private static isBeginningOfStackDeploy(event: CloudFormation.StackEvent, stackName: string) {
-        return event.LogicalResourceId === stackName && event.ResourceStatus === 'CREATE_IN_PROGRESS';
+        return event.LogicalResourceId === stackName
+            && (event.ResourceStatus === 'CREATE_IN_PROGRESS'
+                || event.ResourceStatus === 'UPDATE_IN_PROGRESS'
+                || event.ResourceStatus === 'DELETE_IN_PROGRESS');
     }
 }

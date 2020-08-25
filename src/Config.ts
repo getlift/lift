@@ -3,6 +3,7 @@ import fs from "fs";
 import {Stack} from "./Stack";
 import {S3} from "./components/S3";
 import {Database} from "./components/Database";
+import {StaticWebsite} from "./components/StaticWebsite";
 
 export class Config {
     getStack(): Stack {
@@ -22,6 +23,9 @@ export class Config {
             for (const [key, value] of Object.entries(template.db)) {
                 stack.add(new Database(key, value as Record<string, any>));
             }
+        }
+        if (template.hasOwnProperty('static-website')) {
+            stack.add(new StaticWebsite(template['static-website']));
         }
 
         return stack;

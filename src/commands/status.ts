@@ -3,6 +3,7 @@ import CloudFormation from "aws-sdk/clients/cloudformation";
 import {Config} from "../Config";
 import {Deployer} from "../Deployer";
 import chalk from "chalk";
+import {displayCloudFormationEvents} from "../utils/cloudformation";
 
 export default class Status extends Command {
     static description = 'Status of the stack'
@@ -44,25 +45,6 @@ export default class Status extends Command {
         this.log(chalk.underline('Last deployment:'));
         const deployer = new Deployer();
         const events = await deployer.getLastDeployEvents(stack);
-        for (const event of events.reverse()) {
-            const status = event.ResourceStatus ? event.ResourceStatus : '';
-            const prefix = event.Timestamp.toLocaleTimeString();
-
-            let displayDetails = false;
-            let output = chalk`{gray [${prefix}]} `;
-            if (status.includes('FAILED') || status === 'ROLLBACK_COMPLETE') {
-                output += chalk`{red ${status}}`;
-                displayDetails = true;
-            } else if (status.includes('COMPLETE')) {
-                output += chalk`{green ${status}}`;
-            } else {
-                output += status;
-            }
-
-            this.log(chalk`${output}\t${event.LogicalResourceId} {gray (${event.ResourceType})}`);
-            if (displayDetails && event.ResourceStatusReason) {
-                this.log(chalk`\t{red ${event.ResourceStatusReason}}`);
-            }
-        }
+        await displayCloudFormationEvents(events);
     }
 }
