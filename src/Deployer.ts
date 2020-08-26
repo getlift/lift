@@ -22,14 +22,19 @@ export class Deployer {
         progress.succeed();
         progress = ora('Preparing the list of changes ("change set") to deploy').start();
 
-        await cloudFormation.createChangeSet({
-            StackName: stack.name,
-            ChangeSetName: changeSetName,
-            ChangeSetType: operation,
-            Capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
-            Parameters: [],
-            TemplateBody: JSON.stringify(stack.compile()),
-        }).promise();
+        try {
+            await cloudFormation.createChangeSet({
+                StackName: stack.name,
+                ChangeSetName: changeSetName,
+                ChangeSetType: operation,
+                Capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
+                Parameters: [],
+                TemplateBody: JSON.stringify(stack.compile()),
+            }).promise();
+        } catch (e) {
+            progress.fail();
+            throw e;
+        }
 
         try {
             await cloudFormation.waitFor('changeSetCreateComplete', {

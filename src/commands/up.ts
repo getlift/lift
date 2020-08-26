@@ -23,13 +23,15 @@ export default class Up extends Command {
     async onError(deployer: Deployer, stack: Stack, e: Error) {
         this.log(chalk`{red Deployment failed:} ${e.message}`);
 
-        this.log('Errors found in the deployment events:');
         let events = await deployer.getLastDeployEvents(stack);
         events = events.filter(event => {
             const status = event.ResourceStatus ? event.ResourceStatus : '';
             return status.includes('FAILED') || status === 'ROLLBACK_COMPLETE';
         });
-        await displayCloudFormationEvents(events);
+        if (events.length > 0) {
+            this.log('Errors found in the deployment events:');
+            await displayCloudFormationEvents(events);
+        }
     }
 }
 
