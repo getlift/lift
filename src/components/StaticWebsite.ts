@@ -1,4 +1,5 @@
 import {Component} from "./Component";
+import {PolicyStatement} from "../utils/cloudformation";
 
 export class StaticWebsite extends Component {
     private props: Record<string, any>;
@@ -133,5 +134,9 @@ export class StaticWebsite extends Component {
                 Value: this.fnGetAtt('WebsiteCDN', 'DomainName'),
             },
         };
+    }
+
+    permissions(): PolicyStatement[] {
+        return [];
     }
 }

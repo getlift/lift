@@ -1,12 +1,15 @@
 import {Component} from "./Component";
+import {PolicyStatement} from "../utils/cloudformation";
 
 export class S3 extends Component {
+    private stackName: string;
     private name: string;
     private props: Record<string, any>;
     private bucketResourceName: string;
 
-    constructor(name: string, props: Record<string, any> | null) {
+    constructor(stackName: string, name: string, props: Record<string, any> | null) {
         super();
+        this.stackName = stackName;
         this.name = name;
         this.props = props ? props : {};
 
@@ -68,6 +71,23 @@ export class S3 extends Component {
                 Description: 'Name of the S3 bucket.',
                 Value: this.fnRef(this.bucketResourceName),
             },
+            [this.bucketResourceName + 'BucketArn']: {
+                Description: 'ARN of the S3 bucket.',
+                Value: this.fnGetAtt(this.bucketResourceName, 'Arn'),
+                Export: {
+                    Name: this.stackName + '-' + this.bucketResourceName + 'BucketArn',
+                },
+            },
         };
+    }
+
+    permissions(): PolicyStatement[] {
+        const bucketArn = this.fnImportValue(this.stackName + '-' + this.bucketResourceName + 'BucketArn');
+        return [
+            new PolicyStatement('s3:*', [
+                bucketArn,
+                this.fnJoin('', [ bucketArn, '/*' ]),
+            ]),
+        ];
     }
 }

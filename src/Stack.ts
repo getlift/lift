@@ -33,4 +33,12 @@ export class Stack {
     add(component: Component) {
         this.components.push(component);
     }
+
+    permissions(): any[] {
+        const permissions: any[] = [];
+        this.components.map(component => {
+            permissions.push(...component.permissions());
+        });
+        return permissions;
+    }
 }

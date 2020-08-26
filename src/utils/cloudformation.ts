@@ -1,6 +1,16 @@
 import chalk from "chalk";
 import {StackEvent} from "aws-sdk/clients/cloudformation";
 
+export class PolicyStatement {
+    Effect = 'Allow';
+    Action: string|string[];
+    Resource: string|Array<any>;
+    constructor(Action: string|string[], Resource: string|Array<any>) {
+        this.Action = Action;
+        this.Resource = Resource;
+    }
+}
+
 export async function displayCloudFormationEvents(events: Array<StackEvent>) {
     for (const event of events.reverse()) {
         const status = event.ResourceStatus ? event.ResourceStatus : '';

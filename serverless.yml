@@ -1,0 +1,21 @@
+service: tmp-configtest-app
+
+provider:
+    name: aws
+    region: us-east-1
+    runtime: nodejs12.x
+
+functions:
+    hello:
+        handler: demo/handler.hello
+
+package:
+    exclude:
+        - 'bin/**'
+        - 'node_modules/**'
+        - 'src/**'
+        - 'test/**'
+        - 'utils/**'
+
+plugins:
+    - ./demo/plugin.js

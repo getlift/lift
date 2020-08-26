@@ -1,4 +1,5 @@
 import {Component} from "./Component";
+import {PolicyStatement} from "../utils/cloudformation";
 
 export class Database extends Component {
     private name: string;
@@ -60,5 +61,9 @@ export class Database extends Component {
                 Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Port'),
             },
         };
+    }
+
+    permissions(): PolicyStatement[] {
+        return [];
     }
 }

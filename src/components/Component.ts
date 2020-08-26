@@ -1,9 +1,11 @@
 import {pascalCase} from "pascal-case";
 import {pascalCaseTransformMerge} from "pascal-case";
+import {PolicyStatement} from "../utils/cloudformation";
 
 export abstract class Component {
     abstract compile(): Record<string, any>;
     abstract outputs(): Record<string, any>;
+    abstract permissions(): PolicyStatement[];
 
     formatResourceName(name: string): string {
         return pascalCase(name, {
@@ -27,6 +29,12 @@ export abstract class Component {
                 glue,
                 strings,
             ],
+        }
+    }
+
+    fnImportValue(name: string): object {
+        return {
+            'Fn::ImportValue': name,
         }
     }
 }

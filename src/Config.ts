@@ -16,7 +16,7 @@ export class Config {
 
         if (template.hasOwnProperty('s3')) {
             for (const [key, value] of Object.entries(template.s3)) {
-                stack.add(new S3(key, value as Record<string, any>));
+                stack.add(new S3(stack.name, key, value as Record<string, any>));
             }
         }
         if (template.hasOwnProperty('db')) {

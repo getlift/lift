@@ -1,8 +1,8 @@
 name: tmp-configtest
 region: us-east-1
 
-#s3:
-#    tmp-test-avatars-123:
+s3:
+    tmp-test-avatars-123:
 #        public: true
 #        cors: true
 
