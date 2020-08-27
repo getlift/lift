@@ -6,7 +6,7 @@ export default class Export extends Command {
     static description = 'export the stack to a YAML CloudFormation template'
 
     static examples = [
-        `$ lift export
+        `$ shift export
 AWSTemplateFormatVersion: '2010-09-09'
 ...
 `,

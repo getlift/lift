@@ -1,12 +1,12 @@
-lift
-====
+shift
+=====
 
 
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/lift.svg)](https://npmjs.org/package/lift)
-[![Downloads/week](https://img.shields.io/npm/dw/lift.svg)](https://npmjs.org/package/lift)
-[![License](https://img.shields.io/npm/l/lift.svg)](https://github.com/mnapoli/lift/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/shift.svg)](https://npmjs.org/package/shift)
+[![Downloads/week](https://img.shields.io/npm/dw/shift.svg)](https://npmjs.org/package/shift)
+[![License](https://img.shields.io/npm/l/shift.svg)](https://github.com/mnapoli/shift/blob/master/package.json)
 
 <!-- toc -->
 * [Usage](#usage)
@@ -15,49 +15,50 @@ lift
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g lift
-$ lift COMMAND
+$ npm install -g shift
+$ shift COMMAND
 running command...
-$ lift (-v|--version|version)
-lift/0.0.0 darwin-x64 node-v14.7.0
-$ lift --help [COMMAND]
+$ shift (-v|--version|version)
+shift/0.0.0 darwin-x64 node-v14.7.0
+$ shift --help [COMMAND]
 USAGE
-  $ lift COMMAND
+  $ shift COMMAND
 ...
 ```
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`lift hello [FILE]`](#lift-hello-file)
-* [`lift help [COMMAND]`](#lift-help-command)
+* [`shift export`](#shift-export)
+* [`shift help [COMMAND]`](#shift-help-command)
+* [`shift permissions`](#shift-permissions)
+* [`shift remove`](#shift-remove)
+* [`shift status`](#shift-status)
+* [`shift up`](#shift-up)
+* [`shift variables`](#shift-variables)
 
-## `lift hello [FILE]`
+## `shift export`
 
-describe the command here
+export the stack to a YAML CloudFormation template
 
 ```
 USAGE
-  $ lift hello [FILE]
-
-OPTIONS
-  -f, --force
-  -h, --help       show CLI help
-  -n, --name=name  name to print
+  $ shift export
 
 EXAMPLE
-  $ lift hello
-  hello world from ./src/hello.ts!
+  $ shift export
+  AWSTemplateFormatVersion: '2010-09-09'
+  ...
 ```
 
-_See code: [src/commands/hello.ts](https://github.com/mnapoli/lift/blob/v0.0.0/src/commands/hello.ts)_
+_See code: [src/commands/export.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/export.ts)_
 
-## `lift help [COMMAND]`
+## `shift help [COMMAND]`
 
-display help for lift
+display help for shift
 
 ```
 USAGE
-  $ lift help [COMMAND]
+  $ shift help [COMMAND]
 
 ARGUMENTS
   COMMAND  command to show help for
@@ -67,4 +68,69 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.0/src/commands/help.ts)_
+
+## `shift permissions`
+
+export the IAM permissions
+
+```
+USAGE
+  $ shift permissions
+```
+
+_See code: [src/commands/permissions.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/permissions.ts)_
+
+## `shift remove`
+
+delete the deployed stack
+
+```
+USAGE
+  $ shift remove
+
+OPTIONS
+  -f, --force  force the deletion
+
+EXAMPLE
+  $ shift delete
+  Stack deleted.
+```
+
+_See code: [src/commands/remove.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/remove.ts)_
+
+## `shift status`
+
+Status of the stack
+
+```
+USAGE
+  $ shift status
+
+EXAMPLE
+  $ shift status
+```
+
+_See code: [src/commands/status.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/status.ts)_
+
+## `shift up`
+
+deploy the stack
+
+```
+USAGE
+  $ shift up
+```
+
+_See code: [src/commands/up.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/up.ts)_
+
+## `shift variables`
+
+export the environment variables
+
+```
+USAGE
+  $ shift variables
+```
+
+_See code: [src/commands/variables.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/variables.ts)_
 <!-- commandsstop -->

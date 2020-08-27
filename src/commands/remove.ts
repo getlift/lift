@@ -7,7 +7,7 @@ export default class Remove extends Command {
     static description = 'delete the deployed stack'
 
     static examples = [
-        `$ lift delete
+        `$ shift delete
 Stack deleted.
 `,
     ]

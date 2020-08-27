@@ -1,11 +1,10 @@
 {
-  "name": "lift",
+  "name": "shift",
   "version": "0.0.0",
   "author": "Matthieu Napoli @mnapoli",
   "bin": {
-    "lift": "./bin/run"
+    "shift": "./bin/run"
   },
-  "bugs": "https://github.com/mnapoli/lift/issues",
   "dependencies": {
     "@oclif/command": "^1.8.0",
     "@oclif/config": "^1.17.0",
@@ -44,7 +43,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/mnapoli/lift",
+  "homepage": "https://github.com/mnapoli/shift",
   "keywords": [
     "oclif"
   ],
@@ -52,12 +51,12 @@
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
-    "bin": "lift",
+    "bin": "shift",
     "plugins": [
       "@oclif/plugin-help"
     ]
   },
-  "repository": "mnapoli/lift",
+  "repository": "mnapoli/shift",
   "scripts": {
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",
