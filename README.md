@@ -19,7 +19,7 @@ $ npm install -g shift
 $ shift COMMAND
 running command...
 $ shift (-v|--version|version)
-shift/0.0.0 darwin-x64 node-v14.7.0
+shift/0.0.1 darwin-x64 node-v14.7.0
 $ shift --help [COMMAND]
 USAGE
   $ shift COMMAND
@@ -50,7 +50,7 @@ EXAMPLE
   ...
 ```
 
-_See code: [src/commands/export.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/export.ts)_
+_See code: [src/commands/export.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/export.ts)_
 
 ## `shift help [COMMAND]`
 
@@ -78,7 +78,7 @@ USAGE
   $ shift permissions
 ```
 
-_See code: [src/commands/permissions.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/permissions.ts)_
+_See code: [src/commands/permissions.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/permissions.ts)_
 
 ## `shift remove`
 
@@ -96,7 +96,7 @@ EXAMPLE
   Stack deleted.
 ```
 
-_See code: [src/commands/remove.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/remove.ts)_
+_See code: [src/commands/remove.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/remove.ts)_
 
 ## `shift status`
 
@@ -110,7 +110,7 @@ EXAMPLE
   $ shift status
 ```
 
-_See code: [src/commands/status.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/status.ts)_
+_See code: [src/commands/status.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/status.ts)_
 
 ## `shift up`
 
@@ -121,7 +121,7 @@ USAGE
   $ shift up
 ```
 
-_See code: [src/commands/up.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/up.ts)_
+_See code: [src/commands/up.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/up.ts)_
 
 ## `shift variables`
 
@@ -132,5 +132,5 @@ USAGE
   $ shift variables
 ```
 
-_See code: [src/commands/variables.ts](https://github.com/mnapoli/shift/blob/v0.0.0/src/commands/variables.ts)_
+_See code: [src/commands/variables.ts](https://github.com/mnapoli/shift/blob/v0.0.1/src/commands/variables.ts)_
 <!-- commandsstop -->
