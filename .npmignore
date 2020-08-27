@@ -7,3 +7,8 @@
 node_modules
 /syntax/
 /.serverless/
+/test/
+/demo/
+/src/
+/serverless.yml
+/resources.yml
