@@ -2,11 +2,13 @@ import {Component} from "./Component";
 import {PolicyStatement} from "../utils/cloudformation";
 
 export class StaticWebsite extends Component {
+    private stackName: string;
     private props: Record<string, any>;
     private bucketResourceName: string;
 
-    constructor(props: Record<string, any> | null) {
+    constructor(stackName: string, props: Record<string, any> | null) {
         super();
+        this.stackName = stackName;
         this.props = props ? props : {};
 
         this.bucketResourceName = this.formatResourceName('StaticWebsite');
@@ -128,15 +130,41 @@ export class StaticWebsite extends Component {
             [this.bucketResourceName + 'Bucket']: {
                 Description: 'Name of the bucket that stores the static website.',
                 Value: this.fnRef(this.bucketResourceName),
+                Export: {
+                    Name: this.stackName + '-StaticWebsite-BucketName',
+                },
             },
             CloudFrontDomain: {
                 Description: 'CloudFront domain name.',
                 Value: this.fnGetAtt('WebsiteCDN', 'DomainName'),
+                Export: {
+                    Name: this.stackName + '-StaticWebsite-CloudFrontDomain',
+                },
             },
         };
     }
 
     permissions(): PolicyStatement[] {
         return [];
+    }
+
+    envVariables() {
+        let variables: Record<string, any> = {};
+
+        // Bucket name
+        const bucketName = this.fnImportValue(this.stackName + '-StaticWebsite-BucketName');
+        variables[this.formatEnvVariableName('STATIC_WEBSITE_BUCKET')] = bucketName;
+
+        // Domain
+        if (this.props.domain) {
+            variables['STATIC_WEBSITE_DOMAIN'] = this.props.domain;
+            variables['STATIC_WEBSITE_URL'] = 'https://' + this.props.domain;
+        } else {
+            const cloudFrontDomain = this.fnImportValue(this.stackName + '-StaticWebsite-CloudFrontDomain');
+            variables['STATIC_WEBSITE_DOMAIN'] = cloudFrontDomain;
+            variables['STATIC_WEBSITE_URL'] = this.fnJoin('', ['https://', cloudFrontDomain]);
+        }
+
+        return variables;
     }
 }

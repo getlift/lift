@@ -20,12 +20,10 @@ export class Config {
             }
         }
         if (template.hasOwnProperty('db')) {
-            for (const [key, value] of Object.entries(template.db)) {
-                stack.add(new Database(key, value as Record<string, any>));
-            }
+            stack.add(new Database(stack.name, template.db as Record<string, any>));
         }
         if (template.hasOwnProperty('static-website')) {
-            stack.add(new StaticWebsite(template['static-website']));
+            stack.add(new StaticWebsite(stack.name, template['static-website']));
         }
 
         return stack;

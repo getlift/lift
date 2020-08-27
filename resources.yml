@@ -7,6 +7,5 @@ s3:
 #        cors: true
 
 #db:
-#    db:
 
 static-website:

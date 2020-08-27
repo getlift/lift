@@ -3,24 +3,24 @@ import {PolicyStatement} from "../utils/cloudformation";
 
 export class S3 extends Component {
     private stackName: string;
-    private name: string;
+    private bucketName: string;
     private props: Record<string, any>;
     private bucketResourceName: string;
 
     constructor(stackName: string, name: string, props: Record<string, any> | null) {
         super();
         this.stackName = stackName;
-        this.name = name;
+        this.bucketName = name;
         this.props = props ? props : {};
 
-        this.bucketResourceName = this.formatResourceName(this.name);
+        this.bucketResourceName = this.formatResourceName(this.bucketName);
     }
 
     compile(): Record<string, any> {
         const bucket: any = {
             Type: 'AWS::S3::Bucket',
             Properties: {
-                BucketName: this.name,
+                BucketName: this.bucketName,
             },
         };
 
@@ -89,5 +89,12 @@ export class S3 extends Component {
                 this.fnJoin('', [ bucketArn, '/*' ]),
             ]),
         ];
+    }
+
+    envVariables() {
+        const variableName = this.formatEnvVariableName('BUCKET_' + this.bucketName);
+        return {
+            [variableName]: this.bucketName,
+        };
     }
 }

@@ -41,4 +41,15 @@ export class Stack {
         });
         return permissions;
     }
+
+    variables() {
+        const variables: Record<string, any> = {};
+        this.components.map(component => {
+            const newVariables = component.envVariables();
+            Object.keys(newVariables).map(name => {
+                variables[name] = newVariables[name];
+            });
+        });
+        return variables;
+    }
 }
