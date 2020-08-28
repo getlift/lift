@@ -1,6 +1,7 @@
 import CloudFormation, {StackEvent} from 'aws-sdk/clients/cloudformation';
 import {Stack} from "./Stack";
 import ora from "ora";
+import {waitFor} from "./utils/wait";
 
 class NeedToDeleteStack implements Error {
     message = 'The stack is in a failed state because its creation failed. You need to delete it before attempting to deploy again.';
@@ -166,9 +167,45 @@ export class Deployer {
             region: stack.region,
         });
 
+        const response = await cloudFormation.describeStacks({
+            StackName: stack.name,
+        }).promise();
+        if (!response.Stacks || response.Stacks?.length === 0) {
+            console.log('Stack doesn\'t exist, nothing to delete');
+            return;
+        }
+        // Use the stack ID because it keeps working even after the stack is deleted
+        const stackId = response.Stacks[0].StackId;
+
+        const progress = ora('Deleting stack').start();
+
         await cloudFormation.deleteStack({
             StackName: stack.name,
         }).promise();
+
+        try {
+            await waitFor(async () => {
+                progress.text = progress.text + '.';
+                const response = await cloudFormation.describeStacks({
+                    StackName: stackId,
+                }).promise();
+                const status = response.Stacks![0].StackStatus;
+                const reason = response.Stacks![0].StackStatusReason ? response.Stacks![0].StackStatusReason : status;
+                switch (status) {
+                    case 'DELETE_IN_PROGRESS':
+                        return false;
+                    case 'DELETE_COMPLETE':
+                        return true;
+                    default:
+                        throw new Error(`Deletion failed. ${reason}`);
+                }
+            });
+        } catch (e) {
+            progress.fail();
+            throw e;
+        }
+
+        progress.succeed();
     }
 
     private async deployOperation(cloudFormation: CloudFormation, stackName: string): Promise<string> {

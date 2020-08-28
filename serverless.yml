@@ -1,4 +1,4 @@
-service: tmp-configtest-app
+service: lift-app
 
 provider:
     name: aws

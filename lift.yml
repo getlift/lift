@@ -1,4 +1,4 @@
-name: tmp-configtest
+name: lift
 region: us-east-1
 
 s3:
@@ -8,4 +8,4 @@ s3:
 
 #db:
 
-static-website:
+#static-website:
