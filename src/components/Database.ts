@@ -2,16 +2,14 @@ import {Component} from "./Component";
 import {PolicyStatement} from "../utils/cloudformation";
 
 export class Database extends Component {
-    private stackName: string;
-    private props: Record<string, any>;
-    private dbResourceName: string;
+    private readonly props: Record<string, any>;
+    private readonly dbResourceName: string;
 
     constructor(stackName: string, props: Record<string, any> | null) {
-        super();
-        this.stackName = stackName;
+        super(stackName);
         this.props = props ? props : {};
 
-        this.dbResourceName = this.formatResourceName('Database');
+        this.dbResourceName = this.formatCloudFormationId('Database');
     }
 
     compile(): Record<string, any> {

@@ -2,16 +2,14 @@ import {Component} from "./Component";
 import {PolicyStatement} from "../utils/cloudformation";
 
 export class StaticWebsite extends Component {
-    private stackName: string;
-    private props: Record<string, any>;
-    private bucketResourceName: string;
+    private readonly props: Record<string, any>;
+    private readonly bucketResourceName: string;
 
     constructor(stackName: string, props: Record<string, any> | null) {
-        super();
-        this.stackName = stackName;
+        super(stackName);
         this.props = props ? props : {};
 
-        this.bucketResourceName = this.formatResourceName('StaticWebsite');
+        this.bucketResourceName = this.formatCloudFormationId('StaticWebsite');
     }
 
     compile(): Record<string, any> {

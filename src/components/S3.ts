@@ -2,18 +2,18 @@ import {Component} from "./Component";
 import {PolicyStatement} from "../utils/cloudformation";
 
 export class S3 extends Component {
-    private stackName: string;
-    private bucketName: string;
-    private props: Record<string, any>;
-    private bucketResourceName: string;
+    private readonly name: string;
+    private readonly bucketName: string;
+    private readonly props: Record<string, any>;
+    private readonly bucketResourceId: string;
 
     constructor(stackName: string, name: string, props: Record<string, any> | null) {
-        super();
-        this.stackName = stackName;
-        this.bucketName = name;
+        super(stackName);
+        this.name = name;
+        this.bucketName = this.formatUniqueResourceName(name);
         this.props = props ? props : {};
 
-        this.bucketResourceName = this.formatResourceName(this.bucketName);
+        this.bucketResourceId = this.formatCloudFormationId(this.name);
     }
 
     compile(): Record<string, any> {
@@ -37,14 +37,14 @@ export class S3 extends Component {
         }
 
         const resources: Record<string, any> = {
-            [this.bucketResourceName]: bucket,
+            [this.bucketResourceId]: bucket,
         };
 
         if (this.props.public) {
-            resources[this.bucketResourceName + 'BucketPolicy'] = {
+            resources[this.bucketResourceId + 'BucketPolicy'] = {
                 Type: 'AWS::S3::BucketPolicy',
                 Properties: {
-                    Bucket: this.fnRef(this.bucketResourceName),
+                    Bucket: this.fnRef(this.bucketResourceId),
                     PolicyDocument: {
                         Statement: [
                             {
@@ -52,7 +52,7 @@ export class S3 extends Component {
                                 Principal: '*',
                                 Action: 's3:GetObject',
                                 Resource: this.fnJoin('', [
-                                    this.fnGetAtt(this.bucketResourceName, 'Arn'),
+                                    this.fnGetAtt(this.bucketResourceId, 'Arn'),
                                     '/*',
                                 ]),
                             },
@@ -67,22 +67,22 @@ export class S3 extends Component {
 
     outputs() {
         return {
-            [this.bucketResourceName + 'Bucket']: {
+            [this.bucketResourceId + 'Bucket']: {
                 Description: 'Name of the S3 bucket.',
-                Value: this.fnRef(this.bucketResourceName),
+                Value: this.fnRef(this.bucketResourceId),
             },
-            [this.bucketResourceName + 'BucketArn']: {
+            [this.bucketResourceId + 'BucketArn']: {
                 Description: 'ARN of the S3 bucket.',
-                Value: this.fnGetAtt(this.bucketResourceName, 'Arn'),
+                Value: this.fnGetAtt(this.bucketResourceId, 'Arn'),
                 Export: {
-                    Name: this.stackName + '-' + this.bucketResourceName + 'BucketArn',
+                    Name: this.stackName + '-' + this.bucketResourceId + 'BucketArn',
                 },
             },
         };
     }
 
     permissions(): PolicyStatement[] {
-        const bucketArn = this.fnImportValue(this.stackName + '-' + this.bucketResourceName + 'BucketArn');
+        const bucketArn = this.fnImportValue(this.stackName + '-' + this.bucketResourceId + 'BucketArn');
         return [
             new PolicyStatement('s3:*', [
                 bucketArn,
@@ -92,7 +92,7 @@ export class S3 extends Component {
     }
 
     envVariables() {
-        const variableName = this.formatEnvVariableName('BUCKET_' + this.bucketName);
+        const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
         return {
             [variableName]: this.bucketName,
         };

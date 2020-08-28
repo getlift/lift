@@ -2,7 +2,7 @@ name: lift
 region: us-east-1
 
 s3:
-    tmp-test-avatars-123:
+    avatars:
 #        public: true
 #        cors: true
 

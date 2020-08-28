@@ -4,12 +4,22 @@ import {constantCase} from "constant-case";
 import {PolicyStatement} from "../utils/cloudformation";
 
 export abstract class Component {
+    protected readonly stackName: string;
+
     abstract compile(): Record<string, any>;
     abstract outputs(): Record<string, any>;
     abstract permissions(): PolicyStatement[];
     abstract envVariables(): Record<string, any>;
 
-    formatResourceName(name: string): string {
+    protected constructor(stackName: string) {
+        this.stackName = stackName;
+    }
+
+    formatUniqueResourceName(name: string): string {
+        return this.stackName + '-' + name;
+    }
+
+    formatCloudFormationId(name: string): string {
         return pascalCase(name, {
             transform: pascalCaseTransformMerge,
         });
