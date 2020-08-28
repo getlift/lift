@@ -9,7 +9,7 @@ export default class Status extends Command {
     static description = 'Status of the stack'
 
     static examples = [
-        `$ shift status
+        `$ lift status
 `,
     ]
 

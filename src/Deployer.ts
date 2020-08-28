@@ -51,7 +51,7 @@ export class Deployer {
                 ChangeSetName: changeSetName,
             }).promise();
             if (changeSet.Status === 'FAILED') {
-                const reason = changeSet.StatusReason ? changeSet.StatusReason : 'run "shift status" to learn more';
+                const reason = changeSet.StatusReason ? changeSet.StatusReason : 'run "lift status" to learn more';
                 if (reason.includes('The submitted information didn\'t contain changes.')) {
                     console.log('Nothing to deploy, the stack is up to date 👌');
                     progress = ora('Cleaning up the change set').start();
