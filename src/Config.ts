@@ -30,7 +30,7 @@ export class Config {
     }
 
     private static readYaml(): Record<string, any> {
-        const template = yaml.safeLoad(fs.readFileSync('resources.yml', 'utf8'));
+        const template = yaml.safeLoad(fs.readFileSync('lift.yml', 'utf8'));
         if (!template || typeof template !== 'object' || !template.hasOwnProperty('name')) {
             throw 'Invalid YAML';
         }
