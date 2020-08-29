@@ -20,7 +20,7 @@ export class Config {
 
         const stack = new Stack(template.name as string, template.region as string);
 
-        if (template.hasOwnProperty('s3')) {
+        if (template.hasOwnProperty('s3') && template.s3) {
             for (const [key, value] of Object.entries(template.s3)) {
                 stack.add(new S3(stack.name, key, value as Record<string, any>));
             }

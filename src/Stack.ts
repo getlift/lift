@@ -11,18 +11,24 @@ export class Stack {
     }
 
     compile(): Record<string, any> {
-        const resources: Record<string, any> = {};
-        const outputs: Record<string, any> = {};
+        let resources: Record<string, any>|null = {};
+        let outputs: Record<string, any>|null = {};
         this.components.map(component => {
             const newResources = component.compile();
             Object.keys(newResources).map(name => {
-                resources[name] = newResources[name];
+                resources![name] = newResources[name];
             });
             const newOutputs = component.outputs();
             Object.keys(newOutputs).map(name => {
-                outputs[name] = newOutputs[name];
+                outputs![name] = newOutputs[name];
             });
         });
+        if (Object.keys(resources).length === 0) {
+            resources = null;
+        }
+        if (Object.keys(outputs).length === 0) {
+            outputs = null;
+        }
         return {
             AWSTemplateFormatVersion: '2010-09-09',
             Resources: resources,
