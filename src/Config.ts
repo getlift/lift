@@ -6,11 +6,17 @@ import {Database} from "./components/Database";
 import {StaticWebsite} from "./components/StaticWebsite";
 
 export class Config {
-    getStack(): Stack {
-        const template = Config.readYaml();
-        if (!template || typeof template !== 'object' || !template.hasOwnProperty('name')) {
+    private readonly template: Record<string, any>;
+
+    constructor(yaml: string|undefined = undefined) {
+        this.template = Config.readYaml(yaml);
+        if (!this.template || typeof this.template !== 'object' || !this.template.hasOwnProperty('name')) {
             throw 'Invalid YAML';
         }
+    }
+
+    getStack(): Stack {
+        const template = this.template;
 
         const stack = new Stack(template.name as string, template.region as string);
 
@@ -29,8 +35,9 @@ export class Config {
         return stack;
     }
 
-    private static readYaml(): Record<string, any> {
-        const template = yaml.safeLoad(fs.readFileSync('lift.yml', 'utf8'));
+    private static readYaml(yamlString: string|undefined): Record<string, any> {
+        yamlString = yamlString ? yamlString : fs.readFileSync('lift.yml', 'utf8');
+        const template = yaml.safeLoad(yamlString);
         if (!template || typeof template !== 'object' || !template.hasOwnProperty('name')) {
             throw 'Invalid YAML';
         }

@@ -1,0 +1,11 @@
+name: lift
+region: us-east-1
+
+#s3:
+#    my-bucket:
+#        public: true
+#        cors: true
+
+#db:
+
+#static-website:
