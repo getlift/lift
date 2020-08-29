@@ -26,7 +26,6 @@
     })
     export default class LiftForm extends Vue {
         liftConfig = `name: myproject
-region: us-east-1
 
 s3:
     # Uncomment to create S3 buckets:
