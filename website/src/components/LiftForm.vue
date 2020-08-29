@@ -16,7 +16,7 @@
     import {Config} from "../../../src/Config";
     import * as yaml from "js-yaml";
     import { PrismEditor } from 'vue-prism-editor';
-    import { highlight, languages } from 'prismjs/components/prism-core';
+    import { highlight, languages } from 'prismjs';
     import 'prismjs/components/prism-yaml';
 
     @Component({
@@ -64,7 +64,7 @@ s3:
         }
 
         highlighter(code: string) {
-            return highlight(code, languages.yaml);
+            return highlight(code, languages.yaml, 'yaml');
         }
     }
 </script>
