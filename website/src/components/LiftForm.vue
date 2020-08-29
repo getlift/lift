@@ -25,17 +25,25 @@
         }
     })
     export default class LiftForm extends Vue {
-        liftConfig = `name: lift
+        liftConfig = `name: myproject
 region: us-east-1
 
-#s3:
-#    my-bucket:
+s3:
+    # Uncomment to create S3 buckets:
+#    avatars:
 #        public: true
 #        cors: true
+#    storage:
 
+# Uncomment to create a database:
 #db:
+#    engine: postgres
 
-#static-website:`;
+# Uncomment to create a static website:
+# (S3 bucket + CloudFront CDN)
+#static-website:
+#    domain: example.com
+#    certificate: 'arn:aws:acm:us-east-1:xxx:...'`;
         output = '';
 
         created() {
