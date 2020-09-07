@@ -1,11 +1,28 @@
 <template>
-    <div class="h-screen py-16">
-        <div class="grid grid-cols-2 gap-4 bg-gray-700 rounded-md h-full">
+    <div class="py-16">
+        <div class="grid grid-cols-2 gap-4 bg-gray-700 rounded-md">
             <div class="p-6 rounded-l-md bg-gray-200">
                 <prism-editor v-model="liftConfig" :highlight="highlighter" class="highlighted"></prism-editor>
             </div>
-            <div class="p-6 rounded-r-md bg-gray-200 h-full overflow-y-hidden">
-                <pre class="highlighted h-full overflow-y-auto" v-html="output"></pre>
+            <div class="rounded-r-md bg-gray-200 overflow-hidden">
+                <div class="p-6 bg-gray-400">
+                    <h2 class="font-mono text-gray-800 mb-3">cloudformation.yml</h2>
+                    <div class="text-xs text-gray-600">
+                        <code class="font-mono">aws cloudformation deploy --template cloudformation.yml --stack-name {{ stackName }}</code>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <pre class="highlighted text-sm" v-html="cloudformation"></pre>
+                </div>
+                <div class="p-6 bg-gray-400 font-mono">
+                    <h2 class="font-mono text-gray-800 mb-3">serverless.yml</h2>
+                    <div class="text-xs text-gray-600">
+                        <code class="font-mono">serverless deploy</code>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <pre class="highlighted text-sm" v-html="serverlessTemplate"></pre>
+                </div>
             </div>
         </div>
     </div>
@@ -43,7 +60,9 @@ s3:
 #static-website:
 #    domain: example.com
 #    certificate: 'arn:aws:acm:us-east-1:xxx:...'`;
-        output = '';
+        stackName = '';
+        cloudformation = '';
+        serverlessTemplate = '';
 
         created() {
             this.refresh(this.liftConfig);
@@ -53,12 +72,39 @@ s3:
         refresh(newValue: string) {
             try {
                 const stack = (new Config(newValue)).getStack();
-                let output = yaml.safeDump(stack.compile());
+                this.stackName = stack.name;
+
+                // Cloudformation
+                let output = yaml.safeDump(stack.compile(), {
+                    noRefs: true,
+                });
                 output = output.replace(/\nResources:\n/, '\n\nResources:\n');
                 output = output.replace(/\nOutputs:\n/, '\n\nOutputs:\n');
-                this.output = this.highlighter(output);
+                this.cloudformation = this.highlighter(output);
+
+                // serverless.yml
+                const variables = yaml.safeDump(stack.variables(), {
+                    noRefs: true,
+                })
+                    .replace(/\n/g, '\n        ')
+                    .trimEnd();
+                const permissions = yaml.safeDump(stack.permissions(), {
+                    noRefs: true,
+                })
+                    .replace(/\n/g, '\n        ')
+                    .trimEnd();
+                this.serverlessTemplate = this.highlighter(`provider:
+    name: aws
+    # Environment variables
+    environment:
+        ${variables}
+    # Permissions applied to Lambda functions
+    iamRoleStatements:
+        ${permissions}
+# ...`);
             } catch (e) {
-                this.output = 'Error: ' + e.message;
+                this.cloudformation = 'Error: ' + e.message;
+                this.serverlessTemplate = '';
             }
         }
 
@@ -71,5 +117,8 @@ s3:
 <style scoped>
 .highlighted {
     @apply font-mono p-0 m-0 bg-transparent leading-8 text-base whitespace-pre-wrap !important;
+}
+.highlighted.text-sm {
+    @apply text-sm !important;
 }
 </style>
