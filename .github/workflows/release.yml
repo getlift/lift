@@ -36,6 +36,8 @@ jobs:
                 run: |
                     cp oclif.manifest.json dist/
 
+            -   run: cd dist && npm version $RELEASE_VERSION --no-git-tag-version
+
             -   name: Publish
                 run: cd dist && npm publish --access public
                 env:
