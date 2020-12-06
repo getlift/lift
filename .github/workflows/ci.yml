@@ -1,0 +1,17 @@
+name: CI
+
+on:
+    push:
+        branches: [ master ]
+    pull_request:
+
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v1
+            -   run: npm ci
+            -   name: Typescript checks
+                run: tsc --noEmit
