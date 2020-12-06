@@ -3,7 +3,7 @@
   "license": "proprietary",
   "homepage": "https://github.com/mnapoli/lift",
   "bin": {
-    "lift": "lift"
+    "lift": "bin/lift.js"
   },
   "dependencies": {
     "@oclif/command": "^1.8.0",

@@ -2,10 +2,13 @@ const fs = require('fs');
 const localPkgJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
 require('esbuild').build({
-    entryPoints: ['bin/lift.ts'],
+    entryPoints: [
+        'bin/lift.ts',
+        ...fs.readdirSync('src/commands').map(file => 'src/commands/' + file),
+    ],
     bundle: true,
     platform: 'node',
-    outfile: 'dist/lift',
+    outdir: 'dist',
     minify: true,
     external: Object.keys({
         ...(localPkgJson.dependencies || {}),

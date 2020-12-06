@@ -1,0 +1,36 @@
+{
+  "name": "@mnapoli/lift",
+  "license": "proprietary",
+  "homepage": "https://github.com/mnapoli/lift",
+  "repository": "https://github.com/mnapoli/lift",
+  "bin": {
+    "lift": "bin/lift.js"
+  },
+  "dependencies": {
+    "@oclif/command": "^1.8.0",
+    "@oclif/config": "^1.17.0",
+    "@oclif/plugin-help": "^3.2.0",
+    "aws-sdk": "^2.737.0",
+    "chalk": "^4.1.0",
+    "change-case": "^4.1.1",
+    "js-yaml": "^3.14.0",
+    "log-symbols": "^4.0.0",
+    "ora": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/src",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "oclif": {
+    "commands": "./src/commands",
+    "bin": "lift",
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
+  }
+}

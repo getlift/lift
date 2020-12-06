@@ -1,4 +1,5 @@
 lift
 oclif.manifest.json
-package.json
 package-lock.json
+bin/*.js
+src/**.js

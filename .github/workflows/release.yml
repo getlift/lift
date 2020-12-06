@@ -34,11 +34,9 @@ jobs:
 
             -   name: Copy files for release
                 run: |
-                    cp package.json dist/
-                    cp package-lock.json dist/
                     cp oclif.manifest.json dist/
 
             -   name: Publish
                 run: cd dist && npm publish --access public
                 env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
