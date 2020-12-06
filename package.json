@@ -54,9 +54,7 @@
   },
   "repository": "mnapoli/lift",
   "scripts": {
-    "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",
-    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest",
     "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
   "types": "lib/index.d.ts"
