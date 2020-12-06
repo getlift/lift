@@ -28,8 +28,8 @@ jobs:
             -   name: Copy package.json
                 run: cp package.json dist/package.json
 
-            -   env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
             -   name: Publish
                 run: cd dist && npm publish --access public
+                env:
+                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
