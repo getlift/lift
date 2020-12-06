@@ -1,6 +1,7 @@
 {
   "name": "@mnapoli/lift",
-  "version": "0.0.1",
+  "license": "proprietary",
+  "homepage": "https://github.com/mnapoli/lift",
   "bin": {
     "lift": "lift"
   },
@@ -43,11 +44,6 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/mnapoli/lift",
-  "keywords": [
-    "oclif"
-  ],
-  "license": "proprietary",
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
@@ -60,12 +56,8 @@
   "scripts": {
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",
-    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
-    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
-    "version": "oclif-dev readme && git add README.md"
+    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest",
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
-  "types": "lib/index.d.ts",
-  "pkg": {
-    "scripts": "./lib/**/*.js"
-  }
+  "types": "lib/index.d.ts"
 }

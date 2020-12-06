@@ -1,7 +1,6 @@
 *-debug.log
 *-error.log
 /.nyc_output
-/dist
 /lib
 /tmp
 node_modules

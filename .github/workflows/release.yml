@@ -22,12 +22,17 @@ jobs:
 
             -   run: npm version $RELEASE_VERSION --no-git-tag-version
 
+            -   name: Generate oclif.manifest.json
+                run: oclif-dev manifest
+
             -   name: Compile the source code
                 run: node esbuild.js
 
-            -   name: Copy package.json
-                run: cp package.json dist/package.json
-
+            -   name: Copy files for release
+                run: |
+                    cp package.json dist/
+                    cp package.lock dist/
+                    cp oclif.manifest.json dist/
 
             -   name: Publish
                 run: cd dist && npm publish --access public

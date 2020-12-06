@@ -15,11 +15,11 @@ lift
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g lift
+$ npm install -g @mnapoli/lift
 $ lift COMMAND
 running command...
 $ lift (-v|--version|version)
-lift/0.0.1 darwin-x64 node-v15.3.0
+@mnapoli/lift/0.0.1 darwin-x64 node-v15.3.0
 $ lift --help [COMMAND]
 USAGE
   $ lift COMMAND
