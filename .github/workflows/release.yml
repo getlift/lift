@@ -34,7 +34,7 @@ jobs:
             -   name: Copy files for release
                 run: |
                     cp package.json dist/
-                    cp package.lock dist/
+                    cp package-lock.json dist/
                     cp oclif.manifest.json dist/
 
             -   name: Publish
