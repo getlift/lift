@@ -19,7 +19,7 @@ $ npm install -g lift
 $ lift COMMAND
 running command...
 $ lift (-v|--version|version)
-lift/0.0.1 darwin-x64 node-v14.7.0
+lift/0.0.1 darwin-x64 node-v15.3.0
 $ lift --help [COMMAND]
 USAGE
   $ lift COMMAND

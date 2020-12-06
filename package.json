@@ -1,9 +1,8 @@
 {
-  "name": "lift",
+  "name": "@mnapoli/lift",
   "version": "0.0.1",
-  "author": "Matthieu Napoli @mnapoli",
   "bin": {
-    "lift": "./bin/run"
+    "lift": "lift"
   },
   "dependencies": {
     "@oclif/command": "^1.8.0",
@@ -25,6 +24,7 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^10.17.28",
     "chai": "^4.2.0",
+    "esbuild": "^0.8.20",
     "eslint": "^5.16.0",
     "eslint-config-oclif": "^3.1.0",
     "eslint-config-oclif-typescript": "^0.1.0",

@@ -1,0 +1,35 @@
+name: Release
+
+on:
+    # This job runs when a new release is published
+    release:
+        types: [ published ]
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v1
+                with:
+                    node-version: '14'
+            -   run: npm ci
+
+            # Store the name of the release
+            # See https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
+            -   name: Set env
+                run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+            -   run: npm version $RELEASE_VERSION --no-git-tag-version
+
+            -   name: Compile the source code
+                run: node esbuild.js
+
+            -   name: Copy package.json
+                run: cp package.json dist/package.json
+
+            -   env:
+                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            -   name: Publish
+                run: cd dist && npm publish --access public
