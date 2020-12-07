@@ -3,6 +3,7 @@
   "license": "proprietary",
   "homepage": "https://github.com/mnapoli/lift",
   "repository": "https://github.com/mnapoli/lift",
+  "description": "Lift",
   "bin": {
     "lift": "bin/lift.js"
   },
