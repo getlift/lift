@@ -13,7 +13,7 @@ jobs:
             -   uses: actions/setup-node@v1
                 with:
                     node-version: '14'
-                    registry-url: https://registry.npmjs.org/
+                    registry-url: https://registry.npmjs.org
 
             -   run: npm install -g @oclif/dev-cli
 
@@ -36,9 +36,11 @@ jobs:
                 run: |
                     cp oclif.manifest.json dist/
 
-            -   run: cd dist && npm version $RELEASE_VERSION --no-git-tag-version
-
             -   name: Publish
-                run: cd dist && npm publish --access public
+                run: |
+                    cd dist
+                    npm install
+                    npm version $RELEASE_VERSION --no-git-tag-version
+                    npm publish --access public
                 env:
                     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
