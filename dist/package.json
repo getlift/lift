@@ -1,6 +1,6 @@
 {
   "name": "@mnapoli/lift",
-  "license": "proprietary",
+  "license": "UNLICENSED",
   "homepage": "https://github.com/mnapoli/lift",
   "repository": "https://github.com/mnapoli/lift",
   "description": "Lift",
@@ -33,5 +33,6 @@
     "plugins": [
       "@oclif/plugin-help"
     ]
-  }
+  },
+  "version": "0.1.13"
 }
