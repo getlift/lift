@@ -33,6 +33,5 @@
     "plugins": [
       "@oclif/plugin-help"
     ]
-  },
-  "version": "0.1.13"
+  }
 }
