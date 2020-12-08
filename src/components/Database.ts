@@ -13,30 +13,14 @@ export class Database extends Component {
     }
 
     compile(): Record<string, any> {
-        const engines = [
-            'mysql',
-            'mariadb',
-            'postgres',
-            'aurora',
-            'aurora-mysql',
-            'aurora-postgresql',
-        ];
-        let engine = 'mysql';
-        if (this.props.engine) {
-            if (! engines.includes(this.props.engine)) {
-                throw new Error(`Unknown RDS engine "${this.props.engine}"`);
-            }
-            engine = this.props.engine;
-        }
-
         const db: any = {
             Type: 'AWS::RDS::DBInstance',
             Properties: {
-                DBName: this.stackName,
-                Engine: engine,
+                DBName: this.getDbName(),
+                Engine: this.getEngine(),
                 MasterUsername: 'admin',
                 MasterUserPassword: 'password',
-                DBInstanceIdentifier: this.stackName,
+                DBInstanceIdentifier: this.getDbName(),
                 DBInstanceClass: 'db.t3.micro',
                 StorageType: 'gp2',
                 AllocatedStorage: '20', // minimum is 20 GB
@@ -81,5 +65,32 @@ export class Database extends Component {
         variables[this.formatEnvVariableName(this.dbResourceName + '_PORT')] = dbPort;
 
         return variables;
+    }
+
+    private getEngine(): string {
+        const availableEngines = [
+            'mysql',
+            'mariadb',
+            'postgres',
+            'aurora',
+            'aurora-mysql',
+            'aurora-postgresql',
+        ];
+        if (this.props.engine) {
+            if (! availableEngines.includes(this.props.engine)) {
+                throw new Error(`Unknown RDS engine "${this.props.engine}"`);
+            }
+            return this.props.engine;
+        }
+        return 'mysql';
+    }
+
+    private getDbName(): string {
+        const name = this.props.name ? this.props.name : this.stackName;
+        if (! name.match(/^[\w\d]*$/g)) {
+            throw new Error(`The database name '${name}' is invalid: it must only contain letters and numbers.`);
+        }
+
+        return name;
     }
 }
