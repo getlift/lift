@@ -34,6 +34,13 @@ export class Database extends Component {
 
     outputs() {
         return {
+            [this.dbResourceName + 'Name']: {
+                Description: 'Name of the database.',
+                Value: this.getDbName(),
+                Export: {
+                    Name: this.stackName + '-' + this.dbResourceName + '-Name',
+                },
+            },
             [this.dbResourceName + 'Host']: {
                 Description: 'Hostname of the database.',
                 Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Address'),
@@ -57,6 +64,9 @@ export class Database extends Component {
 
     envVariables() {
         let variables: Record<string, any> = {};
+
+        const dbName = this.fnImportValue(this.stackName + '-' + this.dbResourceName + '-Name');
+        variables[this.formatEnvVariableName(this.dbResourceName + '_NAME')] = dbName;
 
         const dbHost = this.fnImportValue(this.stackName + '-' + this.dbResourceName + '-Host');
         variables[this.formatEnvVariableName(this.dbResourceName + '_HOST')] = dbHost;
