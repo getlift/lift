@@ -4,7 +4,7 @@ import ora from "ora";
 import {waitFor} from "./utils/wait";
 
 class NeedToDeleteStack implements Error {
-    message = 'The stack is in a failed state because its creation failed. You need to delete it before attempting to deploy again.';
+    message = 'The stack is in a failed state because its creation failed. You need to delete it: run `lift remove`.';
     name = 'NeedToDeleteStack';
 }
 
@@ -18,7 +18,13 @@ export class Deployer {
 
         const changeSetName = `${stack.name}-${Date.now()}`;
 
-        let operation = await this.deployOperation(cloudFormation, stack.name);
+        let operation = null;
+        try {
+            operation = await this.deployOperation(cloudFormation, stack.name);
+        } catch (e) {
+            progress.fail();
+            throw e;
+        }
 
         progress.succeed();
         progress = ora('Preparing the list of changes ("change set") to deploy').start();
