@@ -19,15 +19,17 @@ Stack deleted.
     async run() {
         const {args, flags} = this.parse(Remove)
 
+        const stack = (new Config).getStack();
+
+        this.log(chalk`Deleting stack {green ${stack.name}}...`);
+
         if (!flags.force) {
             this.log(chalk`Stack not deleted, use the {green --force} option.`);
             this.exit(1);
         }
 
-        const stack = (new Config).getStack();
-
         await (new Deployer).remove(stack);
 
-        this.log(chalk.green(`Stack ${stack.name} removed`))
+        this.log(chalk.green(`Stack ${stack.name} removed.`))
     }
 }
