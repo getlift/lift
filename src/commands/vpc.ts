@@ -5,13 +5,15 @@ export default class Variables extends Command {
     static description = 'Export the VPC details'
 
     async run() {
-        const stack = (new Config).getStack();
+        this.log(JSON.stringify(await Variables.getOutput(), undefined, 2));
+    }
 
+    static async getOutput() {
+        const stack = (new Config).getStack();
         if (! stack.vpc) {
-            this.log(JSON.stringify({}));
-            return;
+            return {};
         }
 
-        this.log(JSON.stringify(await stack.vpc.details(), undefined, 2));
+        return await stack.vpc.details();
     }
 }

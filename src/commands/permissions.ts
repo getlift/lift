@@ -6,8 +6,12 @@ export default class Permissions extends Command {
     static description = 'export the IAM permissions'
 
     async run() {
+        this.log(JSON.stringify(await Permissions.getOutput(), undefined, 2));
+    }
+
+    static async getOutput() {
         const stack = (new Config).getStack();
 
-        this.log(JSON.stringify(await stack.permissions(), undefined, 2));
+        return await stack.permissions();
     }
 }

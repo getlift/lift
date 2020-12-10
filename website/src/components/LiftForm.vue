@@ -69,7 +69,7 @@ s3:
         }
 
         @Watch('liftConfig')
-        refresh(newValue: string) {
+        async refresh(newValue: string) {
             try {
                 const stack = (new Config(newValue)).getStack();
                 this.stackName = stack.name;
@@ -83,12 +83,12 @@ s3:
                 this.cloudformation = this.highlighter(output);
 
                 // serverless.yml
-                const variables = yaml.safeDump(stack.variables(), {
+                const variables = yaml.safeDump(await stack.variables(), {
                     noRefs: true,
                 })
                     .replace(/\n/g, '\n        ')
                     .trimEnd();
-                const permissions = yaml.safeDump(stack.permissions(), {
+                const permissions = yaml.safeDump(await stack.permissions(), {
                     noRefs: true,
                 })
                     .replace(/\n/g, '\n        ')

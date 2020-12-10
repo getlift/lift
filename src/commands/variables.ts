@@ -5,8 +5,12 @@ export default class Variables extends Command {
     static description = 'export the environment variables'
 
     async run() {
+        this.log(JSON.stringify(await Variables.getOutput(), undefined, 2));
+    }
+
+    static async getOutput() {
         const stack = (new Config).getStack();
 
-        this.log(JSON.stringify(await stack.variables(), undefined, 2));
+        return await stack.variables();
     }
 }
