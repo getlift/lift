@@ -1,34 +1,53 @@
 import {Component} from "./Component";
-import {PolicyStatement} from "../utils/cloudformation";
+import {Stack} from '../Stack';
 
 export class Database extends Component {
     private readonly props: Record<string, any>;
     private readonly dbResourceName: string;
 
-    constructor(stackName: string, props: Record<string, any> | null) {
-        super(stackName);
+    constructor(stack: Stack, props: Record<string, any> | null) {
+        super(stack);
         this.props = props ? props : {};
 
         this.dbResourceName = this.formatCloudFormationId('Database');
+
+        // We automatically enable a VPC in the stack
+        this.stack.enableVpc();
     }
 
     compile(): Record<string, any> {
-        const db: any = {
-            Type: 'AWS::RDS::DBInstance',
-            Properties: {
-                DBName: this.getDbName(),
-                Engine: this.getEngine(),
-                MasterUsername: 'admin',
-                MasterUserPassword: 'password',
-                DBInstanceIdentifier: this.getDbName(),
-                DBInstanceClass: 'db.t3.micro',
-                StorageType: 'gp2',
-                AllocatedStorage: '20', // minimum is 20 GB
-            },
-        };
+        const availabilityZones = this.stack.availabilityZones();
+
+        const subnetGroupResourceId = this.formatCloudFormationId('DbSubnetGroup');
 
         return {
-            [this.dbResourceName]: db,
+            [this.dbResourceName]: {
+                Type: 'AWS::RDS::DBInstance',
+                Properties: {
+                    DBName: this.getDbName(),
+                    Engine: this.getEngine(),
+                    MasterUsername: 'admin',
+                    MasterUserPassword: 'password',
+                    DBInstanceIdentifier: this.getDbName(),
+                    DBInstanceClass: 'db.t3.micro',
+                    StorageType: 'gp2',
+                    AllocatedStorage: '20', // minimum is 20 GB
+                    DBSubnetGroupName: this.fnRef(subnetGroupResourceId),
+                    VPCSecurityGroups: [
+                        this.fnRef(this.formatCloudFormationId('DBSecurityGroup')),
+                    ],
+                },
+            },
+            [subnetGroupResourceId]: {
+                Type: 'AWS::RDS::DBSubnetGroup',
+                Properties: {
+                    DBSubnetGroupName: this.getDbName(),
+                    DBSubnetGroupDescription: `${this.getDbName()} database`,
+                    SubnetIds: availabilityZones.map(zone => {
+                        return this.fnRef(this.formatCloudFormationId(`SubnetPrivate-${zone}`));
+                    }),
+                }
+            },
         };
     }
 
@@ -58,7 +77,7 @@ export class Database extends Component {
         };
     }
 
-    permissions(): PolicyStatement[] {
+    permissions() {
         return [];
     }
 

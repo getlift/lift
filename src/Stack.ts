@@ -1,18 +1,45 @@
 import {Component} from "./components/Component";
+import {Vpc} from './components/Vpc';
+import fs from 'fs';
+
+export type CloudFormationTemplate = {
+    AWSTemplateFormatVersion: '2010-09-09',
+    Resources: Record<string, any>|null,
+    Outputs: Record<string, CloudFormationOutput>|null,
+};
+
+export type CloudFormationOutput = {
+    Description: string;
+    Value: string|object;
+    Export?: {
+        Name: string;
+    };
+};
+
+export class PolicyStatement {
+    Effect = 'Allow';
+    Action: string|string[];
+    Resource: string|Array<any>;
+    constructor(Action: string|string[], Resource: string|Array<any>) {
+        this.Action = Action;
+        this.Resource = Resource;
+    }
+}
 
 export class Stack {
-    name: string;
-    region: string;
+    readonly name: string;
+    readonly region: string;
     private components: Array<Component> = [];
+    private _vpc?: Vpc;
 
     constructor(name: string, region: string) {
         this.name = name;
         this.region = region;
     }
 
-    compile(): Record<string, any> {
+    compile(): CloudFormationTemplate {
         let resources: Record<string, any>|null = {};
-        let outputs: Record<string, any>|null = {};
+        let outputs: Record<string, CloudFormationOutput>|null = {};
         this.components.map(component => {
             const newResources = component.compile();
             Object.keys(newResources).map(name => {
@@ -57,5 +84,22 @@ export class Stack {
             });
         });
         return variables;
+    }
+
+    enableVpc(props?: Record<string, any>) {
+        this._vpc = new Vpc(this, props ? props : {});
+        this.components.push(this._vpc);
+    }
+
+    get vpc(): Vpc|undefined {
+        return this._vpc;
+    }
+
+    availabilityZones(): string[] {
+        const json = fs.readFileSync(__dirname + '/../zones.json').toString();
+        const allZones = JSON.parse(json) as Record<string, string[]>;
+        return allZones[this.region]
+            // Keep maximum 3 zones
+            .slice(0, 3);
     }
 }

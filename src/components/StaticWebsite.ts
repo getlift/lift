@@ -1,12 +1,12 @@
 import {Component} from "./Component";
-import {PolicyStatement} from "../utils/cloudformation";
+import {Stack} from '../Stack';
 
 export class StaticWebsite extends Component {
     private readonly props: Record<string, any>;
     private readonly bucketResourceName: string;
 
-    constructor(stackName: string, props: Record<string, any> | null) {
-        super(stackName);
+    constructor(stack: Stack, props: Record<string, any> | null) {
+        super(stack);
         this.props = props ? props : {};
 
         this.bucketResourceName = this.formatCloudFormationId('StaticWebsite');
@@ -142,7 +142,7 @@ export class StaticWebsite extends Component {
         };
     }
 
-    permissions(): PolicyStatement[] {
+    permissions() {
         return [];
     }
 

@@ -1,16 +1,6 @@
 import chalk from "chalk";
 import {StackEvent} from "aws-sdk/clients/cloudformation";
 
-export class PolicyStatement {
-    Effect = 'Allow';
-    Action: string|string[];
-    Resource: string|Array<any>;
-    constructor(Action: string|string[], Resource: string|Array<any>) {
-        this.Action = Action;
-        this.Resource = Resource;
-    }
-}
-
 export async function displayCloudFormationEvents(events: Array<StackEvent>) {
     for (const event of events.reverse()) {
         const status = event.ResourceStatus ? event.ResourceStatus : '';
@@ -18,7 +8,7 @@ export async function displayCloudFormationEvents(events: Array<StackEvent>) {
 
         let displayDetails = false;
         let output = chalk`{gray [${prefix}]} `;
-        if (status.includes('FAILED') || status === 'ROLLBACK_COMPLETE') {
+        if (isResourceEventError(status)) {
             output += chalk`{red ${status}}`;
             displayDetails = true;
         } else if (status.includes('COMPLETE')) {
@@ -34,3 +24,6 @@ export async function displayCloudFormationEvents(events: Array<StackEvent>) {
     }
 }
 
+export function isResourceEventError(status: string) {
+    return status.includes('FAILED') || status === 'ROLLBACK_COMPLETE' || status === 'UPDATE_ROLLBACK_IN_PROGRESS';
+}

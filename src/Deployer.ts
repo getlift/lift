@@ -49,6 +49,7 @@ export class Deployer {
                 ChangeSetName: changeSetName,
                 $waiter: {
                     delay: 5, // check every 5 seconds
+                    maxAttempts: 200, // 16 minutes
                 },
             }).promise();
         } catch (e) {

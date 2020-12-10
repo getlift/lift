@@ -3,7 +3,7 @@ import {Deployer} from "../Deployer";
 import {Config} from "../Config";
 import chalk from "chalk";
 import {Stack} from "../Stack";
-import {displayCloudFormationEvents} from "../utils/cloudformation";
+import {displayCloudFormationEvents, isResourceEventError} from "../utils/cloudformation";
 import notifier from "node-notifier";
 
 export default class Up extends Command {
@@ -34,14 +34,15 @@ export default class Up extends Command {
     async onError(deployer: Deployer, stack: Stack, e: Error) {
         this.log(chalk`{red Deployment failed:} ${e.message}`);
 
-        let events = await deployer.getLastDeployEvents(stack);
-        events = events.filter(event => {
-            const status = event.ResourceStatus ? event.ResourceStatus : '';
-            return status.includes('FAILED') || status === 'ROLLBACK_COMPLETE';
+        let errors = await deployer.getLastDeployEvents(stack);
+        errors = errors.filter(event => {
+            return isResourceEventError(event.ResourceStatus ? event.ResourceStatus : '');
         });
-        if (events.length > 0) {
+        if (errors.length > 0) {
             this.log('Errors found in the deployment events:');
-            await displayCloudFormationEvents(events);
+            await displayCloudFormationEvents(errors);
+        } else {
+            this.log('No errors found in the deployment events 🤔 Try running `lift status`.');
         }
     }
 }

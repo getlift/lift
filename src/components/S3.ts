@@ -1,5 +1,5 @@
 import {Component} from "./Component";
-import {PolicyStatement} from "../utils/cloudformation";
+import {PolicyStatement, Stack} from '../Stack';
 
 export class S3 extends Component {
     private readonly name: string;
@@ -7,8 +7,8 @@ export class S3 extends Component {
     private readonly props: Record<string, any>;
     private readonly bucketResourceId: string;
 
-    constructor(stackName: string, name: string, props: Record<string, any> | null) {
-        super(stackName);
+    constructor(stack: Stack, name: string, props: Record<string, any> | null) {
+        super(stack);
         this.name = name;
         this.bucketName = this.formatUniqueResourceName(name);
         this.props = props ? props : {};
@@ -81,7 +81,7 @@ export class S3 extends Component {
         };
     }
 
-    permissions(): PolicyStatement[] {
+    permissions() {
         const bucketArn = this.fnImportValue(this.stackName + '-' + this.bucketResourceId + 'BucketArn');
         return [
             new PolicyStatement('s3:*', [

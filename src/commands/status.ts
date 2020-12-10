@@ -44,7 +44,7 @@ export default class Status extends Command {
         // Outputs
         this.log(chalk.underline('Stack outputs:'));
         for (const output of cfStack.Outputs!) {
-            this.log(chalk`{green ${output.OutputKey}:} ${output.OutputValue} {gray - (${output.Description})}`);
+            this.log(chalk`{green ${output.OutputKey}:} ${output.OutputValue} {gray - ${output.Description}}`);
         }
         this.log();
 

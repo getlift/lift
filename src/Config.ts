@@ -22,14 +22,17 @@ export class Config {
 
         if (template.hasOwnProperty('s3') && template.s3) {
             for (const [key, value] of Object.entries(template.s3)) {
-                stack.add(new S3(stack.name, key, value as Record<string, any>));
+                stack.add(new S3(stack, key, value as Record<string, any>));
             }
         }
         if (template.hasOwnProperty('db')) {
-            stack.add(new Database(stack.name, template.db as Record<string, any>));
+            stack.add(new Database(stack, template.db as Record<string, any>));
         }
         if (template.hasOwnProperty('static-website')) {
-            stack.add(new StaticWebsite(stack.name, template['static-website']));
+            stack.add(new StaticWebsite(stack, template['static-website']));
+        }
+        if (template.hasOwnProperty('vpc')) {
+            stack.enableVpc(template['vpc']);
         }
 
         return stack;
