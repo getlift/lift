@@ -1,5 +1,5 @@
 import {Component} from "./Component";
-import {CloudFormationOutput, Stack} from '../Stack';
+import {CloudFormationOutput, CloudFormationOutputs, Stack} from '../Stack';
 import {cidrSubnets, cidrVpc, getZoneId} from '../Cidr';
 
 export class Vpc extends Component {
@@ -157,52 +157,43 @@ export class Vpc extends Component {
             [this.vpcResourceId + 'Id']: {
                 Description: 'VPC ID',
                 Value: this.fnRef(this.vpcResourceId),
-                Export: {
-                    Name: this.stackName + '-' + this.vpcResourceId + '-Name',
-                },
             },
             // App security group ID -> to be used by the serverless app
             [this.appSecurityGroupResourceId + 'Id']: {
                 Description: 'VPC ID',
                 Value: this.fnRef(this.appSecurityGroupResourceId),
-                Export: {
-                    Name: this.stackName + '-' + this.appSecurityGroupResourceId + '-Id',
-                },
             },
             // Public subnet IDs -> to be used by the serverless app
-            ...Object.assign({}, ...zones.map((zone): Record<string, CloudFormationOutput> => {
+            ...Object.assign({}, ...zones.map((zone): CloudFormationOutputs => {
                 const subnetResourceId = this.formatCloudFormationId(`SubnetPublic-${zone}`);
                 return {
                     [subnetResourceId + 'Id']: {
                         Description: `Public subnet ID for zone ${zone}`,
                         Value: this.fnRef(subnetResourceId),
-                        Export: {
-                            Name: this.stackName + '-' + subnetResourceId + '-Id',
-                        },
                     },
                 };
             })),
         };
     }
 
-    permissions() {
+    async permissions() {
         return [];
     }
 
-    envVariables() {
+    async envVariables() {
         return {};
     }
 
-    details() {
+    async details() {
         const zones = this.stack.availabilityZones();
         return {
             securityGroupIds: [
-                this.fnImportValue(this.outputs()[this.appSecurityGroupResourceId + 'Id'].Export.Name),
+                await this.stack.getOutput(this.appSecurityGroupResourceId + 'Id'),
             ],
-            subnetIds: zones.map(zone => {
+            subnetIds: await Promise.all(zones.map(async zone => {
                 const subnetResourceId = this.formatCloudFormationId(`SubnetPublic-${zone}`);
-                return this.fnImportValue(this.outputs()[subnetResourceId + 'Id'].Export.Name);
-            }),
+                return await this.stack.getOutput(subnetResourceId + 'Id');
+            })),
         };
     }
 

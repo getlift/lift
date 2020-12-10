@@ -1,13 +1,15 @@
 import {Component} from "./components/Component";
 import {Vpc} from './components/Vpc';
 import fs from 'fs';
+import CloudFormation from 'aws-sdk/clients/cloudformation';
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: '2010-09-09',
     Resources: Record<string, any>|null,
-    Outputs: Record<string, CloudFormationOutput>|null,
+    Outputs: CloudFormationOutputs|null,
 };
 
+export type CloudFormationOutputs = Record<string, CloudFormationOutput>;
 export type CloudFormationOutput = {
     Description: string;
     Value: string|object;
@@ -31,15 +33,22 @@ export class Stack {
     readonly region: string;
     private components: Array<Component> = [];
     private _vpc?: Vpc;
+    private readonly cloudFormation: CloudFormation;
+
+    // Local cache
+    private deployedOutputs: Record<string, string>|null = null;
 
     constructor(name: string, region: string) {
         this.name = name;
         this.region = region;
+        this.cloudFormation = new CloudFormation({
+            region: region,
+        });
     }
 
     compile(): CloudFormationTemplate {
         let resources: Record<string, any>|null = {};
-        let outputs: Record<string, CloudFormationOutput>|null = {};
+        let outputs: CloudFormationOutputs|null = {};
         this.components.map(component => {
             const newResources = component.compile();
             Object.keys(newResources).map(name => {
@@ -67,22 +76,22 @@ export class Stack {
         this.components.push(component);
     }
 
-    permissions(): any[] {
+    async permissions(): Promise<any[]> {
         const permissions: any[] = [];
-        this.components.map(component => {
-            permissions.push(...component.permissions());
-        });
+        for (const component of this.components) {
+            permissions.push(...(await component.permissions()));
+        }
         return permissions;
     }
 
-    variables() {
+    async variables() {
         const variables: Record<string, any> = {};
-        this.components.map(component => {
-            const newVariables = component.envVariables();
+        for (const component of this.components) {
+            const newVariables = await component.envVariables();
             Object.keys(newVariables).map(name => {
                 variables[name] = newVariables[name];
             });
-        });
+        }
         return variables;
     }
 
@@ -101,5 +110,36 @@ export class Stack {
         return allZones[this.region]
             // Keep maximum 3 zones
             .slice(0, 3);
+    }
+
+    async getOutput(key: string): Promise<string> {
+        const outputs = await this.getOutputs();
+        if (! outputs[key]) {
+            throw new Error('lift.yml contains changes that differ from the deployed stack. Deploy via `lift up` first.')
+        }
+        return outputs[key];
+    }
+
+    private async getOutputs(): Promise<Record<string, string>> {
+        // Refresh the cache
+        if (! this.deployedOutputs) {
+            const stack = await this.cloudFormation.describeStacks({
+                StackName: this.name,
+            }).promise();
+
+            if (! stack.Stacks || ! stack.Stacks[0].Outputs) {
+                throw new Error(`Stack ${this.name} is not deployed yet.`);
+            }
+
+            const out: Record<string, string> = {};
+            for (const output of stack.Stacks[0].Outputs) {
+                if (output.OutputKey && output.OutputValue) {
+                    out[output.OutputKey] = output.OutputValue;
+                }
+            }
+            this.deployedOutputs = out;
+        }
+
+        return this.deployedOutputs;
     }
 }

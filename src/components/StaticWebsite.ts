@@ -128,39 +128,33 @@ export class StaticWebsite extends Component {
             [this.bucketResourceName + 'Bucket']: {
                 Description: 'Name of the bucket that stores the static website.',
                 Value: this.fnRef(this.bucketResourceName),
-                Export: {
-                    Name: this.stackName + '-StaticWebsite-BucketName',
-                },
             },
             CloudFrontDomain: {
                 Description: 'CloudFront domain name.',
                 Value: this.fnGetAtt('WebsiteCDN', 'DomainName'),
-                Export: {
-                    Name: this.stackName + '-StaticWebsite-CloudFrontDomain',
-                },
             },
         };
     }
 
-    permissions() {
+    async permissions() {
         return [];
     }
 
-    envVariables() {
+    async envVariables() {
         let variables: Record<string, any> = {};
 
         // Bucket name
-        const bucketName = this.fnImportValue(this.stackName + '-StaticWebsite-BucketName');
+        const bucketName = await this.stack.getOutput(this.bucketResourceName + 'Bucket');
         variables[this.formatEnvVariableName('STATIC_WEBSITE_BUCKET')] = bucketName;
 
         // Domain
         if (this.props.domain) {
             variables['STATIC_WEBSITE_DOMAIN'] = this.props.domain;
-            variables['STATIC_WEBSITE_URL'] = 'https://' + this.props.domain;
+            variables['STATIC_WEBSITE_URL'] = `https://${this.props.domain}`;
         } else {
-            const cloudFrontDomain = this.fnImportValue(this.stackName + '-StaticWebsite-CloudFrontDomain');
+            const cloudFrontDomain = await this.stack.getOutput('CloudFrontDomain');
             variables['STATIC_WEBSITE_DOMAIN'] = cloudFrontDomain;
-            variables['STATIC_WEBSITE_URL'] = this.fnJoin('', ['https://', cloudFrontDomain]);
+            variables['STATIC_WEBSITE_URL'] = `https://${cloudFrontDomain}/`;
         }
 
         return variables;

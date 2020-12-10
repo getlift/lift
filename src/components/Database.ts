@@ -56,44 +56,32 @@ export class Database extends Component {
             [this.dbResourceName + 'Name']: {
                 Description: 'Name of the database.',
                 Value: this.getDbName(),
-                Export: {
-                    Name: this.stackName + '-' + this.dbResourceName + '-Name',
-                },
             },
             [this.dbResourceName + 'Host']: {
                 Description: 'Hostname of the database.',
                 Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Address'),
-                Export: {
-                    Name: this.stackName + '-' + this.dbResourceName + '-Host',
-                },
             },
             [this.dbResourceName + 'Port']: {
                 Description: 'Port of the database.',
                 Value: this.fnGetAtt(this.dbResourceName, 'Endpoint.Port'),
-                Export: {
-                    Name: this.stackName + '-' + this.dbResourceName + '-Port',
-                },
             },
         };
     }
 
-    permissions() {
+    async permissions() {
         return [];
     }
 
-    envVariables() {
-        let variables: Record<string, any> = {};
+    async envVariables() {
+        const dbName = await this.stack.getOutput(this.dbResourceName + 'Name');
+        const dbHost = await this.stack.getOutput(this.dbResourceName + 'Host');
+        const dbPort = await this.stack.getOutput(this.dbResourceName + 'Port');
 
-        const dbName = this.fnImportValue(this.stackName + '-' + this.dbResourceName + '-Name');
-        variables[this.formatEnvVariableName(this.dbResourceName + '_NAME')] = dbName;
-
-        const dbHost = this.fnImportValue(this.stackName + '-' + this.dbResourceName + '-Host');
-        variables[this.formatEnvVariableName(this.dbResourceName + '_HOST')] = dbHost;
-
-        const dbPort = this.fnImportValue(this.stackName + '-' + this.dbResourceName + '-Port');
-        variables[this.formatEnvVariableName(this.dbResourceName + '_PORT')] = dbPort;
-
-        return variables;
+        return {
+            [this.formatEnvVariableName(this.dbResourceName + '_NAME')]: dbName,
+            [this.formatEnvVariableName(this.dbResourceName + '_HOST')]: dbHost,
+            [this.formatEnvVariableName(this.dbResourceName + '_PORT')]: dbPort,
+        };
     }
 
     private getEngine(): string {

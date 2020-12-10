@@ -7,6 +7,6 @@ export default class Variables extends Command {
     async run() {
         const stack = (new Config).getStack();
 
-        this.log(JSON.stringify(stack.variables(), undefined, 2));
+        this.log(JSON.stringify(await stack.variables(), undefined, 2));
     }
 }

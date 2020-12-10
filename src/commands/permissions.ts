@@ -8,6 +8,6 @@ export default class Permissions extends Command {
     async run() {
         const stack = (new Config).getStack();
 
-        this.log(JSON.stringify(stack.permissions(), undefined, 2));
+        this.log(JSON.stringify(await stack.permissions(), undefined, 2));
     }
 }

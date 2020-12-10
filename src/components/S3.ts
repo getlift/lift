@@ -74,24 +74,21 @@ export class S3 extends Component {
             [this.bucketResourceId + 'BucketArn']: {
                 Description: 'ARN of the S3 bucket.',
                 Value: this.fnGetAtt(this.bucketResourceId, 'Arn'),
-                Export: {
-                    Name: this.stackName + '-' + this.bucketResourceId + 'BucketArn',
-                },
             },
         };
     }
 
-    permissions() {
-        const bucketArn = this.fnImportValue(this.stackName + '-' + this.bucketResourceId + 'BucketArn');
+    async permissions() {
+        const bucketArn = await this.stack.getOutput(this.bucketResourceId + 'BucketArn');
         return [
             new PolicyStatement('s3:*', [
                 bucketArn,
-                this.fnJoin('', [ bucketArn, '/*' ]),
+                `${bucketArn}/*`,
             ]),
         ];
     }
 
-    envVariables() {
+    async envVariables() {
         const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
         return {
             [variableName]: this.bucketName,

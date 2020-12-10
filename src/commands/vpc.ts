@@ -12,6 +12,6 @@ export default class Variables extends Command {
             return;
         }
 
-        this.log(JSON.stringify(stack.vpc.details(), undefined, 2));
+        this.log(JSON.stringify(await stack.vpc.details(), undefined, 2));
     }
 }

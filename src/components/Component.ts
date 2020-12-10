@@ -1,16 +1,16 @@
 import {pascalCase} from "pascal-case";
 import {pascalCaseTransformMerge} from "pascal-case";
 import {constantCase} from "constant-case";
-import {Stack, CloudFormationOutput, PolicyStatement} from '../Stack';
+import {Stack, PolicyStatement, CloudFormationOutputs} from '../Stack';
 
 export abstract class Component {
     protected readonly stack: Stack;
     protected readonly stackName: string;
 
     abstract compile(): Record<string, any>;
-    abstract outputs(): Record<string, CloudFormationOutput>;
-    abstract permissions(): PolicyStatement[];
-    abstract envVariables(): Record<string, any>;
+    abstract outputs(): CloudFormationOutputs;
+    abstract async permissions(): Promise<PolicyStatement[]>;
+    abstract async envVariables(): Promise<Record<string, any>>;
 
     protected constructor(stack: Stack) {
         this.stack = stack;
@@ -47,12 +47,6 @@ export abstract class Component {
                 glue,
                 strings,
             ],
-        }
-    }
-
-    protected fnImportValue(name: string): object {
-        return {
-            'Fn::ImportValue': name,
         }
     }
 
