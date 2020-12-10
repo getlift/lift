@@ -47,7 +47,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "main": "lib/index.js",
+  "main": "dist/src/index.js",
   "oclif": {
     "commands": "./lib/commands",
     "bin": "lift",

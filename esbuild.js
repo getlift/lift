@@ -4,6 +4,7 @@ const localPkgJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 require('esbuild').build({
     entryPoints: [
         'bin/lift.ts',
+        'src/index.ts',
         ...fs.readdirSync('src/commands').map(file => 'src/commands/' + file),
     ],
     bundle: true,
