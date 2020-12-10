@@ -9,8 +9,8 @@ export abstract class Component {
 
     abstract compile(): Record<string, any>;
     abstract outputs(): CloudFormationOutputs;
-    abstract async permissions(): Promise<PolicyStatement[]>;
-    abstract async envVariables(): Promise<Record<string, any>>;
+    abstract permissions(): Promise<PolicyStatement[]>;
+    abstract envVariables(): Promise<Record<string, any>>;
 
     protected constructor(stack: Stack) {
         this.stack = stack;
