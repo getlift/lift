@@ -35,7 +35,6 @@ jobs:
             -   name: Copy files for release
                 run: |
                     cp oclif.manifest.json dist/
-                    cp zones.json dist/
 
             -   name: Publish
                 run: |

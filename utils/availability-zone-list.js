@@ -35,7 +35,8 @@ async function listAZ() {
     try {
         const az = await listAZ();
         console.log(az);
-        fs.writeFileSync(__dirname + '/../zones.json', JSON.stringify(az, undefined, 2));
+        const js = 'export const availabilityZones = ' + JSON.stringify(az, undefined, 4);
+        fs.writeFileSync(__dirname + '/../src/Zones.ts', js);
     } catch (e) {
         console.error(e);
     }

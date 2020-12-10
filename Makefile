@@ -14,3 +14,6 @@ build:
 
 website-preview:
 	cd website && npm run serve
+
+availability-zones:
+	cd utils && node availability-zone-list.js

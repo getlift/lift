@@ -1,7 +1,7 @@
 import {Component} from "./components/Component";
 import {Vpc} from './components/Vpc';
-import fs from 'fs';
 import CloudFormation from 'aws-sdk/clients/cloudformation';
+import {availabilityZones} from './Zones';
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: '2010-09-09',
@@ -105,8 +105,7 @@ export class Stack {
     }
 
     availabilityZones(): string[] {
-        const json = fs.readFileSync(__dirname + '/../zones.json').toString();
-        const allZones = JSON.parse(json) as Record<string, string[]>;
+        const allZones = availabilityZones as Record<string, string[]>;
         return allZones[this.region]
             // Keep maximum 3 zones
             .slice(0, 3);
