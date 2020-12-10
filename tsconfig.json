@@ -9,8 +9,7 @@
     "target": "es2017",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "resolveJsonModule": true
+    "experimentalDecorators": true
   },
   "include": [
     "src/**/*"
