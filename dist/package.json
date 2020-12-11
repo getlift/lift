@@ -23,6 +23,7 @@
     "node": ">=8.0.0"
   },
   "files": [
+    "plugin.js",
     "/bin",
     "/src",
     "/npm-shrinkwrap.json",
