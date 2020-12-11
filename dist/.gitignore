@@ -1,5 +1,6 @@
 lift
 oclif.manifest.json
 package-lock.json
+plugin.js
 bin/*.js
 src/

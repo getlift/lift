@@ -2,6 +2,11 @@ import {Component} from "./Component";
 import {CloudFormationOutputs, CloudFormationResources, Stack} from '../Stack';
 import {cidrSubnets, cidrVpc, getZoneId} from '../Cidr';
 
+export type VpcDetails = {
+    securityGroupIds: string[];
+    subnetIds: string[];
+};
+
 export class Vpc extends Component {
     private readonly props: Record<string, any>;
 
@@ -174,7 +179,7 @@ export class Vpc extends Component {
         return {};
     }
 
-    async details() {
+    async details(): Promise<VpcDetails> {
         const zones = this.stack.availabilityZones();
         return {
             securityGroupIds: [

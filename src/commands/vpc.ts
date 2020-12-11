@@ -1,5 +1,6 @@
 import {Command} from '@oclif/command'
 import {Config} from "../Config";
+import {VpcDetails} from '../components/Vpc';
 
 export default class Vpc extends Command {
     static description = 'Export the VPC details'
@@ -8,10 +9,10 @@ export default class Vpc extends Command {
         this.log(JSON.stringify(await Vpc.getOutput(), undefined, 2));
     }
 
-    static async getOutput() {
+    static async getOutput(): Promise<VpcDetails|null> {
         const stack = (new Config).getStack();
         if (! stack.vpc) {
-            return {};
+            return null;
         }
 
         return await stack.vpc.details();
