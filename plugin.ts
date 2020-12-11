@@ -5,7 +5,7 @@ import Permissions from './src/commands/permissions';
 /**
  * Serverless plugin
  */
-export default class LiftPlugin {
+class LiftPlugin {
     private serverless: any;
     constructor(serverless: any) {
         this.serverless = serverless;
@@ -44,3 +44,5 @@ export default class LiftPlugin {
         this.serverless.service.provider.iamRoleStatements.push(...permissions);
     }
 }
+
+module.exports = LiftPlugin;
