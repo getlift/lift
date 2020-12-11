@@ -1,5 +1,5 @@
 import {Component} from "./Component";
-import {CloudFormationOutput, CloudFormationOutputs, Stack} from '../Stack';
+import {CloudFormationOutputs, CloudFormationResources, Stack} from '../Stack';
 import {cidrSubnets, cidrVpc, getZoneId} from '../Cidr';
 
 export class Vpc extends Component {
@@ -15,8 +15,15 @@ export class Vpc extends Component {
         this.props = props ? props : {};
     }
 
-    compile(): Record<string, any> {
+    compile(): CloudFormationResources {
         const availabilityZones = this.stack.availabilityZones();
+
+        // NAT Gateway is enabled by default
+        const enableNat = (this.props.nat !== false);
+        let nat: CloudFormationResources = {};
+        if (enableNat) {
+            nat = this.compileNatGateway(availabilityZones);
+        }
 
         return {
             [this.vpcResourceId]: {
@@ -52,16 +59,6 @@ export class Vpc extends Component {
             ...this.compileSubnets('Public', availabilityZones),
 
             ...this.compileSubnets('Private', availabilityZones),
-
-            // What is this?
-            [this.formatCloudFormationId('DefaultSecurityGroupEgress')]: {
-                Type: 'AWS::EC2::SecurityGroupEgress',
-                Properties: {
-                    IpProtocol: '-1',
-                    DestinationSecurityGroupId: this.fnGetAtt(this.vpcResourceId, 'DefaultSecurityGroup'),
-                    GroupId: this.fnGetAtt(this.vpcResourceId, 'DefaultSecurityGroup'),
-                }
-            },
 
             [this.appSecurityGroupResourceId]: {
                 Type: 'AWS::EC2::SecurityGroup',
@@ -147,6 +144,8 @@ export class Vpc extends Component {
                     DhcpOptionsId: this.fnRef(this.formatCloudFormationId('DHCPOptions')),
                 }
             },
+
+            ...nat,
         };
     }
 
@@ -160,15 +159,15 @@ export class Vpc extends Component {
             },
             // App security group ID -> to be used by the serverless app
             [this.appSecurityGroupResourceId + 'Id']: {
-                Description: 'VPC ID',
+                Description: 'Application security group ID',
                 Value: this.fnRef(this.appSecurityGroupResourceId),
             },
-            // Public subnet IDs -> to be used by the serverless app
+            // Private subnet IDs -> to be used by the serverless app
             ...Object.assign({}, ...zones.map((zone): CloudFormationOutputs => {
-                const subnetResourceId = this.formatCloudFormationId(`SubnetPublic-${zone}`);
+                const subnetResourceId = this.formatCloudFormationId(`SubnetPrivate-${zone}`);
                 return {
                     [subnetResourceId + 'Id']: {
-                        Description: `Public subnet ID for zone ${zone}`,
+                        Description: `Private subnet ID for zone ${zone}`,
                         Value: this.fnRef(subnetResourceId),
                     },
                 };
@@ -190,8 +189,9 @@ export class Vpc extends Component {
             securityGroupIds: [
                 await this.stack.getOutput(this.appSecurityGroupResourceId + 'Id'),
             ],
+            // Put Lambda in the private subnets
             subnetIds: await Promise.all(zones.map(async zone => {
-                const subnetResourceId = this.formatCloudFormationId(`SubnetPublic-${zone}`);
+                const subnetResourceId = this.formatCloudFormationId(`SubnetPrivate-${zone}`);
                 return await this.stack.getOutput(subnetResourceId + 'Id');
             })),
         };
@@ -258,6 +258,50 @@ export class Vpc extends Component {
                 },
             },
             ...publicRoute,
+        };
+    }
+
+    private compileNatGateway(availabilityZones: string[]): CloudFormationResources {
+        const natGatewayId = this.formatCloudFormationId('NatGateway');
+        const elasticIpId = this.formatCloudFormationId('NatGatewayElasticIp');
+
+        const routeTables = Object.assign({}, ...availabilityZones.map(zone => {
+            return {
+                [this.formatCloudFormationId(`RoutePrivate-${zone}`)]: {
+                    Type: `AWS::EC2::Route`,
+                    Properties: {
+                        // Route from the private subnet to the internet via the NAT Gateway
+                        DestinationCidrBlock: '0.0.0.0/0',
+                        RouteTableId: this.fnRef(this.formatCloudFormationId(`RouteTablePrivate-${zone}`)),
+                        NatGatewayId: this.fnRef(natGatewayId),
+                    },
+                },
+            };
+        }));
+
+        return {
+            [natGatewayId]: {
+                Type: 'AWS::EC2::NatGateway',
+                Properties: {
+                    AllocationId: this.fnGetAtt(elasticIpId, 'AllocationId'),
+                    // Put the NAT Gateway in the first AZ
+                    SubnetId: this.fnRef(this.formatCloudFormationId(`SubnetPublic-${availabilityZones[0]}`)),
+                    Tags: [
+                        this.tag('Name', this.stackName),
+                        this.tag('Network', 'Public'),
+                    ],
+                },
+            },
+            [elasticIpId]: {
+                Type: 'AWS::EC2::EIP',
+                Properties: {
+                    Domain: 'vpc',
+                    Tags: [
+                        this.tag('Name', `${this.stackName} NAT Gateway`),
+                    ],
+                },
+            },
+            ...routeTables,
         };
     }
 }

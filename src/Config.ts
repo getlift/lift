@@ -25,14 +25,15 @@ export class Config {
                 stack.add(new S3(stack, key, value as Record<string, any>));
             }
         }
+        // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
+        if (template.hasOwnProperty('vpc')) {
+            stack.enableVpc(template['vpc']);
+        }
         if (template.hasOwnProperty('db')) {
             stack.add(new Database(stack, template.db as Record<string, any>));
         }
         if (template.hasOwnProperty('static-website')) {
             stack.add(new StaticWebsite(stack, template['static-website']));
-        }
-        if (template.hasOwnProperty('vpc')) {
-            stack.enableVpc(template['vpc']);
         }
 
         return stack;

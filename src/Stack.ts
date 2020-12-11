@@ -9,6 +9,12 @@ export type CloudFormationTemplate = {
     Outputs: CloudFormationOutputs|null,
 };
 
+export type CloudFormationResources = Record<string, CloudFormationResource>;
+export type CloudFormationResource = {
+    Type: string;
+    Properties: Record<string, any>;
+};
+
 export type CloudFormationOutputs = Record<string, CloudFormationOutput>;
 export type CloudFormationOutput = {
     Description: string;
@@ -47,7 +53,7 @@ export class Stack {
     }
 
     compile(): CloudFormationTemplate {
-        let resources: Record<string, any>|null = {};
+        let resources: CloudFormationResources|null = {};
         let outputs: CloudFormationOutputs|null = {};
         this.components.map(component => {
             const newResources = component.compile();
@@ -96,6 +102,7 @@ export class Stack {
     }
 
     enableVpc(props?: Record<string, any>) {
+        if (this._vpc) return;
         this._vpc = new Vpc(this, props ? props : {});
         this.components.push(this._vpc);
     }

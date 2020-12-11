@@ -1,13 +1,13 @@
 import {pascalCase} from "pascal-case";
 import {pascalCaseTransformMerge} from "pascal-case";
 import {constantCase} from "constant-case";
-import {Stack, PolicyStatement, CloudFormationOutputs} from '../Stack';
+import {Stack, PolicyStatement, CloudFormationOutputs, CloudFormationResources} from '../Stack';
 
 export abstract class Component {
     protected readonly stack: Stack;
     protected readonly stackName: string;
 
-    abstract compile(): Record<string, any>;
+    abstract compile(): CloudFormationResources;
     abstract outputs(): CloudFormationOutputs;
     abstract permissions(): Promise<PolicyStatement[]>;
     abstract envVariables(): Promise<Record<string, any>>;
