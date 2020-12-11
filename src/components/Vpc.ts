@@ -67,17 +67,8 @@ export class Vpc extends Component {
                     VpcId: this.fnRef(this.vpcResourceId),
                     SecurityGroupEgress: [
                         {
-                            Description: 'permit HTTP outbound',
-                            IpProtocol: 'tcp',
-                            FromPort: 80,
-                            ToPort: 80,
-                            CidrIp: '0.0.0.0/0',
-                        },
-                        {
-                            Description: 'Allow HTTPS outbound',
-                            IpProtocol: 'tcp',
-                            FromPort: 443,
-                            ToPort: 443,
+                            Description: 'Allow all output requests',
+                            IpProtocol: '-1',
                             CidrIp: '0.0.0.0/0',
                         },
                     ],
@@ -88,7 +79,7 @@ export class Vpc extends Component {
                             FromPort: 443,
                             ToPort: 443,
                             CidrIp: '0.0.0.0/0',
-                        }
+                        },
                     ],
                     Tags: [
                         this.tag('Name', `${this.stackName}-app-sg`),
