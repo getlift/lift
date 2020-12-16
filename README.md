@@ -77,6 +77,8 @@ db:
     engine: aurora-mysql
 ```
 
+*Note: deploying a RDS database can take a long time (more than 5 minutes).*
+
 ## S3 bucket
 
 ```yaml
@@ -126,3 +128,5 @@ To enable CORS on the S3 bucket serving the website:
 static-website:
     cors: true
 ```
+
+*Note: deploying a CloudFront distribution can take a long time (more than 5 minutes).*
