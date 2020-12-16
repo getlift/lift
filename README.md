@@ -41,7 +41,6 @@ Lift will also populate Lambda environment variables to let you access your reso
 ## VPC
 
 ```yaml
-name: myapp
 vpc:
 ```
 
@@ -59,7 +58,6 @@ vpc:
 ## Database
 
 ```yaml
-name: myapp
 db:
 ```
 
@@ -82,7 +80,6 @@ db:
 ## S3 bucket
 
 ```yaml
-name: myapp
 s3:
     avatars:
     photos:
@@ -104,7 +101,6 @@ s3:
 ## Static websites
 
 ```yaml
-name: myapp
 static-website:
 ```
 
