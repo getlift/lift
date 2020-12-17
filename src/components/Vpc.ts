@@ -123,24 +123,6 @@ export class Vpc extends Component {
                 }
             },
 
-            [this.formatCloudFormationId('DHCPOptions')]: {
-                Type: 'AWS::EC2::DHCPOptions',
-                Properties: {
-                    DomainName: `${this.stack.region}.compute.internal`,
-                    DomainNameServers: ['AmazonProvidedDNS'],
-                    Tags: [
-                        this.tag('Name', `${this.stackName}-DHCPOptionsSet`),
-                    ],
-                }
-            },
-            [this.formatCloudFormationId('DHCPOptionsAssociation')]: {
-                Type: 'AWS::EC2::VPCDHCPOptionsAssociation',
-                Properties: {
-                    VpcId: this.fnRef(this.vpcResourceId),
-                    DhcpOptionsId: this.fnRef(this.formatCloudFormationId('DHCPOptions')),
-                }
-            },
-
             ...nat,
         };
     }
