@@ -1,4 +1,4 @@
-import {Command, flags} from '@oclif/command'
+import {Command} from '@oclif/command'
 import CloudFormation from "aws-sdk/clients/cloudformation";
 import {Config} from "../Config";
 import {Deployer} from "../Deployer";
@@ -14,7 +14,7 @@ export default class Status extends Command {
     ]
 
     async run() {
-        const stack = (new Config).getStack();
+        const stack = Config.fromFile().getStack();
 
         const cloudFormation = new CloudFormation({
             region: stack.region,

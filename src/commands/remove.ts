@@ -19,7 +19,7 @@ Stack deleted.
     async run() {
         const {args, flags} = this.parse(Remove)
 
-        const stack = (new Config).getStack();
+        const stack = Config.fromFile().getStack();
 
         this.log(chalk`Deleting stack {green ${stack.name}}...`);
 

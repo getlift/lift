@@ -6,45 +6,47 @@ import {Database} from "./components/Database";
 import {StaticWebsite} from "./components/StaticWebsite";
 
 export class Config {
-    private readonly template: Record<string, any>;
+    private readonly stackName: string;
+    private readonly region: string;
+    private readonly config: Record<string, any>;
 
-    constructor(yaml: string|undefined = undefined) {
-        this.template = Config.readYaml(yaml);
-        if (!this.template || typeof this.template !== 'object' || !this.template.hasOwnProperty('name')) {
+    constructor(stackName: string, region: string, config: Record<string, any>) {
+        this.stackName = stackName;
+        this.region = region;
+        this.config = config;
+    }
+
+    static fromFile(file: string = 'lift.yml'): Config {
+        const yamlString = fs.readFileSync(file, 'utf8');
+        const config = yaml.safeLoad(yamlString) as Record<string, any>;
+        if (!config || typeof config !== 'object' || !config.hasOwnProperty('name')) {
             throw 'Invalid YAML';
         }
+
+        return new Config(config.name as string, config.region as string, config);
     }
 
     getStack(): Stack {
-        const template = this.template;
+        const config = this.config;
 
-        const stack = new Stack(template.name as string, template.region as string);
+        const stack = new Stack(this.stackName, this.region);
 
-        if (template.hasOwnProperty('s3') && template.s3) {
-            for (const [key, value] of Object.entries(template.s3)) {
+        if (config.hasOwnProperty('s3') && config.s3) {
+            for (const [key, value] of Object.entries(config.s3)) {
                 stack.add(new S3(stack, key, value as Record<string, any>));
             }
         }
         // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
-        if (template.hasOwnProperty('vpc')) {
-            stack.enableVpc(template['vpc']);
+        if (config.hasOwnProperty('vpc')) {
+            stack.enableVpc(config['vpc']);
         }
-        if (template.hasOwnProperty('db')) {
-            stack.add(new Database(stack, template.db as Record<string, any>));
+        if (config.hasOwnProperty('db')) {
+            stack.add(new Database(stack, config.db as Record<string, any>));
         }
-        if (template.hasOwnProperty('static-website')) {
-            stack.add(new StaticWebsite(stack, template['static-website']));
+        if (config.hasOwnProperty('static-website')) {
+            stack.add(new StaticWebsite(stack, config['static-website']));
         }
 
         return stack;
-    }
-
-    private static readYaml(yamlString: string|undefined): Record<string, any> {
-        yamlString = yamlString ? yamlString : fs.readFileSync('lift.yml', 'utf8');
-        const template = yaml.safeLoad(yamlString);
-        if (!template || typeof template !== 'object' || !template.hasOwnProperty('name')) {
-            throw 'Invalid YAML';
-        }
-        return template;
     }
 }

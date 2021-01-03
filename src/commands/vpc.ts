@@ -10,7 +10,7 @@ export default class Vpc extends Command {
     }
 
     static async getOutput(): Promise<VpcDetails|null> {
-        const stack = (new Config).getStack();
+        const stack = Config.fromFile().getStack();
         if (! stack.vpc) {
             return null;
         }

@@ -71,7 +71,7 @@ s3:
         @Watch('liftConfig')
         async refresh(newValue: string) {
             try {
-                const stack = (new Config(newValue)).getStack();
+                const stack = (new Config('myproject', 'us-east-1', newValue)).getStack();
                 this.stackName = stack.name;
 
                 // Cloudformation

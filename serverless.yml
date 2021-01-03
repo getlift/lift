@@ -5,6 +5,11 @@ provider:
     region: us-east-1
     runtime: nodejs12.x
 
+custom:
+    lift:
+        s3:
+            photos:
+
 functions:
     hello:
         handler: demo/handler.hello
@@ -18,4 +23,4 @@ package:
         - 'utils/**'
 
 plugins:
-    - ./demo/plugin.js
+    - ./dist/plugin.js

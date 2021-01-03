@@ -6,14 +6,41 @@ import {Stack} from './src/Stack';
  */
 class LiftPlugin {
     private serverless: any;
+    private provider: any;
+
     constructor(serverless: any) {
         this.serverless = serverless;
+        this.provider = this.serverless.getProvider('aws');
 
-        const externalStack = (new Config).getStack();
+        // Internal stack
+        if (this.serverless.service.custom && this.serverless.service.custom.lift) {
+            const serverlessStackName = this.provider.naming.getStackName();
+            const region = this.provider.getRegion();
+            const config = new Config(serverlessStackName, region, this.serverless.service.custom.lift);
+            const stack = config.getStack();
+            this.configureCloudFormation(stack)
+                // TODO currently this uses CF stack outputs
+                // we need to reference resources from the current stack
+                // .then(() => this.configureVpc(stack))
+                // .then(() => this.configureEnvironmentVariables(stack))
+                // .then(() => this.configurePermissions(stack));
+        }
 
+        // External stack
+        const externalStack = Config.fromFile().getStack();
         this.configureVpc(externalStack)
             .then(() => this.configureEnvironmentVariables(externalStack))
             .then(() => this.configurePermissions(externalStack));
+    }
+
+    async configureCloudFormation(stack: Stack) {
+        this.serverless.service.resources = this.serverless.service.resources || {};
+        this.serverless.service.resources.Resources = this.serverless.service.resources.Resources || {};
+        this.serverless.service.resources.Outputs = this.serverless.service.resources.Outputs || {};
+
+        const template = await stack.compile();
+        Object.assign(this.serverless.service.resources.Resources, template.Resources);
+        Object.assign(this.serverless.service.resources.Outputs, template.Outputs);
     }
 
     async configureVpc(stack: Stack) {

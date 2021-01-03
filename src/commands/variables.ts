@@ -9,7 +9,7 @@ export default class Variables extends Command {
     }
 
     static async getOutput() {
-        const stack = (new Config).getStack();
+        const stack = Config.fromFile().getStack();
 
         return await stack.variables();
     }

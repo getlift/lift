@@ -1,5 +1,4 @@
 import {Command} from '@oclif/command'
-import * as yaml from "js-yaml";
 import {Config} from "../Config";
 
 export default class Permissions extends Command {
@@ -10,7 +9,7 @@ export default class Permissions extends Command {
     }
 
     static async getOutput() {
-        const stack = (new Config).getStack();
+        const stack = Config.fromFile().getStack();
 
         return await stack.permissions();
     }
