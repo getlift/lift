@@ -1,6 +1,5 @@
-import Vpc from './src/commands/vpc';
-import Variables from './src/commands/variables';
-import Permissions from './src/commands/permissions';
+import {Config} from './src/Config';
+import {Stack} from './src/Stack';
 
 /**
  * Serverless plugin
@@ -10,22 +9,23 @@ class LiftPlugin {
     constructor(serverless: any) {
         this.serverless = serverless;
 
-        this.setVpc()
-            .then(() => this.setEnvironmentVariables())
-            .then(() => this.setPermissions());
+        const externalStack = (new Config).getStack();
+
+        this.configureVpc(externalStack)
+            .then(() => this.configureEnvironmentVariables(externalStack))
+            .then(() => this.configurePermissions(externalStack));
     }
 
-    async setVpc() {
-        const details = await Vpc.getOutput();
-        if (details) {
-            this.serverless.service.provider.vpc = details;
+    async configureVpc(stack: Stack) {
+        if (stack.vpc) {
+            this.serverless.service.provider.vpc = await stack.vpc.details();
         }
     }
 
-    async setEnvironmentVariables() {
+    async configureEnvironmentVariables(stack: Stack) {
         this.serverless.service.provider.environment = this.serverless.service.provider.environment || {};
 
-        const variables = await Variables.getOutput();
+        const variables = await stack.variables();
 
         Object.keys(variables).map(name => {
             if (name in this.serverless.service.provider.environment) {
@@ -36,10 +36,10 @@ class LiftPlugin {
         });
     }
 
-    async setPermissions() {
+    async configurePermissions(stack: Stack) {
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements || [];
 
-        const permissions = await Permissions.getOutput();
+        const permissions = await stack.permissions();
 
         this.serverless.service.provider.iamRoleStatements.push(...permissions);
     }
