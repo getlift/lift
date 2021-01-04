@@ -17,3 +17,6 @@ website-preview:
 
 availability-zones:
 	cd utils && node availability-zone-list.js
+
+plugin:
+	node esbuild.js

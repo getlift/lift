@@ -5,4 +5,4 @@
 /tmp
 node_modules
 /syntax/
-/.serverless/
+.serverless/

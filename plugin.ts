@@ -1,5 +1,6 @@
 import {Config} from './src/Config';
 import {Stack} from './src/Stack';
+import fs from "fs";
 
 /**
  * Serverless plugin
@@ -27,10 +28,12 @@ class LiftPlugin {
         }
 
         // External stack
-        const externalStack = Config.fromFile().getStack();
-        this.configureVpc(externalStack)
-            .then(() => this.configureEnvironmentVariables(externalStack))
-            .then(() => this.configurePermissions(externalStack));
+        if (fs.existsSync('lift.yml')) {
+            const externalStack = Config.fromFile().getStack();
+            this.configureVpc(externalStack)
+                .then(() => this.configureEnvironmentVariables(externalStack))
+                .then(() => this.configurePermissions(externalStack));
+        }
     }
 
     async configureCloudFormation(stack: Stack) {
