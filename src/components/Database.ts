@@ -72,6 +72,10 @@ export class Database extends Component {
         return [];
     }
 
+    async permissionsReferences() {
+        return [];
+    }
+
     async envVariables() {
         const dbName = await this.stack.getOutput(this.dbResourceName + 'Name');
         const dbHost = await this.stack.getOutput(this.dbResourceName + 'Host');

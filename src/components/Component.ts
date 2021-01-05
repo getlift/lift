@@ -10,7 +10,14 @@ export abstract class Component {
     abstract compile(): CloudFormationResources;
     abstract outputs(): CloudFormationOutputs;
     abstract permissions(): Promise<PolicyStatement[]>;
+    abstract permissionsReferences(): Promise<PolicyStatement[]>;
+    /**
+     * Environment variables from stack outputs (real values).
+     */
     abstract envVariables(): Promise<Record<string, any>>;
+    /**
+     * Environment variables from inside the stack (references).
+     */
     abstract envVariablesReferences(): Promise<Record<string, any>>;
 
     protected constructor(stack: Stack) {

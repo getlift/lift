@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
-import {test} from '@oclif/test'
 import * as yaml from 'js-yaml';
+import {runCommand} from '../../src/tests/helper';
 
 function assertCloudFormation(actual: string, expectedFile: string) {
     let expected = fs.readFileSync(__dirname + '/' + expectedFile).toString();
@@ -13,20 +13,31 @@ function assertCloudFormation(actual: string, expectedFile: string) {
 
 describe('lift deploy', () => {
 
-    test
-        .stdout()
-        .command(['export'])
-        .it('should deploy S3 buckets', ctx => {
-            assertCloudFormation(ctx.stdout, 'expected.yaml');
-        })
+    it('should deploy S3 buckets', async function() {
+        const output = await runCommand('../../bin/run export', __dirname);
+        assertCloudFormation(output, 'expected.yaml');
+    });
 
-    test
-        .stdout()
-        .command(['variables'])
-        .it('should export S3 variables', ctx => {
-            assert.deepStrictEqual(JSON.parse(ctx.stdout), {
-                BUCKET_AVATARS: "lift-avatars",
-            });
-        })
+    it('should export S3 variables', async function() {
+        const output = await runCommand('../../bin/run variables', __dirname);
+        assert.deepStrictEqual(JSON.parse(output), {
+            BUCKET_AVATARS: 'app-avatars',
+        });
+    });
+
+    // Requires deployed stack
+    // it('should export S3 permissions', async function() {
+    //     const output = await runCommand('../../bin/run permissions', __dirname);
+    //     assert.deepStrictEqual(JSON.parse(output), [
+    //         {
+    //             Effect: 'Allow',
+    //             Action: 's3:*',
+    //             Resource: [
+    //                 'arn:aws:s3:::app-avatars',
+    //                 'arn:aws:s3:::app-avatars/*',
+    //             ],
+    //         },
+    //     ]);
+    // });
 
 })

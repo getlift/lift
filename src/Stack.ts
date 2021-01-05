@@ -90,6 +90,14 @@ export class Stack {
         return permissions;
     }
 
+    async permissionsInStack(): Promise<any[]> {
+        const permissions: any[] = [];
+        for (const component of this.components) {
+            permissions.push(...(await component.permissionsReferences()));
+        }
+        return permissions;
+    }
+
     async variables() {
         const variables: Record<string, any> = {};
         for (const component of this.components) {

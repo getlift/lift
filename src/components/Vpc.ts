@@ -175,6 +175,10 @@ export class Vpc extends Component {
         return [];
     }
 
+    async permissionsReferences() {
+        return [];
+    }
+
     async envVariables() {
         return {};
     }

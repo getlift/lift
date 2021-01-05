@@ -118,6 +118,21 @@
                       "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/app-dev*:*:*"
                     }
                   ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "s3:*",
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "Avatars",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::Sub": "${Avatars.Arn}/*"
+                    }
+                  ]
                 }
               ]
             }

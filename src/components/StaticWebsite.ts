@@ -140,6 +140,10 @@ export class StaticWebsite extends Component {
         return [];
     }
 
+    async permissionsReferences() {
+        return [];
+    }
+
     async envVariables() {
         let variables: Record<string, any> = {};
 

@@ -21,11 +21,10 @@ class LiftPlugin {
             const stack = config.getStack();
             this.configureCloudFormation(stack)
                 .then(async () => this.configureEnvironmentVariables(await stack.variablesInStack()))
+                .then(async () => this.configurePermissions(await stack.permissionsInStack()));
                 // TODO currently this uses CF stack outputs
                 // we need to reference resources from the current stack
                 // .then(() => this.configureVpc(stack))
-                // .then(() => this.configureEnvironmentVariables(stack))
-                // .then(() => this.configurePermissions(stack));
         }
 
         // External stack
@@ -33,7 +32,7 @@ class LiftPlugin {
             const externalStack = Config.fromFile().getStack();
             this.configureVpc(externalStack)
                 .then(async () => this.configureEnvironmentVariables(await externalStack.variables()))
-                .then(() => this.configurePermissions(externalStack));
+                .then(async () => this.configurePermissions(await externalStack.permissions()));
         }
     }
 
@@ -59,11 +58,8 @@ class LiftPlugin {
         this.serverless.service.provider.environment = Object.assign({}, variables, existingVariables);
     }
 
-    async configurePermissions(stack: Stack) {
+    async configurePermissions(permissions: any[]) {
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements || [];
-
-        const permissions = await stack.permissions();
-
         this.serverless.service.provider.iamRoleStatements.push(...permissions);
     }
 }

@@ -88,6 +88,15 @@ export class S3 extends Component {
         ];
     }
 
+    async permissionsReferences() {
+        return [
+            new PolicyStatement('s3:*', [
+                this.fnGetAtt(this.bucketResourceId, 'Arn'),
+                this.fnSub(`$\{${this.bucketResourceId}.Arn}/*`),
+            ]),
+        ];
+    }
+
     async envVariables() {
         const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
         return {
