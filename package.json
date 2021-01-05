@@ -59,8 +59,9 @@
   },
   "repository": "mnapoli/lift",
   "scripts": {
-    "posttest": "eslint . --ext .ts --config .eslintrc",
-    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
+    "eslint": "eslint . --ext .ts --config .eslintrc",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "coverage": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
   "types": "lib/index.d.ts"
 }

@@ -15,3 +15,12 @@ jobs:
             -   run: npm ci
             -   name: Typescript checks
                 run: tsc --noEmit
+
+    tests:
+        name: Tests
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v1
+            -   run: npm ci
+            -   run: npm run test
