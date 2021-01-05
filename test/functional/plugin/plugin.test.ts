@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import {runCommand} from '../../../src/tests/helper';
 
-const slsPackage = async () => {
-    await runCommand('serverless package', __dirname);
+const slsPackage = async (directory: string) => {
+    await runCommand('serverless package', __dirname + '/' + directory);
 }
 function loadFile(path: string): any {
     let json = fs.readFileSync(__dirname + '/' + path).toString();
@@ -18,10 +18,19 @@ beforeEach(async () => {
 });
 
 describe('serverless plugin', () => {
-    it('should add CloudFormation resources', async function() {
-        await slsPackage();
-        const actual = loadFile('.serverless/cloudformation-template-update-stack.json');
-        const expected = loadFile('expected.json');
+
+    it('should add S3 resources', async function() {
+        await slsPackage('s3');
+        const actual = loadFile('s3/.serverless/cloudformation-template-update-stack.json');
+        const expected = loadFile('s3/expected.json');
         assert.deepStrictEqual(actual, expected);
     });
+
+    it('should add VPC resources', async function() {
+        await slsPackage('vpc');
+        const actual = loadFile('vpc/.serverless/cloudformation-template-update-stack.json');
+        const expected = loadFile('vpc/expected.json');
+        assert.deepStrictEqual(actual, expected);
+    });
+
 })

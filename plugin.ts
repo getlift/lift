@@ -1,6 +1,7 @@
 import {Config} from './src/Config';
 import {Stack} from './src/Stack';
 import fs from "fs";
+import {VpcDetails} from './src/components/Vpc';
 
 /**
  * Serverless plugin
@@ -20,6 +21,7 @@ class LiftPlugin {
             const config = new Config(serverlessStackName, region, this.serverless.service.custom.lift);
             const stack = config.getStack();
             this.configureCloudFormation(stack)
+                .then(async () => this.configureVpc(stack.vpc?.detailsReferences()))
                 .then(async () => this.configureEnvironmentVariables(await stack.variablesInStack()))
                 .then(async () => this.configurePermissions(await stack.permissionsInStack()));
                 // TODO currently this uses CF stack outputs
@@ -30,7 +32,7 @@ class LiftPlugin {
         // External stack
         if (fs.existsSync('lift.yml')) {
             const externalStack = Config.fromFile().getStack();
-            this.configureVpc(externalStack)
+            this.configureVpc(externalStack.vpc?.details())
                 .then(async () => this.configureEnvironmentVariables(await externalStack.variables()))
                 .then(async () => this.configurePermissions(await externalStack.permissions()));
         }
@@ -46,9 +48,9 @@ class LiftPlugin {
         Object.assign(this.serverless.service.resources.Outputs, template.Outputs);
     }
 
-    async configureVpc(stack: Stack) {
-        if (stack.vpc) {
-            this.serverless.service.provider.vpc = await stack.vpc.details();
+    async configureVpc(vpcDetails: Promise<VpcDetails>|undefined) {
+        if (vpcDetails) {
+            this.serverless.service.provider.vpc = await vpcDetails;
         }
     }
 

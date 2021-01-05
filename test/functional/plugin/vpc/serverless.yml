@@ -9,12 +9,11 @@ provider:
 
 custom:
     lift:
-        s3:
-            avatars:
+        vpc:
 
 functions:
     hello:
         handler: handler.handler
 
 plugins:
-    - ../../../dist/plugin.js
+    - ../../../../dist/plugin.js

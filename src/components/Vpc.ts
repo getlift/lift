@@ -3,8 +3,8 @@ import {CloudFormationOutputs, CloudFormationResources, Stack} from '../Stack';
 import {cidrSubnets, cidrVpc, getZoneId} from '../Cidr';
 
 export type VpcDetails = {
-    securityGroupIds: string[];
-    subnetIds: string[];
+    securityGroupIds: (string|object)[];
+    subnetIds: (string|object)[];
 };
 
 export class Vpc extends Component {
@@ -197,6 +197,20 @@ export class Vpc extends Component {
             subnetIds: await Promise.all(zones.map(async zone => {
                 const subnetResourceId = this.formatCloudFormationId(`SubnetPrivate-${zone}`);
                 return await this.stack.getOutput(subnetResourceId + 'Id');
+            })),
+        };
+    }
+
+    async detailsReferences(): Promise<VpcDetails> {
+        const zones = this.stack.availabilityZones();
+        return {
+            securityGroupIds: [
+                this.fnRef(this.appSecurityGroupResourceId),
+            ],
+            // Put Lambda in the private subnets
+            subnetIds: await Promise.all(zones.map(async zone => {
+                const subnetResourceId = this.formatCloudFormationId(`SubnetPrivate-${zone}`);
+                return this.fnRef(subnetResourceId);
             })),
         };
     }

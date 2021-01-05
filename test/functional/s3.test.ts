@@ -14,12 +14,12 @@ function assertCloudFormation(actual: string, expectedFile: string) {
 describe('lift deploy', () => {
 
     it('should deploy S3 buckets', async function() {
-        const output = await runCommand('../../bin/run export', __dirname);
-        assertCloudFormation(output, 'expected.yaml');
+        const output = await runCommand('../../../bin/run export', __dirname + '/s3');
+        assertCloudFormation(output, 's3/expected.yaml');
     });
 
     it('should export S3 variables', async function() {
-        const output = await runCommand('../../bin/run variables', __dirname);
+        const output = await runCommand('../../../bin/run variables', __dirname + '/s3');
         assert.deepStrictEqual(JSON.parse(output), {
             BUCKET_AVATARS: 'app-avatars',
         });
@@ -27,7 +27,7 @@ describe('lift deploy', () => {
 
     // Requires deployed stack
     // it('should export S3 permissions', async function() {
-    //     const output = await runCommand('../../bin/run permissions', __dirname);
+    //     const output = await runCommand('../../../bin/run permissions', __dirname + '/s3');
     //     assert.deepStrictEqual(JSON.parse(output), [
     //         {
     //             Effect: 'Allow',
