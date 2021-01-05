@@ -1,6 +1,25 @@
+import {stdout} from 'stdout-stderr';
+import {loadConfig} from '@oclif/test/lib/load-config';
 import {spawn} from 'child_process';
 
-export async function runCommand(command: string, workingDirectory: string): Promise<string> {
+export async function runCommand(workingDir: string, command: string, args: string[] = []): Promise<string> {
+    // Mock stdout
+    stdout.print = true;
+    stdout.start();
+    try {
+        const oclif = await loadConfig({
+            root: __dirname + '/../..',
+        }).run({} as any)
+        await oclif.runHook('init', {id: command, argv: args})
+        process.chdir(workingDir);
+        await oclif.runCommand(command, args)
+    } finally {
+        stdout.stop();
+    }
+    return stdout.output;
+}
+
+export async function execute(command: string, workingDirectory: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
         const process = spawn(command, {
             shell: true,

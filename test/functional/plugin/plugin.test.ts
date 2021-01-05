@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
-import {runCommand} from '../../../src/tests/helper';
+import {execute} from '../../../src/tests/helper';
 
 const slsPackage = async (directory: string) => {
-    await runCommand('serverless package', __dirname + '/' + directory);
+    await execute('serverless package', __dirname + '/' + directory);
 }
 function loadFile(path: string): any {
     let json = fs.readFileSync(__dirname + '/' + path).toString();
@@ -14,7 +14,7 @@ function loadFile(path: string): any {
 
 beforeEach(async () => {
     // Compile the plugin to JS code
-    await runCommand('make plugin', `${__dirname}/../../..`);
+    await execute('make plugin', `${__dirname}/../../..`);
 });
 
 describe('serverless plugin', () => {

@@ -2,6 +2,7 @@ import {Component} from "./components/Component";
 import {Vpc} from './components/Vpc';
 import CloudFormation from 'aws-sdk/clients/cloudformation';
 import {availabilityZones} from './Zones';
+import { getOutputs } from './aws/CloudFormation';
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: '2010-09-09',
@@ -134,7 +135,7 @@ export class Stack {
     async getOutput(key: string): Promise<string> {
         const outputs = await this.getOutputs();
         if (! outputs[key]) {
-            throw new Error('lift.yml contains changes that differ from the deployed stack. Deploy via `lift up` first.')
+            throw new Error(`lift.yml contains changes that differ from the deployed stack (the '${key}' CloudFormation output is missing). Deploy via 'lift up' first.`);
         }
         return outputs[key];
     }
@@ -142,21 +143,7 @@ export class Stack {
     private async getOutputs(): Promise<Record<string, string>> {
         // Refresh the cache
         if (! this.deployedOutputs) {
-            const stack = await this.cloudFormation.describeStacks({
-                StackName: this.name,
-            }).promise();
-
-            if (! stack.Stacks || ! stack.Stacks[0].Outputs) {
-                throw new Error(`Stack ${this.name} is not deployed yet.`);
-            }
-
-            const out: Record<string, string> = {};
-            for (const output of stack.Stacks[0].Outputs) {
-                if (output.OutputKey && output.OutputValue) {
-                    out[output.OutputKey] = output.OutputValue;
-                }
-            }
-            this.deployedOutputs = out;
+            this.deployedOutputs = await getOutputs(this.region, this.name);
         }
 
         return this.deployedOutputs;
