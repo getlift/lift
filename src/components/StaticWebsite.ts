@@ -159,4 +159,23 @@ export class StaticWebsite extends Component {
 
         return variables;
     }
+
+    async envVariablesReferences() {
+        let variables: Record<string, any> = {};
+
+        // Bucket name
+        const bucketName = this.fnRef(this.bucketResourceName);
+        variables[this.formatEnvVariableName('STATIC_WEBSITE_BUCKET')] = bucketName;
+
+        // Domain
+        if (this.props.domain) {
+            variables['STATIC_WEBSITE_DOMAIN'] = this.props.domain;
+            variables['STATIC_WEBSITE_URL'] = `https://${this.props.domain}`;
+        } else {
+            variables['STATIC_WEBSITE_DOMAIN'] = this.fnGetAtt('WebsiteCDN', 'DomainName');
+            variables['STATIC_WEBSITE_URL'] = this.fnSub('https://${WebsiteCDN.DomainName}/');
+        }
+
+        return variables;
+    }
 }

@@ -158,7 +158,12 @@
           ]
         },
         "Runtime": "nodejs12.x",
-        "Timeout": 6
+        "Timeout": 6,
+        "Environment": {
+          "Variables": {
+            "BUCKET_AVATARS": "app-dev-avatars"
+          }
+        }
       },
       "DependsOn": [
         "HelloLogGroup"

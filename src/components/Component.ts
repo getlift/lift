@@ -11,6 +11,7 @@ export abstract class Component {
     abstract outputs(): CloudFormationOutputs;
     abstract permissions(): Promise<PolicyStatement[]>;
     abstract envVariables(): Promise<Record<string, any>>;
+    abstract envVariablesReferences(): Promise<Record<string, any>>;
 
     protected constructor(stack: Stack) {
         this.stack = stack;
@@ -47,6 +48,12 @@ export abstract class Component {
                 glue,
                 strings,
             ],
+        }
+    }
+
+    protected fnSub(string: string): object {
+        return {
+            'Fn::Sub': string,
         }
     }
 

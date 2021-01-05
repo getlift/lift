@@ -20,6 +20,7 @@ class LiftPlugin {
             const config = new Config(serverlessStackName, region, this.serverless.service.custom.lift);
             const stack = config.getStack();
             this.configureCloudFormation(stack)
+                .then(async () => this.configureEnvironmentVariables(await stack.variablesInStack()))
                 // TODO currently this uses CF stack outputs
                 // we need to reference resources from the current stack
                 // .then(() => this.configureVpc(stack))
@@ -31,7 +32,7 @@ class LiftPlugin {
         if (fs.existsSync('lift.yml')) {
             const externalStack = Config.fromFile().getStack();
             this.configureVpc(externalStack)
-                .then(() => this.configureEnvironmentVariables(externalStack))
+                .then(async () => this.configureEnvironmentVariables(await externalStack.variables()))
                 .then(() => this.configurePermissions(externalStack));
         }
     }
@@ -52,18 +53,10 @@ class LiftPlugin {
         }
     }
 
-    async configureEnvironmentVariables(stack: Stack) {
-        this.serverless.service.provider.environment = this.serverless.service.provider.environment || {};
-
-        const variables = await stack.variables();
-
-        Object.keys(variables).map(name => {
-            if (name in this.serverless.service.provider.environment) {
-                // Avoid overwriting an existing variable
-                return;
-            }
-            this.serverless.service.provider.environment[name] = variables[name];
-        });
+    async configureEnvironmentVariables(variables: Record<string, any>) {
+        const existingVariables = this.serverless.service.provider.environment || {};
+        // Avoid overwriting an existing variable
+        this.serverless.service.provider.environment = Object.assign({}, variables, existingVariables);
     }
 
     async configurePermissions(stack: Stack) {

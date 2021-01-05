@@ -1,6 +1,16 @@
 name: lift
 region: us-east-1
 
+#cdn:
+#    routes:
+#        default: externals
+#        'assets/*':
+#
+#server-side-website:
+#    app:
+#    assets:
+#        'assets/*':
+
 s3:
     avatars:
 #        public: true

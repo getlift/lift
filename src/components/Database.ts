@@ -84,6 +84,17 @@ export class Database extends Component {
         };
     }
 
+    async envVariablesReferences() {
+        const dbName = await this.getDbName();
+        const dbHost = this.fnGetAtt(this.dbResourceName, 'Endpoint.Address');
+        const dbPort = this.fnGetAtt(this.dbResourceName, 'Endpoint.Port');
+        return {
+            [this.formatEnvVariableName(this.dbResourceName + '_NAME')]: dbName,
+            [this.formatEnvVariableName(this.dbResourceName + '_HOST')]: dbHost,
+            [this.formatEnvVariableName(this.dbResourceName + '_PORT')]: dbPort,
+        };
+    }
+
     private getEngine(): string {
         const availableEngines = [
             'mysql',

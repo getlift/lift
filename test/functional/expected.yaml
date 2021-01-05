@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+    Avatars:
+        Type: 'AWS::S3::Bucket'
+        Properties:
+            BucketName: lift-avatars
+Outputs:
+    AvatarsBucket:
+        Description: Name of the S3 bucket.
+        Value:
+            Ref: Avatars
+    AvatarsBucketArn:
+        Description: ARN of the S3 bucket.
+        Value:
+            'Fn::GetAtt':
+                - Avatars
+                - Arn

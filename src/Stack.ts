@@ -93,10 +93,15 @@ export class Stack {
     async variables() {
         const variables: Record<string, any> = {};
         for (const component of this.components) {
-            const newVariables = await component.envVariables();
-            Object.keys(newVariables).map(name => {
-                variables[name] = newVariables[name];
-            });
+            Object.assign(variables, await component.envVariables());
+        }
+        return variables;
+    }
+
+    async variablesInStack() {
+        const variables: Record<string, any> = {};
+        for (const component of this.components) {
+            Object.assign(variables, await component.envVariablesReferences());
         }
         return variables;
     }

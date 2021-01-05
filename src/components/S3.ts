@@ -94,4 +94,11 @@ export class S3 extends Component {
             [variableName]: this.bucketName,
         };
     }
+
+    async envVariablesReferences() {
+        const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
+        return {
+            [variableName]: this.bucketName,
+        };
+    }
 }
