@@ -1,0 +1,7 @@
+name: app
+region: us-east-1
+
+queues:
+    jobs:
+        maxRetries: 5
+        visibilityTimeout: 30 # seconds

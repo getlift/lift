@@ -16,6 +16,10 @@ s3:
 #        public: true
 #        cors: true
 
+queues:
+    jobs:
+        maxRetries: 5
+
 #db:
 
 #static-website:

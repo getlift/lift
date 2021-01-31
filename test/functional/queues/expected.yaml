@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+    JobsQueue:
+        Type: 'AWS::SQS::Queue'
+        Properties:
+            QueueName: app-jobs
+            VisibilityTimeout: 30
+            RedrivePolicy:
+                maxReceiveCount: 5
+                deadLetterTargetArn:
+                    'Fn::GetAtt':
+                        - JobsQueueDLQ
+                        - Arn
+    JobsQueueDLQ:
+        Type: 'AWS::SQS::Queue'
+        Properties:
+            QueueName: app-jobs-dlq
+            MessageRetentionPeriod: 1209600
+Outputs:
+    JobsQueueUrl:
+        Description: URL of the SQS queue.
+        Value:
+            Ref: JobsQueue
+    JobsQueueArn:
+        Description: ARN of the SQS queue.
+        Value:
+            'Fn::GetAtt':
+                - JobsQueue
+                - Arn

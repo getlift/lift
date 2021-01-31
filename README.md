@@ -126,3 +126,47 @@ static-website:
 ```
 
 *Note: deploying a CloudFront distribution can take a long time (more than 5 minutes).*
+
+## SQS queue
+
+```yaml
+queues:
+    jobs:
+```
+
+This will create a SQS queue named `myapp-jobs`.
+
+Lambda functions will be automatically authorized push messages into the queue.
+
+It is possible to create a Lambda function in `serverless.yml` to process messages from that queue:
+
+```yaml
+# serverless.yml
+functions:
+    worker:
+        handler: ...
+        events:
+            -   sqs:
+                    arn: !GetAtt JobsQueue.Arn
+```
+
+The reference above works if the Lift config was written inside `serverless.yml`. The resource name follows the format `<Queue name>Queue`.
+
+By default, SQS retries failed messages indefinitely. Set a max retry limit with `maxRetries`, Lift will automatically create a SQS dead letter queue that will receive the failed messages:
+
+```yaml
+queues:
+    jobs:
+        maxRetries: 5
+```
+
+This will create 2 SQS queues: `myapp-jobs` and `myapp-jobs-dlq` (for the failed messages).
+
+Full options ([reference](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html)):
+
+```yaml
+queues:
+    jobs:
+        maxRetries: 5
+        visibilityTimeout: 30 # seconds
+```

@@ -4,6 +4,7 @@ import {Stack} from "./Stack";
 import {S3} from "./components/S3";
 import {Database} from "./components/Database";
 import {StaticWebsite} from "./components/StaticWebsite";
+import {Queue} from './components/Queue';
 
 export class Config {
     private readonly stackName: string;
@@ -34,6 +35,11 @@ export class Config {
         if (config.hasOwnProperty('s3') && config.s3) {
             for (const [key, value] of Object.entries(config.s3)) {
                 stack.add(new S3(stack, key, value as Record<string, any>));
+            }
+        }
+        if (config.hasOwnProperty('queues') && config.queues) {
+            for (const [key, value] of Object.entries(config.queues)) {
+                stack.add(new Queue(stack, key, value as Record<string, any>));
             }
         }
         // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
