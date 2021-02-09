@@ -16,6 +16,9 @@ export class Config {
     }
 
     static fromFile(file: string = 'lift.yml'): Config {
+        if (! fs.existsSync(file)) {
+            throw new Error('No `lift.yml` file found in the current directory.');
+        }
         const yamlString = fs.readFileSync(file, 'utf8');
         const config = yaml.safeLoad(yamlString) as Record<string, any>;
         if (!config || typeof config !== 'object' || !config.hasOwnProperty('name')) {

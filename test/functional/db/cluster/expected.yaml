@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Metadata:
-    'Lift::Template': '{"name":"app","region":"us-east-1","db":null}'
+    'Lift::Template': '{"name":"app","region":"us-east-1","db":{"engine":"aurora-mysql"}}'
     'Lift::Version': '1'
 Resources:
     Vpc:
@@ -338,21 +338,6 @@ Resources:
                 Ref: RouteTablePrivateUsEast1c
             NatGatewayId:
                 Ref: NatGateway
-    Database:
-        Type: 'AWS::RDS::DBInstance'
-        Properties:
-            DBName: app
-            Engine: mysql
-            MasterUsername: admin
-            MasterUserPassword: password
-            DBInstanceIdentifier: app
-            DBInstanceClass: db.t3.micro
-            StorageType: gp2
-            AllocatedStorage: '20'
-            DBSubnetGroupName:
-                Ref: DbSubnetGroup
-            VPCSecurityGroups:
-                - Ref: DbSecurityGroup
     DbSubnetGroup:
         Type: 'AWS::RDS::DBSubnetGroup'
         Properties:
@@ -362,6 +347,35 @@ Resources:
                 - Ref: SubnetPrivateUsEast1a
                 - Ref: SubnetPrivateUsEast1b
                 - Ref: SubnetPrivateUsEast1c
+    Database:
+        Type: 'AWS::RDS::DBCluster'
+        Properties:
+            DBClusterIdentifier: app
+            DatabaseName: app
+            Engine: aurora-mysql
+            MasterUsername: admin
+            MasterUserPassword: password
+            DBSubnetGroupName:
+                Ref: DbSubnetGroup
+            VpcSecurityGroupIds:
+                -   Ref: DbSecurityGroup
+    DatabaseInstance:
+        Type: 'AWS::RDS::DBInstance'
+        Properties:
+            DBInstanceIdentifier: app
+            DBName: app
+            Engine: aurora-mysql
+            MasterUsername: admin
+            MasterUserPassword: password
+            DBInstanceClass: db.t3.micro
+            StorageType: gp2
+            AllocatedStorage: '20'
+            DBSubnetGroupName:
+                Ref: DbSubnetGroup
+            VPCSecurityGroups:
+                - Ref: DbSecurityGroup
+            DBClusterIdentifier:
+                Ref: Database
 Outputs:
     VpcId:
         Description: VPC ID

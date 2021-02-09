@@ -2,3 +2,4 @@ name: app
 region: us-east-1
 
 db:
+    engine: aurora-mysql

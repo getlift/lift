@@ -72,15 +72,37 @@ The database will be securely placed in the private VPC subnet. Lambda functions
 
 By default, the instance will be a `db.t3.micro` MySQL instance with no replication. It is a development instance.
 
+*Note: deploying a RDS database can take a long time (more than 5 minutes).*
+
 Here are all the options available:
 
 ```yaml
 db:
+    # By default the DB name will be the same as the app name.
     name: mydatabasename
+    # mysql, mariadb, postgres, aurora, aurora-mysql, aurora-postgresql
     engine: aurora-mysql
+    # See https://aws.amazon.com/rds/instance-types/
+    # The default is `db.t3.micro` (the cheapest and smallest).
+    class: db.t3.micro
+    # Storage size in GB. The default is the minimum: 20GB.
+    storageSize: 20
 ```
 
-*Note: deploying a RDS database can take a long time (more than 5 minutes).*
+If the engine is Aurora-based (`aurora`, `aurora-mysql` or `aurora-postgresql`), then a DB cluster with only 1 instance will be created (no replica will be created).
+
+To create an Aurora serverless database:
+
+```yaml
+db:
+    name: mydatabasename
+    serverless:
+        min: 1 # optional, default is 1
+        max: 4 # required
+        autoPause: false # optional, default is false
+```
+
+By default, a MySQL 5.7 serverless database is created. Set `engine: aurora` for MySQL 5.6, or `engine: aurora-postgresql` for PostgreSQL.
 
 ## S3 bucket
 

@@ -17,11 +17,21 @@ afterEach(() => {
     sinon.restore();
 });
 
-describe('lift deploy', () => {
+describe('db', () => {
 
-    it('should deploy database', async function() {
-        const output = await runCommand(__dirname + '/db', 'export');
-        assertCloudFormation(output, 'db/expected.yaml');
+    it('should deploy database instances', async function() {
+        const output = await runCommand(__dirname + '/db/instance', 'export');
+        assertCloudFormation(output, 'db/instance/expected.yaml');
+    });
+
+    it('should deploy database clusters', async function() {
+        const output = await runCommand(__dirname + '/db/cluster', 'export');
+        assertCloudFormation(output, 'db/cluster/expected.yaml');
+    });
+
+    it('should deploy serverless databases', async function() {
+        const output = await runCommand(__dirname + '/db/serverless', 'export');
+        assertCloudFormation(output, 'db/serverless/expected.yaml');
     });
 
     it('should export database variables', async function() {
@@ -31,7 +41,7 @@ describe('lift deploy', () => {
             DatabasePort: '3306',
         });
 
-        const output = await runCommand(__dirname + '/db', 'variables');
+        const output = await runCommand(__dirname + '/db/instance', 'variables');
         assert.deepStrictEqual(JSON.parse(output), {
             DATABASE_HOST: 'dbname.e2sctvp0nqos.us-east-1.rds.amazonaws.com',
             DATABASE_NAME: 'dbname',
@@ -40,7 +50,7 @@ describe('lift deploy', () => {
     });
 
     it('should export database permissions', async function() {
-        const output = await runCommand(__dirname + '/db', 'permissions');
+        const output = await runCommand(__dirname + '/db/instance', 'permissions');
         assert.deepStrictEqual(JSON.parse(output), []);
     });
 
