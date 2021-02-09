@@ -10,6 +10,7 @@ require('esbuild').build({
     ],
     bundle: true,
     platform: 'node',
+    target: ['node10.4'],
     outdir: 'dist',
     minify: true,
     external: Object.keys({
