@@ -11,7 +11,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v1
+            -   uses: actions/setup-node@v2
+                with:
+                    node-version: '12'
             -   run: npm ci
             -   name: Typescript checks
                 run: tsc --noEmit
@@ -21,7 +23,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v1
+            -   uses: actions/setup-node@v2
+                with:
+                    node-version: '12'
             -   run: npm install -g serverless
             -   run: npm ci
             -   run: npm run test
