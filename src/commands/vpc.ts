@@ -9,12 +9,9 @@ export default class Vpc extends Command {
         this.log(JSON.stringify(await Vpc.getOutput(), undefined, 2));
     }
 
-    static async getOutput(): Promise<VpcDetails|null> {
-        const stack = Config.fromFile().getStack();
-        if (! stack.vpc) {
-            return null;
-        }
+    static async getOutput(): Promise<VpcDetails | undefined> {
+        const stack = await Config.fromFile().getStack();
 
-        return await stack.vpc.details();
+        return await stack.vpcDetails();
     }
 }

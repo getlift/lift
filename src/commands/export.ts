@@ -13,7 +13,7 @@ AWSTemplateFormatVersion: '2010-09-09'
     ]
 
     async run() {
-        const stack = Config.fromFile().getStack();
+        const stack = await Config.fromFile().getStack();
 
         this.log(yaml.safeDump(stack.compile()));
     }

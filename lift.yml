@@ -18,7 +18,7 @@ s3:
 
 queues:
     jobs:
-        maxRetries: 5
+#        maxRetries: 5
 
 #db:
 

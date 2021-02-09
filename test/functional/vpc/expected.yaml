@@ -1,4 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+    'Lift::Template': '{"name":"app","region":"us-east-1","vpc":null}'
+    'Lift::Version': '1'
 Resources:
     Vpc:
         Type: 'AWS::EC2::VPC'

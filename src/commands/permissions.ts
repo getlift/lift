@@ -9,7 +9,7 @@ export default class Permissions extends Command {
     }
 
     static async getOutput() {
-        const stack = Config.fromFile().getStack();
+        const stack = await Config.fromFile().getStack();
 
         return await stack.permissions();
     }

@@ -21,3 +21,19 @@ export async function getOutputs(region: string, stackName: string): Promise<Rec
     }
     return out;
 }
+
+export async function getMetadata(region: string, stackName: string): Promise<Record<string, any> | undefined> {
+    const cloudFormation = new CloudFormation({
+        region: region,
+    });
+
+    const templateSummary = await cloudFormation.getTemplateSummary({
+        StackName: stackName,
+    }).promise();
+
+    if (! templateSummary.Metadata) {
+        return undefined;
+    }
+
+    return JSON.parse(templateSummary.Metadata);
+}

@@ -1,10 +1,8 @@
 import * as yaml from "js-yaml";
 import fs from "fs";
 import {Stack} from "./Stack";
-import {S3} from "./components/S3";
-import {Database} from "./components/Database";
-import {StaticWebsite} from "./components/StaticWebsite";
-import {Queue} from './components/Queue';
+import CloudFormation from 'aws-sdk/clients/cloudformation';
+import {getMetadata} from './aws/CloudFormation';
 
 export class Config {
     private readonly stackName: string;
@@ -27,32 +25,26 @@ export class Config {
         return new Config(config.name as string, config.region as string, config);
     }
 
-    getStack(): Stack {
-        const config = this.config;
-
-        const stack = new Stack(this.stackName, this.region);
-
-        if (config.hasOwnProperty('s3') && config.s3) {
-            for (const [key, value] of Object.entries(config.s3)) {
-                stack.add(new S3(stack, key, value as Record<string, any>));
-            }
+    static async fromStack(stackName: string, region: string): Promise<Config> {
+        const metadata = await getMetadata(region, stackName);
+        if (! metadata) {
+            throw new Error(`The stack ${stackName} was not deployed by Lift: impossible to 'use'.`)
         }
-        if (config.hasOwnProperty('queues') && config.queues) {
-            for (const [key, value] of Object.entries(config.queues)) {
-                stack.add(new Queue(stack, key, value as Record<string, any>));
-            }
+        if (! metadata['Lift::Template'] || ! metadata['Lift::Version']) {
+            throw new Error(`The stack ${stackName} was not deployed by Lift: impossible to 'use'.`)
         }
-        // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
-        if (config.hasOwnProperty('vpc')) {
-            stack.enableVpc(config['vpc']);
+        if (metadata['Lift::Version'] !== '1') {
+            throw new Error(`The stack ${stackName} was deployed by a different version of Lift (expected version 1, got ${metadata['Lift::Version']}).`)
         }
-        if (config.hasOwnProperty('db')) {
-            stack.add(new Database(stack, config.db as Record<string, any>));
-        }
-        if (config.hasOwnProperty('static-website')) {
-            stack.add(new StaticWebsite(stack, config['static-website']));
+        const config = JSON.parse(metadata['Lift::Template']) as Record<string, any>;
+        if (!config || typeof config !== 'object' || !config.hasOwnProperty('name')) {
+            throw 'Invalid YAML';
         }
 
-        return stack;
+        return new Config(config.name as string, config.region as string, config);
+    }
+
+    async getStack(): Promise<Stack> {
+        return await Stack.create(this.stackName, this.region, this.config);
     }
 }

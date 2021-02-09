@@ -10,7 +10,7 @@ export default class Up extends Command {
     static description = 'deploy the stack'
 
     async run() {
-        const stack = Config.fromFile().getStack();
+        const stack = await Config.fromFile().getStack();
 
         const deployer = new Deployer;
 

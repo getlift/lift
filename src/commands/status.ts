@@ -14,7 +14,7 @@ export default class Status extends Command {
     ]
 
     async run() {
-        const stack = Config.fromFile().getStack();
+        const stack = await Config.fromFile().getStack();
 
         const cloudFormation = new CloudFormation({
             region: stack.region,

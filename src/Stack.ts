@@ -1,11 +1,18 @@
 import {Component} from "./components/Component";
-import {Vpc} from './components/Vpc';
+import {Vpc, VpcDetails} from './components/Vpc';
 import CloudFormation from 'aws-sdk/clients/cloudformation';
 import {availabilityZones} from './Zones';
 import { getOutputs } from './aws/CloudFormation';
+import {S3} from './components/S3';
+import {Queue} from './components/Queue';
+import {Database} from './components/Database';
+import {StaticWebsite} from './components/StaticWebsite';
+import {Config} from './Config';
+import {logServerless} from './utils/logger';
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: '2010-09-09',
+    Metadata: Record<string, any>|null,
     Resources: Record<string, any>|null,
     Outputs: CloudFormationOutputs|null,
 };
@@ -38,16 +45,52 @@ export class PolicyStatement {
 export class Stack {
     readonly name: string;
     readonly region: string;
+    readonly config: Record<string, any>;
     private components: Array<Component> = [];
-    private _vpc?: Vpc;
+    private vpc?: Vpc;
     private readonly cloudFormation: CloudFormation;
+    private importedVpc?: VpcDetails;
+    // Environment variables imported from other stacks
+    private importedVariables: Record<string, any> = {};
+    // Permissions imported from other stacks
+    private importedPermissions: PolicyStatement[] = [];
 
     // Local cache
     private deployedOutputs: Record<string, string>|null = null;
 
-    constructor(name: string, region: string) {
+    static async create(name: string, region: string, config: Record<string, any>): Promise<Stack> {
+        const stack = new Stack(name, region, config);
+        if (config.hasOwnProperty('s3') && config.s3) {
+            for (const [key, value] of Object.entries(config.s3)) {
+                stack.add(new S3(stack, key, value as Record<string, any>));
+            }
+        }
+        if (config.hasOwnProperty('queues') && config.queues) {
+            for (const [key, value] of Object.entries(config.queues)) {
+                stack.add(new Queue(stack, key, value as Record<string, any>));
+            }
+        }
+        // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
+        if (config.hasOwnProperty('vpc')) {
+            stack.enableVpc(config['vpc']);
+        }
+        if (config.hasOwnProperty('db')) {
+            stack.add(new Database(stack, config.db as Record<string, any>));
+        }
+        if (config.hasOwnProperty('static-website')) {
+            stack.add(new StaticWebsite(stack, config['static-website']));
+        }
+        // Use another stack
+        if (config.hasOwnProperty('use')) {
+            await stack.useOtherStack(config['use']);
+        }
+        return stack;
+    }
+
+    private constructor(name: string, region: string, config: Record<string, any>) {
         this.name = name;
         this.region = region;
+        this.config = config;
         this.cloudFormation = new CloudFormation({
             region: region,
         });
@@ -74,6 +117,12 @@ export class Stack {
         }
         return {
             AWSTemplateFormatVersion: '2010-09-09',
+            Metadata: {
+                // Encoded as JSON because CloudFormation templates have strict rules,
+                // like no `null` values.
+                'Lift::Template': JSON.stringify(this.config),
+                'Lift::Version': '1',
+            },
             Resources: resources,
             Outputs: outputs,
         };
@@ -83,32 +132,32 @@ export class Stack {
         this.components.push(component);
     }
 
-    async permissions(): Promise<any[]> {
-        const permissions: any[] = [];
+    async permissions(): Promise<PolicyStatement[]> {
+        const permissions: PolicyStatement[] = this.importedPermissions;
         for (const component of this.components) {
             permissions.push(...(await component.permissions()));
         }
         return permissions;
     }
 
-    async permissionsInStack(): Promise<any[]> {
-        const permissions: any[] = [];
+    async permissionsInStack(): Promise<PolicyStatement[]> {
+        const permissions: PolicyStatement[] = this.importedPermissions;
         for (const component of this.components) {
             permissions.push(...(await component.permissionsReferences()));
         }
         return permissions;
     }
 
-    async variables() {
-        const variables: Record<string, any> = {};
+    async variables(): Promise<Record<string, any>> {
+        const variables: Record<string, any> = this.importedVariables;
         for (const component of this.components) {
             Object.assign(variables, await component.envVariables());
         }
         return variables;
     }
 
-    async variablesInStack() {
-        const variables: Record<string, any> = {};
+    async variablesInStack(): Promise<Record<string, any>> {
+        const variables: Record<string, any> = this.importedVariables;
         for (const component of this.components) {
             Object.assign(variables, await component.envVariablesReferences());
         }
@@ -116,13 +165,17 @@ export class Stack {
     }
 
     enableVpc(props?: Record<string, any>) {
-        if (this._vpc) return;
-        this._vpc = new Vpc(this, props ? props : {});
-        this.components.push(this._vpc);
+        if (this.vpc) return;
+        this.vpc = new Vpc(this, props ? props : {});
+        this.components.push(this.vpc);
     }
 
-    get vpc(): Vpc|undefined {
-        return this._vpc;
+    async vpcDetails(): Promise<VpcDetails | undefined> {
+        return this.importedVpc ? this.importedVpc : await this.vpc?.details();
+    }
+
+    async vpcDetailsReference(): Promise<VpcDetails | undefined> {
+        return this.importedVpc ? this.importedVpc : await this.vpc?.detailsReferences();
     }
 
     availabilityZones(): string[] {
@@ -147,5 +200,35 @@ export class Stack {
         }
 
         return this.deployedOutputs;
+    }
+
+    private async useOtherStack(stackName: string) {
+        logServerless(`Using stack '${stackName}'.`);
+        if (stackName === this.name) {
+            throw new Error(`Cannot use stack '${stackName}' in stack '${stackName}': this is an infinite recursion`);
+        }
+        const config = await Config.fromStack(stackName, this.region);
+        const stack = await config.getStack();
+        // VPC
+        const vpcDetails = await stack.vpcDetails();
+        if (vpcDetails) {
+            if (this.vpc || this.importedVpc) {
+                throw new Error(`Cannot use the VPC of stack '${stackName}' because our stack ('${this.name}') already has a VPC configured.`);
+            }
+            this.importedVpc = vpcDetails;
+            logServerless(`Using VPC of stack '${stackName}'.`);
+        }
+        // Variables
+        const variables = await stack.variables();
+        if (Object.keys(variables).length > 0) {
+            logServerless(`Importing environment variables from stack '${stackName}': ` + Object.keys(variables).join(', '));
+        }
+        this.importedVariables = Object.assign({}, this.importedVariables, variables);
+        // Permissions
+        const permissions = await stack.permissions();
+        if (permissions.length > 0) {
+            logServerless(`Importing ${permissions.length} IAM permissions from stack '${stackName}'.`);
+        }
+        this.importedPermissions = this.importedPermissions.concat(permissions);
     }
 }

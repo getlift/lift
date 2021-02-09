@@ -1,4 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+    'Lift::Template': '{"name":"app","region":"us-east-1","s3":{"avatars":null}}'
+    'Lift::Version': '1'
 Resources:
     Avatars:
         Type: 'AWS::S3::Bucket'

@@ -1,7 +1,7 @@
 import {Config} from './src/Config';
 import {Stack} from './src/Stack';
-import fs from "fs";
 import {VpcDetails} from './src/components/Vpc';
+import {enableServerlessLogs, logServerless} from './src/utils/logger';
 
 /**
  * Serverless plugin
@@ -9,33 +9,32 @@ import {VpcDetails} from './src/components/Vpc';
 class LiftPlugin {
     private serverless: any;
     private provider: any;
+    private hooks: Record<string, Function>;
 
     constructor(serverless: any) {
+        enableServerlessLogs();
+
         this.serverless = serverless;
         this.provider = this.serverless.getProvider('aws');
 
-        // Internal stack
-        if (this.serverless.service.custom && this.serverless.service.custom.lift) {
-            const serverlessStackName = this.provider.naming.getStackName();
-            const region = this.provider.getRegion();
-            const config = new Config(serverlessStackName, region, this.serverless.service.custom.lift);
-            const stack = config.getStack();
-            this.configureCloudFormation(stack)
-                .then(async () => this.configureVpc(stack.vpc?.detailsReferences()))
-                .then(async () => this.configureEnvironmentVariables(await stack.variablesInStack()))
-                .then(async () => this.configurePermissions(await stack.permissionsInStack()));
-                // TODO currently this uses CF stack outputs
-                // we need to reference resources from the current stack
-                // .then(() => this.configureVpc(stack))
+        this.hooks = {
+            'before:package:initialize': this.setup.bind(this),
         }
+    }
 
-        // External stack
-        if (fs.existsSync('lift.yml')) {
-            const externalStack = Config.fromFile().getStack();
-            this.configureVpc(externalStack.vpc?.details())
-                .then(async () => this.configureEnvironmentVariables(await externalStack.variables()))
-                .then(async () => this.configurePermissions(await externalStack.permissions()));
+    async setup() {
+        if (!this.serverless.service.custom || !this.serverless.service.custom.lift) {
+            return;
         }
+        logServerless('Lift configuration found, applying config.');
+        const serverlessStackName = this.provider.naming.getStackName();
+        const region = this.provider.getRegion();
+        const config = new Config(serverlessStackName, region, this.serverless.service.custom.lift);
+        const stack = await config.getStack();
+        await this.configureCloudFormation(stack);
+        await this.configureVpc(await stack.vpcDetailsReference());
+        await this.configureEnvironmentVariables(await stack.variablesInStack());
+        await this.configurePermissions(await stack.permissionsInStack());
     }
 
     async configureCloudFormation(stack: Stack) {
@@ -48,9 +47,9 @@ class LiftPlugin {
         Object.assign(this.serverless.service.resources.Outputs, template.Outputs);
     }
 
-    async configureVpc(vpcDetails: Promise<VpcDetails>|undefined) {
+    async configureVpc(vpcDetails: VpcDetails|undefined) {
         if (vpcDetails) {
-            this.serverless.service.provider.vpc = await vpcDetails;
+            this.serverless.service.provider.vpc = vpcDetails;
         }
     }
 

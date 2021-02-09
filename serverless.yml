@@ -7,6 +7,7 @@ provider:
 
 custom:
     lift:
+        use: lift
         s3:
             photos:
 
@@ -17,10 +18,12 @@ functions:
 package:
     exclude:
         - 'bin/**'
+        - 'dist/**'
         - 'node_modules/**'
         - 'src/**'
         - 'test/**'
         - 'utils/**'
+        - 'website/**'
 
 plugins:
     - ./dist/plugin.js

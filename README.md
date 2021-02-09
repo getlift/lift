@@ -32,6 +32,11 @@ npm i @mnapoli/lift
 # serverless.yml
 plugins:
     - '@mnapoli/lift/plugin'
+
+custom:
+    lift:
+        # Use the previously deployed stack by its name
+        use: myapp
 ```
 
 Lift will automatically add the permissions allowing your Lambda functions to access your stack. For example read/write the database, S3 buckets, etc.
