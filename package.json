@@ -1,7 +1,9 @@
 {
   "name": "@mnapoli/lift",
-  "license": "proprietary",
+  "license": "UNLICENSED",
   "homepage": "https://github.com/mnapoli/lift",
+  "repository": "https://github.com/mnapoli/lift",
+  "description": "Lift",
   "bin": {
     "lift": "bin/lift.js"
   },
@@ -57,7 +59,6 @@
       "@oclif/plugin-help"
     ]
   },
-  "repository": "mnapoli/lift",
   "scripts": {
     "eslint": "eslint . --ext .ts --config .eslintrc",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",

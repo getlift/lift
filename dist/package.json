@@ -15,8 +15,10 @@
     "aws-sdk": "^2.737.0",
     "chalk": "^4.1.0",
     "change-case": "^4.1.1",
+    "cidr-split": "^0.1.2",
     "js-yaml": "^3.14.0",
     "log-symbols": "^4.0.0",
+    "node-notifier": "^8.0.0",
     "ora": "^5.0.0"
   },
   "engines": {
