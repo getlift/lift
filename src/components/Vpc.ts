@@ -91,15 +91,26 @@ export class Vpc extends Component {
                     ]
                 }
             },
-            [this.formatCloudFormationId('AppSecurityGroupEgress')]: {
+            [this.formatCloudFormationId('AppSecurityGroupEgressIPv4')]: {
                 Type: 'AWS::EC2::SecurityGroupEgress',
                 Properties: {
-                    Description: 'Allow Lambda to access MySQL in the DBSecurityGroup',
+                    Description: 'Allow Lambda to reach anything anywhere (MySQL but also any API or other service)',
                     GroupId: this.fnRef(this.appSecurityGroupResourceId),
-                    IpProtocol: 'tcp',
-                    FromPort: 3306,
-                    ToPort: 3306,
-                    DestinationSecurityGroupId: this.fnRef(this.dbSecurityGroupResourceId),
+                    IpProtocol: '-1', // -1 => TPC + UDP (all protocols)
+                    CidrIp: '0.0.0.0/0', // All IPv4 destinations
+                    FromPort: '0',
+                    ToPort: '65535',
+                }
+            },
+            [this.formatCloudFormationId('AppSecurityGroupEgressIPv6')]: {
+                Type: 'AWS::EC2::SecurityGroupEgress',
+                Properties: {
+                    Description: 'Allow Lambda to reach anything anywhere (MySQL but also any API or other service)',
+                    GroupId: this.fnRef(this.appSecurityGroupResourceId),
+                    IpProtocol: '-1', // -1 => TPC + UDP (all protocols)
+                    CidrIpv6: '::/0', // All IPv6 destinations
+                    FromPort: '0',
+                    ToPort: '65535',
                 }
             },
 
