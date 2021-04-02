@@ -20,11 +20,11 @@ s3:
 #    jobs:
 #        maxRetries: 5
 
-db:
-    engine: aurora-mysql
-    serverless:
-        min: 1
-        max: 1
-        autoPause: true
+#db:
+#    engine: aurora-mysql
+#    serverless:
+#        min: 1
+#        max: 1
+#        autoPause: true
 
 #static-website:
