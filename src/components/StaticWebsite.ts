@@ -136,10 +136,6 @@ export class StaticWebsite extends Component {
         };
     }
 
-    async permissions() {
-        return [];
-    }
-
     async permissionsReferences() {
         return [];
     }

@@ -64,13 +64,6 @@ export class Queue extends Component {
         };
     }
 
-    async permissions() {
-        const bucketArn = await this.stack.getOutput(this.queueResourceId + 'Arn');
-        return [
-            new PolicyStatement('sqs:SendMessage', bucketArn),
-        ];
-    }
-
     async permissionsReferences() {
         return [
             new PolicyStatement('sqs:SendMessage', [

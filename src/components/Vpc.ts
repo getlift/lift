@@ -182,10 +182,6 @@ export class Vpc extends Component {
         };
     }
 
-    async permissions() {
-        return [];
-    }
-
     async permissionsReferences() {
         return [];
     }
@@ -196,20 +192,6 @@ export class Vpc extends Component {
 
     async envVariablesReferences() {
         return {};
-    }
-
-    async details(): Promise<VpcDetails> {
-        const zones = this.stack.availabilityZones();
-        return {
-            securityGroupIds: [
-                await this.stack.getOutput(this.appSecurityGroupResourceId + 'Id'),
-            ],
-            // Put Lambda in the private subnets
-            subnetIds: await Promise.all(zones.map(async zone => {
-                const subnetResourceId = this.formatCloudFormationId(`SubnetPrivate-${zone}`);
-                return await this.stack.getOutput(subnetResourceId + 'Id');
-            })),
-        };
     }
 
     async detailsReferences(): Promise<VpcDetails> {

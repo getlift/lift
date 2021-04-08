@@ -78,16 +78,6 @@ export class S3 extends Component {
         };
     }
 
-    async permissions() {
-        const bucketArn = await this.stack.getOutput(this.bucketResourceId + 'BucketArn');
-        return [
-            new PolicyStatement('s3:*', [
-                bucketArn,
-                `${bucketArn}/*`,
-            ]),
-        ];
-    }
-
     async permissionsReferences() {
         return [
             new PolicyStatement('s3:*', [

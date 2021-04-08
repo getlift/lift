@@ -119,10 +119,6 @@ export class Database extends Component {
         };
     }
 
-    async permissions() {
-        return [];
-    }
-
     async permissionsReferences() {
         return [];
     }

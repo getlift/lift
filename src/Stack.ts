@@ -7,8 +7,6 @@ import {S3} from './components/S3';
 import {Queue} from './components/Queue';
 import {Database} from './components/Database';
 import {StaticWebsite} from './components/StaticWebsite';
-import {Config} from './Config';
-import {logServerless} from './utils/logger';
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: '2010-09-09',
@@ -49,11 +47,6 @@ export class Stack {
     private components: Array<Component> = [];
     private vpc?: Vpc;
     private readonly cloudFormation: CloudFormation;
-    private importedVpc?: VpcDetails;
-    // Environment variables imported from other stacks
-    private importedVariables: Record<string, any> = {};
-    // Permissions imported from other stacks
-    private importedPermissions: PolicyStatement[] = [];
 
     // Local cache
     private deployedOutputs: Record<string, string>|null = null;
@@ -79,10 +72,6 @@ export class Stack {
         }
         if (config.hasOwnProperty('static-website')) {
             stack.add(new StaticWebsite(stack, config['static-website']));
-        }
-        // Use another stack
-        if (config.hasOwnProperty('use')) {
-            await stack.useOtherStack(config['use']);
         }
         return stack;
     }
@@ -132,16 +121,8 @@ export class Stack {
         this.components.push(component);
     }
 
-    async permissions(): Promise<PolicyStatement[]> {
-        const permissions: PolicyStatement[] = this.importedPermissions;
-        for (const component of this.components) {
-            permissions.push(...(await component.permissions()));
-        }
-        return permissions;
-    }
-
     async permissionsInStack(): Promise<PolicyStatement[]> {
-        const permissions: PolicyStatement[] = this.importedPermissions;
+        const permissions: PolicyStatement[] = [];
         for (const component of this.components) {
             permissions.push(...(await component.permissionsReferences()));
         }
@@ -149,7 +130,7 @@ export class Stack {
     }
 
     async variables(): Promise<Record<string, any>> {
-        const variables: Record<string, any> = this.importedVariables;
+        const variables: Record<string, any> = {};
         for (const component of this.components) {
             Object.assign(variables, await component.envVariables());
         }
@@ -157,7 +138,7 @@ export class Stack {
     }
 
     async variablesInStack(): Promise<Record<string, any>> {
-        const variables: Record<string, any> = this.importedVariables;
+        const variables: Record<string, any> = {};
         for (const component of this.components) {
             Object.assign(variables, await component.envVariablesReferences());
         }
@@ -170,12 +151,8 @@ export class Stack {
         this.components.push(this.vpc);
     }
 
-    async vpcDetails(): Promise<VpcDetails | undefined> {
-        return this.importedVpc ? this.importedVpc : await this.vpc?.details();
-    }
-
     async vpcDetailsReference(): Promise<VpcDetails | undefined> {
-        return this.importedVpc ? this.importedVpc : await this.vpc?.detailsReferences();
+        return this.vpc?.detailsReferences();
     }
 
     availabilityZones(): string[] {
@@ -200,35 +177,5 @@ export class Stack {
         }
 
         return this.deployedOutputs;
-    }
-
-    private async useOtherStack(stackName: string) {
-        logServerless(`Using stack '${stackName}'.`);
-        if (stackName === this.name) {
-            throw new Error(`Cannot use stack '${stackName}' in stack '${stackName}': this is an infinite recursion`);
-        }
-        const config = await Config.fromStack(stackName, this.region);
-        const stack = await config.getStack();
-        // VPC
-        const vpcDetails = await stack.vpcDetails();
-        if (vpcDetails) {
-            if (this.vpc || this.importedVpc) {
-                throw new Error(`Cannot use the VPC of stack '${stackName}' because our stack ('${this.name}') already has a VPC configured.`);
-            }
-            this.importedVpc = vpcDetails;
-            logServerless(`Using VPC of stack '${stackName}'.`);
-        }
-        // Variables
-        const variables = await stack.variables();
-        if (Object.keys(variables).length > 0) {
-            logServerless(`Importing environment variables from stack '${stackName}': ` + Object.keys(variables).join(', '));
-        }
-        this.importedVariables = Object.assign({}, this.importedVariables, variables);
-        // Permissions
-        const permissions = await stack.permissions();
-        if (permissions.length > 0) {
-            logServerless(`Importing ${permissions.length} IAM permissions from stack '${stackName}'.`);
-        }
-        this.importedPermissions = this.importedPermissions.concat(permissions);
     }
 }
