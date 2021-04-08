@@ -1,7 +1,4 @@
-import * as yaml from "js-yaml";
-import fs from "fs";
 import {Stack} from "./Stack";
-import CloudFormation from 'aws-sdk/clients/cloudformation';
 import {getMetadata} from './aws/CloudFormation';
 
 export class Config {
@@ -13,19 +10,6 @@ export class Config {
         this.stackName = stackName;
         this.region = region;
         this.config = config;
-    }
-
-    static fromFile(file: string = 'lift.yml'): Config {
-        if (! fs.existsSync(file)) {
-            throw new Error('No `lift.yml` file found in the current directory.');
-        }
-        const yamlString = fs.readFileSync(file, 'utf8');
-        const config = yaml.safeLoad(yamlString) as Record<string, any>;
-        if (!config || typeof config !== 'object' || !config.hasOwnProperty('name')) {
-            throw 'Invalid YAML';
-        }
-
-        return new Config(config.name as string, config.region as string, config);
     }
 
     static async fromStack(stackName: string, region: string): Promise<Config> {
