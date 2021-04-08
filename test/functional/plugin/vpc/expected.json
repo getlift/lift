@@ -624,20 +624,31 @@
         ]
       }
     },
-    "AppSecurityGroupEgress": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
+    "AppSecurityGroupEgressIPv4": {
       "Properties": {
-        "Description": "Allow Lambda to access MySQL in the DBSecurityGroup",
+        "CidrIp": "0.0.0.0/0",
+        "Description": "Allow Lambda to reach anything anywhere (MySQL but also any API or other service)",
+        "FromPort": "0",
         "GroupId": {
           "Ref": "AppSecurityGroup"
         },
-        "IpProtocol": "tcp",
-        "FromPort": 3306,
-        "ToPort": 3306,
-        "DestinationSecurityGroupId": {
-          "Ref": "DbSecurityGroup"
-        }
-      }
+        "IpProtocol": "-1",
+        "ToPort": "65535"
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress"
+    },
+    "AppSecurityGroupEgressIPv6": {
+      "Properties": {
+        "CidrIpv6": "::/0",
+        "Description": "Allow Lambda to reach anything anywhere (MySQL but also any API or other service)",
+        "FromPort": "0",
+        "GroupId": {
+          "Ref": "AppSecurityGroup"
+        },
+        "IpProtocol": "-1",
+        "ToPort": "65535"
+      },
+      "Type": "AWS::EC2::SecurityGroupEgress"
     },
     "DbSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
