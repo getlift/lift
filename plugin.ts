@@ -33,7 +33,6 @@ class LiftPlugin {
         const stack = await config.getStack();
         await this.configureCloudFormation(stack);
         await this.configureVpc(await stack.vpcDetailsReference());
-        await this.configureEnvironmentVariables(await stack.variablesInStack());
         await this.configurePermissions(await stack.permissionsInStack());
     }
 
@@ -51,12 +50,6 @@ class LiftPlugin {
         if (vpcDetails) {
             this.serverless.service.provider.vpc = vpcDetails;
         }
-    }
-
-    async configureEnvironmentVariables(variables: Record<string, any>) {
-        const existingVariables = this.serverless.service.provider.environment || {};
-        // Avoid overwriting an existing variable
-        this.serverless.service.provider.environment = Object.assign({}, variables, existingVariables);
     }
 
     async configurePermissions(permissions: any[]) {

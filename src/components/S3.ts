@@ -86,18 +86,4 @@ export class S3 extends Component {
             ]),
         ];
     }
-
-    async envVariables() {
-        const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
-        return {
-            [variableName]: this.bucketName,
-        };
-    }
-
-    async envVariablesReferences() {
-        const variableName = this.formatEnvVariableName('BUCKET_' + this.name);
-        return {
-            [variableName]: this.bucketName,
-        };
-    }
 }

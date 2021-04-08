@@ -139,43 +139,4 @@ export class StaticWebsite extends Component {
     async permissionsReferences() {
         return [];
     }
-
-    async envVariables() {
-        let variables: Record<string, any> = {};
-
-        // Bucket name
-        const bucketName = await this.stack.getOutput(this.bucketResourceName + 'Bucket');
-        variables[this.formatEnvVariableName('STATIC_WEBSITE_BUCKET')] = bucketName;
-
-        // Domain
-        if (this.props.domain) {
-            variables['STATIC_WEBSITE_DOMAIN'] = this.props.domain;
-            variables['STATIC_WEBSITE_URL'] = `https://${this.props.domain}`;
-        } else {
-            const cloudFrontDomain = await this.stack.getOutput('CloudFrontDomain');
-            variables['STATIC_WEBSITE_DOMAIN'] = cloudFrontDomain;
-            variables['STATIC_WEBSITE_URL'] = `https://${cloudFrontDomain}/`;
-        }
-
-        return variables;
-    }
-
-    async envVariablesReferences() {
-        let variables: Record<string, any> = {};
-
-        // Bucket name
-        const bucketName = this.fnRef(this.bucketResourceName);
-        variables[this.formatEnvVariableName('STATIC_WEBSITE_BUCKET')] = bucketName;
-
-        // Domain
-        if (this.props.domain) {
-            variables['STATIC_WEBSITE_DOMAIN'] = this.props.domain;
-            variables['STATIC_WEBSITE_URL'] = `https://${this.props.domain}`;
-        } else {
-            variables['STATIC_WEBSITE_DOMAIN'] = this.fnGetAtt('WebsiteCDN', 'DomainName');
-            variables['STATIC_WEBSITE_URL'] = this.fnSub('https://${WebsiteCDN.DomainName}/');
-        }
-
-        return variables;
-    }
 }

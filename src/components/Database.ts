@@ -123,29 +123,6 @@ export class Database extends Component {
         return [];
     }
 
-    async envVariables() {
-        const dbName = await this.stack.getOutput(this.dbResourceName + 'Name');
-        const dbHost = await this.stack.getOutput(this.dbResourceName + 'Host');
-        const dbPort = await this.stack.getOutput(this.dbResourceName + 'Port');
-
-        return {
-            [this.formatEnvVariableName(this.dbResourceName + '_NAME')]: dbName,
-            [this.formatEnvVariableName(this.dbResourceName + '_HOST')]: dbHost,
-            [this.formatEnvVariableName(this.dbResourceName + '_PORT')]: dbPort,
-        };
-    }
-
-    async envVariablesReferences() {
-        const dbName = await this.getDbName();
-        const dbHost = this.fnGetAtt(this.dbResourceName, 'Endpoint.Address');
-        const dbPort = this.fnGetAtt(this.dbResourceName, 'Endpoint.Port');
-        return {
-            [this.formatEnvVariableName(this.dbResourceName + '_NAME')]: dbName,
-            [this.formatEnvVariableName(this.dbResourceName + '_HOST')]: dbHost,
-            [this.formatEnvVariableName(this.dbResourceName + '_PORT')]: dbPort,
-        };
-    }
-
     private getEngine(): Engine {
         const availableEngines = [
             'mysql',

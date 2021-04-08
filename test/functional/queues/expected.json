@@ -180,14 +180,6 @@
         "FunctionName": "app-dev-hello",
         "MemorySize": 1024,
         "Timeout": 6,
-        "Environment": {
-          "Variables": {
-            "QUEUE_JOBS": "app-dev-jobs",
-            "QUEUE_JOBS_URL": {
-              "Ref": "JobsQueue"
-            }
-          }
-        },
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",

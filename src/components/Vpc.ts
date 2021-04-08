@@ -186,14 +186,6 @@ export class Vpc extends Component {
         return [];
     }
 
-    async envVariables() {
-        return {};
-    }
-
-    async envVariablesReferences() {
-        return {};
-    }
-
     async detailsReferences(): Promise<VpcDetails> {
         const zones = this.stack.availabilityZones();
         return {

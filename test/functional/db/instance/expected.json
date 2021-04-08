@@ -182,23 +182,6 @@
         "FunctionName": "app-dev-hello",
         "MemorySize": 1024,
         "Timeout": 6,
-        "Environment": {
-          "Variables": {
-            "DATABASE_NAME": "mydb",
-            "DATABASE_HOST": {
-              "Fn::GetAtt": [
-                "Database",
-                "Endpoint.Address"
-              ]
-            },
-            "DATABASE_PORT": {
-              "Fn::GetAtt": [
-                "Database",
-                "Endpoint.Port"
-              ]
-            }
-          }
-        },
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",

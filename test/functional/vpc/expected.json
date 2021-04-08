@@ -177,19 +177,16 @@
           },
           "S3Key": "serverless/app/dev/1609848464373-2021-01-05T12:07:44.373Z/app.zip"
         },
-        "FunctionName": "app-dev-hello",
         "Handler": "handler.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "app-dev-hello",
         "MemorySize": 1024,
+        "Timeout": 6,
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",
             "Arn"
           ]
-        },
-        "Runtime": "nodejs12.x",
-        "Timeout": 6,
-        "Environment": {
-          "Variables": {}
         },
         "VpcConfig": {
           "SecurityGroupIds": [

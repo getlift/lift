@@ -176,23 +176,18 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/app/dev/1609771422958-2021-01-04T14:43:42.958Z/app.zip"
+          "S3Key": "serverless/app/dev/1617900400388-2021-04-08T16:46:40.388Z/app.zip"
         },
-        "FunctionName": "app-dev-hello",
         "Handler": "handler.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "app-dev-hello",
         "MemorySize": 1024,
+        "Timeout": 6,
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",
             "Arn"
           ]
-        },
-        "Runtime": "nodejs12.x",
-        "Timeout": 6,
-        "Environment": {
-          "Variables": {
-            "BUCKET_AVATARS": "app-dev-avatars"
-          }
         }
       },
       "DependsOn": [

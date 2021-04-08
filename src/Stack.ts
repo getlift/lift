@@ -1,8 +1,6 @@
 import {Component} from "./components/Component";
 import {Vpc, VpcDetails} from './components/Vpc';
-import CloudFormation from 'aws-sdk/clients/cloudformation';
 import {availabilityZones} from './Zones';
-import { getOutputs } from './aws/CloudFormation';
 import {S3} from './components/S3';
 import {Queue} from './components/Queue';
 import {Database} from './components/Database';
@@ -46,10 +44,6 @@ export class Stack {
     readonly config: Record<string, any>;
     private components: Array<Component> = [];
     private vpc?: Vpc;
-    private readonly cloudFormation: CloudFormation;
-
-    // Local cache
-    private deployedOutputs: Record<string, string>|null = null;
 
     static async create(name: string, region: string, config: Record<string, any>): Promise<Stack> {
         const stack = new Stack(name, region, config);
@@ -80,9 +74,6 @@ export class Stack {
         this.name = name;
         this.region = region;
         this.config = config;
-        this.cloudFormation = new CloudFormation({
-            region: region,
-        });
     }
 
     compile(): CloudFormationTemplate {
@@ -129,22 +120,6 @@ export class Stack {
         return permissions;
     }
 
-    async variables(): Promise<Record<string, any>> {
-        const variables: Record<string, any> = {};
-        for (const component of this.components) {
-            Object.assign(variables, await component.envVariables());
-        }
-        return variables;
-    }
-
-    async variablesInStack(): Promise<Record<string, any>> {
-        const variables: Record<string, any> = {};
-        for (const component of this.components) {
-            Object.assign(variables, await component.envVariablesReferences());
-        }
-        return variables;
-    }
-
     enableVpc(props?: Record<string, any>) {
         if (this.vpc) return;
         this.vpc = new Vpc(this, props ? props : {});
@@ -160,22 +135,5 @@ export class Stack {
         return allZones[this.region]
             // Keep maximum 3 zones
             .slice(0, 3);
-    }
-
-    async getOutput(key: string): Promise<string> {
-        const outputs = await this.getOutputs();
-        if (! outputs[key]) {
-            throw new Error(`lift.yml contains changes that differ from the deployed stack (the '${key}' CloudFormation output is missing). Deploy via 'lift up' first.`);
-        }
-        return outputs[key];
-    }
-
-    private async getOutputs(): Promise<Record<string, string>> {
-        // Refresh the cache
-        if (! this.deployedOutputs) {
-            this.deployedOutputs = await getOutputs(this.region, this.name);
-        }
-
-        return this.deployedOutputs;
     }
 }

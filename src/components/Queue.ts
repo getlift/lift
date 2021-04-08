@@ -71,22 +71,4 @@ export class Queue extends Component {
             ]),
         ];
     }
-
-    async envVariables() {
-        const name = this.formatEnvVariableName('QUEUE_' + this.name);
-        const url = this.formatEnvVariableName('QUEUE_' + this.name + '_URL');
-        return {
-            [name]: this.queueName,
-            [url]: await this.stack.getOutput(this.queueResourceId + 'Url'),
-        };
-    }
-
-    async envVariablesReferences() {
-        const name = this.formatEnvVariableName('QUEUE_' + this.name);
-        const url = this.formatEnvVariableName('QUEUE_' + this.name + '_URL');
-        return {
-            [name]: this.queueName,
-            [url]: this.fnRef(this.queueResourceId),
-        };
-    }
 }
