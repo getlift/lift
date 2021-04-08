@@ -12,9 +12,6 @@ build:
 	aws s3 cp dist/lift s3://lift-releases/$$(jq '.version' package.json --raw-output)/lift
 	aws s3 cp s3://lift-releases/$$(jq '.version' package.json --raw-output)/lift s3://lift-releases/latest/lift
 
-website-preview:
-	cd website && npm run serve
-
 availability-zones:
 	cd utils && node availability-zone-list.js
 

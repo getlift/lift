@@ -23,7 +23,6 @@ package:
         - 'src/**'
         - 'test/**'
         - 'utils/**'
-        - 'website/**'
 
 plugins:
     - ./dist/plugin.js
