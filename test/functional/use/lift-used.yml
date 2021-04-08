@@ -1,7 +1,0 @@
-name: stack-db
-region: us-east-1
-
-db:
-
-s3:
-    avatars:

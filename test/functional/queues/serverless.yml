@@ -9,11 +9,14 @@ provider:
 
 custom:
     lift:
-        vpc:
+        queues:
+            jobs:
+                maxRetries: 5
+                visibilityTimeout: 30 # seconds
 
 functions:
     hello:
         handler: handler.handler
 
 plugins:
-    - ../../../../dist/plugin.js
+    - ../../../dist/plugin.js

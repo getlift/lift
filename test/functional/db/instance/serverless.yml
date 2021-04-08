@@ -9,8 +9,11 @@ provider:
 
 custom:
     lift:
-        s3:
-            avatars:
+        db:
+            name: mydb
+            engine: mariadb
+            class: db.t3.small
+            storageSize: 30
 
 functions:
     hello:

@@ -1,8 +1,0 @@
-name: app
-region: us-east-1
-
-db:
-    serverless:
-        min: 2
-        max: 8
-        autoPause: true

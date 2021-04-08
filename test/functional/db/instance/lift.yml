@@ -1,8 +1,0 @@
-name: app
-region: us-east-1
-
-db:
-    name: mydb
-    engine: mariadb
-    class: db.t3.small
-    storageSize: 30
