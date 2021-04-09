@@ -72,14 +72,14 @@
     "import"
   ],
   "env": {
-    "browser": true,
+    "browser": false,
     "es6": true,
     "node": true
   },
   "overrides": [
     {
       "files": [
-        "**/*.ts?(x)"
+        "**/*.ts"
       ],
       "extends": [
         "plugin:@typescript-eslint/recommended",

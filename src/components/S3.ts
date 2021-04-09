@@ -1,5 +1,6 @@
-import {Component} from "./Component";
-import {PolicyStatement, Stack} from '../Stack';
+/* eslint-disable */ 
+import { Component } from "./Component";
+import { PolicyStatement, Stack } from "../Stack";
 
 export class S3 extends Component {
     private readonly name: string;
@@ -18,7 +19,7 @@ export class S3 extends Component {
 
     compile(): Record<string, any> {
         const bucket: any = {
-            Type: 'AWS::S3::Bucket',
+            Type: "AWS::S3::Bucket",
             Properties: {
                 BucketName: this.bucketName,
             },
@@ -28,12 +29,12 @@ export class S3 extends Component {
             bucket.Properties.CorsConfiguration = {
                 CorsRules: [
                     {
-                        AllowedHeaders: ['*'],
-                        AllowedMethods: ['GET'],
-                        AllowedOrigins: ['*'],
+                        AllowedHeaders: ["*"],
+                        AllowedMethods: ["GET"],
+                        AllowedOrigins: ["*"],
                     },
                 ],
-            }
+            };
         }
 
         const resources: Record<string, any> = {
@@ -41,25 +42,25 @@ export class S3 extends Component {
         };
 
         if (this.props.public) {
-            resources[this.bucketResourceId + 'BucketPolicy'] = {
-                Type: 'AWS::S3::BucketPolicy',
+            resources[this.bucketResourceId + "BucketPolicy"] = {
+                Type: "AWS::S3::BucketPolicy",
                 Properties: {
                     Bucket: this.fnRef(this.bucketResourceId),
                     PolicyDocument: {
                         Statement: [
                             {
-                                Effect: 'Allow',
-                                Principal: '*',
-                                Action: 's3:GetObject',
-                                Resource: this.fnJoin('', [
-                                    this.fnGetAtt(this.bucketResourceId, 'Arn'),
-                                    '/*',
+                                Effect: "Allow",
+                                Principal: "*",
+                                Action: "s3:GetObject",
+                                Resource: this.fnJoin("", [
+                                    this.fnGetAtt(this.bucketResourceId, "Arn"),
+                                    "/*",
                                 ]),
                             },
                         ],
                     },
                 },
-            }
+            };
         }
 
         return resources;
@@ -67,21 +68,21 @@ export class S3 extends Component {
 
     outputs() {
         return {
-            [this.bucketResourceId + 'Bucket']: {
-                Description: 'Name of the S3 bucket.',
+            [this.bucketResourceId + "Bucket"]: {
+                Description: "Name of the S3 bucket.",
                 Value: this.fnRef(this.bucketResourceId),
             },
-            [this.bucketResourceId + 'BucketArn']: {
-                Description: 'ARN of the S3 bucket.',
-                Value: this.fnGetAtt(this.bucketResourceId, 'Arn'),
+            [this.bucketResourceId + "BucketArn"]: {
+                Description: "ARN of the S3 bucket.",
+                Value: this.fnGetAtt(this.bucketResourceId, "Arn"),
             },
         };
     }
 
     async permissionsReferences() {
         return [
-            new PolicyStatement('s3:*', [
-                this.fnGetAtt(this.bucketResourceId, 'Arn'),
+            new PolicyStatement("s3:*", [
+                this.fnGetAtt(this.bucketResourceId, "Arn"),
                 this.fnSub(`$\{${this.bucketResourceId}.Arn}/*`),
             ]),
         ];

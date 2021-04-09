@@ -19,6 +19,7 @@
     "log-symbols": "^4.0.0",
     "node-notifier": "^8.0.0",
     "ora": "^5.0.0",
+    "pascal-case": "^3.1.2",
     "tslib": "^1.13.0"
   },
   "devDependencies": {
@@ -65,7 +66,8 @@
     ]
   },
   "scripts": {
-    "eslint": "eslint . --ext .ts --config .eslintrc",
+    "lint:fix": "eslint --fix .",
+    "lint": "eslint .",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
     "coverage": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },

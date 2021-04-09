@@ -1,5 +1,6 @@
-import {Component} from "./Component";
-import {Stack} from '../Stack';
+/* eslint-disable */ 
+import { Component } from "./Component";
+import { Stack } from "../Stack";
 
 export class StaticWebsite extends Component {
     private readonly props: Record<string, any>;
@@ -9,16 +10,16 @@ export class StaticWebsite extends Component {
         super(stack);
         this.props = props ? props : {};
 
-        this.bucketResourceName = this.formatCloudFormationId('StaticWebsite');
+        this.bucketResourceName = this.formatCloudFormationId("StaticWebsite");
     }
 
     compile(): Record<string, any> {
         const bucket: any = {
-            Type: 'AWS::S3::Bucket',
+            Type: "AWS::S3::Bucket",
             Properties: {
                 WebsiteConfiguration: {
-                    IndexDocument: 'index.html',
-                    ErrorDocument: 'index.html',
+                    IndexDocument: "index.html",
+                    ErrorDocument: "index.html",
                 },
             },
         };
@@ -27,78 +28,86 @@ export class StaticWebsite extends Component {
             bucket.Properties.CorsConfiguration = {
                 CorsRules: [
                     {
-                        AllowedHeaders: ['*'],
-                        AllowedMethods: ['GET'],
-                        AllowedOrigins: ['*'],
+                        AllowedHeaders: ["*"],
+                        AllowedMethods: ["GET"],
+                        AllowedOrigins: ["*"],
                     },
                 ],
-            }
+            };
         }
 
         const resources: Record<string, any> = {
             [this.bucketResourceName]: bucket,
         };
 
-        resources[this.bucketResourceName + 'BucketPolicy'] = {
-            Type: 'AWS::S3::BucketPolicy',
+        resources[this.bucketResourceName + "BucketPolicy"] = {
+            Type: "AWS::S3::BucketPolicy",
             Properties: {
                 Bucket: this.fnRef(this.bucketResourceName),
                 PolicyDocument: {
                     Statement: [
                         {
-                            Effect: 'Allow',
-                            Principal: '*',
-                            Action: 's3:GetObject',
-                            Resource: this.fnJoin('', [
-                                this.fnGetAtt(this.bucketResourceName, 'Arn'),
-                                '/*',
+                            Effect: "Allow",
+                            Principal: "*",
+                            Action: "s3:GetObject",
+                            Resource: this.fnJoin("", [
+                                this.fnGetAtt(this.bucketResourceName, "Arn"),
+                                "/*",
                             ]),
                         },
                     ],
                 },
             },
-        }
+        };
 
-        resources['WebsiteCDN'] = {
-            Type: 'AWS::CloudFront::Distribution',
+        resources["WebsiteCDN"] = {
+            Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
-                    Enabled: 'true',
+                    Enabled: "true",
                     // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
-                    PriceClass: 'PriceClass_100',
+                    PriceClass: "PriceClass_100",
                     // Enable http2 transfer for better performances
-                    HttpVersion: 'http2',
+                    HttpVersion: "http2",
                     // Origins are where CloudFront fetches content
                     Origins: [
                         {
-                            Id: 'StaticWebsite',
+                            Id: "StaticWebsite",
                             DomainName: {
-                                'Fn::Select': [
+                                "Fn::Select": [
                                     2,
-                                    { 'Fn::Split': ['/', this.fnGetAtt(this.bucketResourceName, 'WebsiteURL')] },
+                                    {
+                                        "Fn::Split": [
+                                            "/",
+                                            this.fnGetAtt(
+                                                this.bucketResourceName,
+                                                "WebsiteURL"
+                                            ),
+                                        ],
+                                    },
                                 ],
                             },
                             CustomOriginConfig: {
                                 // S3 websites only support HTTP
                                 // (this is only accessed by CloudFront, visitors will be using HTTPS)
-                                OriginProtocolPolicy: 'http-only',
+                                OriginProtocolPolicy: "http-only",
                             },
                         },
                     ],
                     DefaultCacheBehavior: {
-                        TargetOriginId: 'StaticWebsite',
-                        AllowedMethods: ['GET', 'HEAD'],
-                        CachedMethods: ['GET', 'HEAD'],
+                        TargetOriginId: "StaticWebsite",
+                        AllowedMethods: ["GET", "HEAD"],
+                        CachedMethods: ["GET", "HEAD"],
                         ForwardedValues: {
                             // Do not forward the query string or cookies
-                            QueryString: 'false',
+                            QueryString: "false",
                             Cookies: {
-                                Forward: 'none'
+                                Forward: "none",
                             },
                         },
-                        ViewerProtocolPolicy: 'redirect-to-https',
+                        ViewerProtocolPolicy: "redirect-to-https",
                         // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
-                        Compress: 'true',
+                        Compress: "true",
                     },
                 },
             },
@@ -107,16 +116,20 @@ export class StaticWebsite extends Component {
         // Custom domain on CloudFront
         if (this.props.domain) {
             if (!this.props.certificate) {
-                throw new Error('Invalid configuration for the static website: if a domain is configured, then a certificate ARN must be configured as well.');
+                throw new Error(
+                    "Invalid configuration for the static website: if a domain is configured, then a certificate ARN must be configured as well."
+                );
             }
-            resources.WebsiteCDN.Properties.DistributionConfig['Aliases'] = [
+            resources.WebsiteCDN.Properties.DistributionConfig["Aliases"] = [
                 this.props.domain,
             ];
-            resources.WebsiteCDN.Properties.DistributionConfig['ViewerCertificate'] = {
+            resources.WebsiteCDN.Properties.DistributionConfig[
+                "ViewerCertificate"
+            ] = {
                 AcmCertificateArn: this.props.certificate,
                 // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
-                SslSupportMethod: 'sni-only',
-                MinimumProtocolVersion: 'TLSv1.1_2016',
+                SslSupportMethod: "sni-only",
+                MinimumProtocolVersion: "TLSv1.1_2016",
             };
         }
 
@@ -125,13 +138,14 @@ export class StaticWebsite extends Component {
 
     outputs() {
         return {
-            [this.bucketResourceName + 'Bucket']: {
-                Description: 'Name of the bucket that stores the static website.',
+            [this.bucketResourceName + "Bucket"]: {
+                Description:
+                    "Name of the bucket that stores the static website.",
                 Value: this.fnRef(this.bucketResourceName),
             },
             CloudFrontDomain: {
-                Description: 'CloudFront domain name.',
-                Value: this.fnGetAtt('WebsiteCDN', 'DomainName'),
+                Description: "CloudFront domain name.",
+                Value: this.fnGetAtt("WebsiteCDN", "DomainName"),
             },
         };
     }
