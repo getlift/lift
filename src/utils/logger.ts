@@ -1,13 +1,13 @@
-import chalk from 'chalk';
+import chalk from "chalk";
 
 let loggingEnabled = false;
 
-export function enableServerlessLogs() {
+export function enableServerlessLogs(): void {
     loggingEnabled = true;
 }
 
-export function logServerless(message: string) {
+export function logServerless(message: string): void {
     if (loggingEnabled) {
-        console.log('Lift: ' + chalk.yellow(message));
+        console.log("Lift: " + chalk.yellow(message));
     }
 }

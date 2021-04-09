@@ -1,6 +1,11 @@
-import {pascalCase} from "pascal-case";
-import {pascalCaseTransformMerge} from "pascal-case";
-import {Stack, PolicyStatement, CloudFormationOutputs, CloudFormationResources} from '../Stack';
+import { pascalCase } from "pascal-case";
+import { pascalCaseTransformMerge } from "pascal-case";
+import {
+    CloudFormationOutputs,
+    CloudFormationResources,
+    PolicyStatement,
+    Stack,
+} from "../Stack";
 
 export abstract class Component {
     protected readonly stack: Stack;
@@ -16,7 +21,7 @@ export abstract class Component {
     }
 
     protected formatUniqueResourceName(name: string): string {
-        return this.stackName + '-' + name;
+        return this.stackName + "-" + name;
     }
 
     protected formatCloudFormationId(name: string): string {
@@ -25,32 +30,38 @@ export abstract class Component {
         });
     }
 
-    protected fnRef(resource: string): object {
+    protected fnRef(resource: string): Record<string, unknown> {
         return { Ref: resource };
     }
 
-    protected fnGetAtt(resource: string, attribute: string): object {
+    protected fnGetAtt(
+        resource: string,
+        attribute: string
+    ): Record<string, unknown> {
         return {
-            'Fn::GetAtt': [resource, attribute]
-        }
+            "Fn::GetAtt": [resource, attribute],
+        };
     }
 
-    protected fnJoin(glue: string, strings: Array<any>): object {
+    protected fnJoin(
+        glue: string,
+        strings: Array<unknown>
+    ): Record<string, unknown> {
         return {
-            'Fn::Join': [
-                glue,
-                strings,
-            ],
-        }
+            "Fn::Join": [glue, strings],
+        };
     }
 
-    protected fnSub(string: string): object {
+    protected fnSub(string: string): Record<string, unknown> {
         return {
-            'Fn::Sub': string,
-        }
+            "Fn::Sub": string,
+        };
     }
 
-    protected tag(key: string, value: string|object): object {
+    protected tag(
+        key: string,
+        value: string | Record<string, unknown>
+    ): Record<string, unknown> {
         return {
             Key: key,
             Value: value,

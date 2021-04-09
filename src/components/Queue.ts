@@ -1,5 +1,6 @@
-import {Component} from "./Component";
-import {PolicyStatement, Stack} from '../Stack';
+/* eslint-disable */ 
+import { Component } from "./Component";
+import { PolicyStatement, Stack } from "../Stack";
 
 export class Queue extends Component {
     private readonly name: string;
@@ -13,12 +14,12 @@ export class Queue extends Component {
         this.queueName = this.formatUniqueResourceName(name);
         this.props = props ? props : {};
 
-        this.queueResourceId = this.formatCloudFormationId(this.name + 'Queue');
+        this.queueResourceId = this.formatCloudFormationId(this.name + "Queue");
     }
 
     compile(): Record<string, any> {
         const queue: any = {
-            Type: 'AWS::SQS::Queue',
+            Type: "AWS::SQS::Queue",
             Properties: {
                 QueueName: this.queueName,
             },
@@ -33,10 +34,10 @@ export class Queue extends Component {
         };
 
         if (this.props.maxRetries) {
-            resources[this.queueResourceId + 'DLQ'] = {
-                Type: 'AWS::SQS::Queue',
+            resources[this.queueResourceId + "DLQ"] = {
+                Type: "AWS::SQS::Queue",
                 Properties: {
-                    QueueName: this.queueName + '-dlq',
+                    QueueName: this.queueName + "-dlq",
                     // Messages will be stored up to 14 days (the max)
                     MessageRetentionPeriod: 1209600,
                 },
@@ -44,7 +45,10 @@ export class Queue extends Component {
 
             queue.Properties.RedrivePolicy = {
                 maxReceiveCount: this.props.maxRetries,
-                deadLetterTargetArn: this.fnGetAtt(this.queueResourceId + 'DLQ', 'Arn'),
+                deadLetterTargetArn: this.fnGetAtt(
+                    this.queueResourceId + "DLQ",
+                    "Arn"
+                ),
             };
         }
 
@@ -53,21 +57,21 @@ export class Queue extends Component {
 
     outputs() {
         return {
-            [this.queueResourceId + 'Url']: {
-                Description: 'URL of the SQS queue.',
+            [this.queueResourceId + "Url"]: {
+                Description: "URL of the SQS queue.",
                 Value: this.fnRef(this.queueResourceId),
             },
-            [this.queueResourceId + 'Arn']: {
-                Description: 'ARN of the SQS queue.',
-                Value: this.fnGetAtt(this.queueResourceId, 'Arn'),
+            [this.queueResourceId + "Arn"]: {
+                Description: "ARN of the SQS queue.",
+                Value: this.fnGetAtt(this.queueResourceId, "Arn"),
             },
         };
     }
 
     async permissionsReferences() {
         return [
-            new PolicyStatement('sqs:SendMessage', [
-                this.fnGetAtt(this.queueResourceId, 'Arn')
+            new PolicyStatement("sqs:SendMessage", [
+                this.fnGetAtt(this.queueResourceId, "Arn"),
             ]),
         ];
     }
