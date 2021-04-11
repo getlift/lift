@@ -7,7 +7,6 @@ provider:
 
 custom:
     lift:
-        use: lift
         s3:
             photos:
 
