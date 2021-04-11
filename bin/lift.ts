@@ -17,3 +17,5 @@ require("@oclif/command")
 
         return oclifHandler(err);
     });
+
+export {}
