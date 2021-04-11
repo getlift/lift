@@ -3,13 +3,14 @@
     "declaration": true,
     "importHelpers": true,
     "module": "commonjs",
-    "outDir": "lib",
-    "rootDir": "src",
+    "outDir": "dist",
     "strict": true,
     "target": "es2017",
+    "lib": ["ESNext"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "isolatedModules": true
   },
   "include": [
     "plugin.ts",

@@ -34,17 +34,18 @@
     "@typescript-eslint/parser": "^4.21.0",
     "chai": "^4.2.0",
     "esbuild": "^0.8.20",
+    "esbuild-node-tsc": "^1.3.0",
     "eslint": "^7.23.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prettier": "^3.3.1",
     "globby": "^10.0.2",
     "mocha": "^5.2.0",
+    "nodemon": "^2.0.7",
     "nyc": "^14.1.1",
     "prettier": "^2.2.1",
     "sinon": "^9.2.2",
     "stdout-stderr": "^0.1.13",
-    "ts-node": "^8.10.2",
     "typescript": "^3.9.7"
   },
   "engines": {
@@ -68,6 +69,8 @@
   "scripts": {
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
+    "build": "etsc",
+    "watch": "nodemon",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
     "coverage": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
