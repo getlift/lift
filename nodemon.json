@@ -1,6 +1,6 @@
 {
     "watch": ["src"],
-    "ignore": ["test/**/*.test.ts"],
+    "ignore": ["test"],
     "ext": "ts,js,json",
     "exec": "etsc",
     "legacyWatch": true
