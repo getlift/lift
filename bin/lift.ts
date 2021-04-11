@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+/* eslint-disable */
 
-require('@oclif/command').run()
-.then(require('@oclif/command/flush'))
+require("@oclif/command")
+    .run()
+    .then(require("@oclif/command/flush"))
     .catch((err: any) => {
-        const oclifHandler = require('@oclif/errors/handle');
+        const oclifHandler = require("@oclif/errors/handle");
 
         // Show errors with stack traces
         // try {
@@ -14,4 +16,4 @@ require('@oclif/command').run()
         // }
 
         return oclifHandler(err);
-    })
+    });
