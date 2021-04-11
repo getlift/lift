@@ -1,20 +1,26 @@
-/* eslint-disable */ 
+/* eslint-disable */
 import { Component } from "./Component";
-import { Stack } from "../Stack";
+import {
+    CloudFormationOutputs,
+    CloudFormationResource,
+    CloudFormationResources,
+    PolicyStatement,
+    Stack,
+} from "../Stack";
 
 export class StaticWebsite extends Component {
-    private readonly props: Record<string, any>;
+    private readonly props: Record<string, unknown>;
     private readonly bucketResourceName: string;
 
-    constructor(stack: Stack, props: Record<string, any> | null) {
+    constructor(stack: Stack, props: Record<string, unknown> | null) {
         super(stack);
         this.props = props ? props : {};
 
         this.bucketResourceName = this.formatCloudFormationId("StaticWebsite");
     }
 
-    compile(): Record<string, any> {
-        const bucket: any = {
+    compile(): CloudFormationResources {
+        const bucket: CloudFormationResource = {
             Type: "AWS::S3::Bucket",
             Properties: {
                 WebsiteConfiguration: {
@@ -24,7 +30,7 @@ export class StaticWebsite extends Component {
             },
         };
 
-        if (this.props.cors) {
+        if (this.props.cors === true) {
             bucket.Properties.CorsConfiguration = {
                 CorsRules: [
                     {
@@ -36,7 +42,7 @@ export class StaticWebsite extends Component {
             };
         }
 
-        const resources: Record<string, any> = {
+        const resources: CloudFormationResources = {
             [this.bucketResourceName]: bucket,
         };
 
@@ -60,7 +66,7 @@ export class StaticWebsite extends Component {
             },
         };
 
-        resources["WebsiteCDN"] = {
+        resources.WebsiteCDN = {
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
@@ -114,15 +120,25 @@ export class StaticWebsite extends Component {
         };
 
         // Custom domain on CloudFront
-        if (this.props.domain) {
-            if (!this.props.certificate) {
+        if (
+            typeof this.props.domain === "string" ||
+            this.props.domain instanceof String
+        ) {
+            if (
+                !(
+                    typeof this.props.certificate === "string" ||
+                    this.props.certificate instanceof String
+                )
+            ) {
                 throw new Error(
                     "Invalid configuration for the static website: if a domain is configured, then a certificate ARN must be configured as well."
                 );
             }
+            // @ts-ignore
             resources.WebsiteCDN.Properties.DistributionConfig["Aliases"] = [
                 this.props.domain,
             ];
+            // @ts-ignore
             resources.WebsiteCDN.Properties.DistributionConfig[
                 "ViewerCertificate"
             ] = {
@@ -136,7 +152,7 @@ export class StaticWebsite extends Component {
         return resources;
     }
 
-    outputs() {
+    outputs(): CloudFormationOutputs {
         return {
             [this.bucketResourceName + "Bucket"]: {
                 Description:
@@ -150,7 +166,7 @@ export class StaticWebsite extends Component {
         };
     }
 
-    async permissionsReferences() {
-        return [];
+    async permissionsReferences(): Promise<PolicyStatement[]> {
+        return Promise.resolve([]);
     }
 }
