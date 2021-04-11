@@ -31,6 +31,15 @@ describe("serverless plugin", () => {
         assert.deepStrictEqual(actual, expected);
     });
 
+    it("should add static website resources", async function () {
+        await slsPackage("static-website");
+        const actual = loadFile(
+            "static-website/.serverless/cloudformation-template-update-stack.json"
+        );
+        const expected = loadFile("static-website/expected.json");
+        assert.deepStrictEqual(actual, expected);
+    });
+
     it("should add SQS resources", async function () {
         await slsPackage("queues");
         const actual = loadFile(
