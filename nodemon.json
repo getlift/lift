@@ -1,7 +1,7 @@
 {
     "watch": ["src"],
     "ignore": ["test/**/*.test.ts"],
-    "ext": "ts,mjs,js,json",
-    "exec": "etsc && node ./dist/plugin.js",
+    "ext": "ts,js,json",
+    "exec": "etsc",
     "legacyWatch": true
   }
