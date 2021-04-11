@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require('fs');
 const localPkgJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
