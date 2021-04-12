@@ -1,9 +1,6 @@
 import { Component } from "./components/Component";
-import { Vpc, VpcDetails } from "./components/Vpc";
 import { availabilityZones } from "./Zones";
 import { S3 } from "./components/S3";
-import { Queue } from "./components/Queue";
-import { Database } from "./components/Database";
 import { StaticWebsite } from "./components/StaticWebsite";
 
 export type CloudFormationTemplate = {
@@ -55,7 +52,6 @@ export class Stack {
     readonly region: string;
     readonly config: Record<string, unknown>;
     private components: Array<Component> = [];
-    private vpc?: Vpc;
 
     static create(
         name: string,
@@ -67,20 +63,6 @@ export class Stack {
             for (const [key, value] of Object.entries(config.s3)) {
                 stack.add(new S3(stack, key, value as Record<string, unknown>));
             }
-        }
-        if (isConfig(config, "queues")) {
-            for (const [key, value] of Object.entries(config.queues)) {
-                stack.add(
-                    new Queue(stack, key, value as Record<string, unknown>)
-                );
-            }
-        }
-        // Enabling the VPC must come before other components that can enable the VPC (e.g. `db`)
-        if (isConfig(config, "vpc")) {
-            stack.enableVpc(config.vpc);
-        }
-        if (isConfig(config, "db")) {
-            stack.add(new Database(stack, config.db));
         }
         if (isConfig(config, "static-website")) {
             stack.add(new StaticWebsite(stack, config["static-website"]));
@@ -142,18 +124,6 @@ export class Stack {
         }
 
         return permissions;
-    }
-
-    enableVpc(props?: Record<string, unknown>): void {
-        if (this.vpc) {
-            return;
-        }
-        this.vpc = new Vpc(this, props ? props : {});
-        this.components.push(this.vpc);
-    }
-
-    async vpcDetailsReference(): Promise<VpcDetails | undefined> {
-        return this.vpc?.detailsReferences();
     }
 
     availabilityZones(): string[] {

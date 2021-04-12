@@ -39,49 +39,4 @@ describe("serverless plugin", () => {
         const expected = loadFile("static-website/expected.json");
         assert.deepStrictEqual(actual, expected);
     });
-
-    it("should add SQS resources", async function () {
-        await slsPackage("queues");
-        const actual = loadFile(
-            "queues/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("queues/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
-
-    it("should add VPC resources", async function () {
-        await slsPackage("vpc");
-        const actual = loadFile(
-            "vpc/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("vpc/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
-
-    it("should add DB instance resources", async function () {
-        await slsPackage("db/instance");
-        const actual = loadFile(
-            "db/instance/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("db/instance/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
-
-    it("should add DB cluster resources", async function () {
-        await slsPackage("db/cluster");
-        const actual = loadFile(
-            "db/cluster/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("db/cluster/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
-
-    it("should add serverless DB resources", async function () {
-        await slsPackage("db/serverless");
-        const actual = loadFile(
-            "db/serverless/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("db/serverless/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
 });

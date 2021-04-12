@@ -1,6 +1,5 @@
 import { Config } from "./src/Config";
 import { PolicyStatement, Stack } from "./src/Stack";
-import { VpcDetails } from "./src/components/Vpc";
 import { enableServerlessLogs, logServerless } from "./src/utils/logger";
 
 type Provider = {
@@ -63,7 +62,6 @@ class LiftPlugin {
         );
         const stack = config.getStack();
         this.configureCloudFormation(stack);
-        this.configureVpc(await stack.vpcDetailsReference());
         this.configurePermissions(await stack.permissionsInStack());
     }
 
@@ -84,12 +82,6 @@ class LiftPlugin {
             this.serverless.service.resources.Outputs,
             template.Outputs
         );
-    }
-
-    configureVpc(vpcDetails: VpcDetails | undefined) {
-        if (vpcDetails) {
-            this.serverless.service.provider.vpc = vpcDetails;
-        }
     }
 
     configurePermissions(permissions: PolicyStatement[]) {
