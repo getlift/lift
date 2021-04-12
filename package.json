@@ -69,6 +69,7 @@
   "scripts": {
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
+    "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",
     "test": "jest"
