@@ -4,13 +4,7 @@
   "homepage": "https://github.com/mnapoli/lift",
   "repository": "https://github.com/mnapoli/lift",
   "description": "Lift",
-  "bin": {
-    "lift": "bin/lift.js"
-  },
   "dependencies": {
-    "@oclif/command": "^1.8.0",
-    "@oclif/config": "^1.17.0",
-    "@oclif/plugin-help": "^3.2.0",
     "aws-sdk": "^2.737.0",
     "chalk": "^4.1.0",
     "change-case": "^4.1.1",
@@ -23,8 +17,6 @@
     "tslib": "^1.13.0"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1.22.2",
-    "@oclif/test": "^1.2.6",
     "@types/chai": "^4.2.12",
     "@types/jest": "^26.0.22",
     "@types/js-yaml": "^3.12.5",
@@ -53,19 +45,9 @@
     "npm": ">=7.5.0"
   },
   "files": [
-    "/bin",
-    "/lib",
-    "/npm-shrinkwrap.json",
-    "/oclif.manifest.json"
+    "/dist"
   ],
-  "main": "dist/src/index.js",
-  "oclif": {
-    "commands": "./lib/commands",
-    "bin": "lift",
-    "plugins": [
-      "@oclif/plugin-help"
-    ]
-  },
+  "main": "dist/src/plugin.js",
   "scripts": {
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
