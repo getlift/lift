@@ -1,3 +1,5 @@
+import type { JSONSchema4 } from "json-schema";
+import { Storage } from "./components/Storage";
 import { Config } from "./Config";
 import { PolicyStatement, Stack } from "./Stack";
 import { enableServerlessLogs, logServerless } from "./utils/logger";
@@ -10,6 +12,15 @@ type Provider = {
 };
 
 type Serverless = {
+    pluginManager: {
+        addPlugin: (plugin: unknown) => void;
+    };
+    configSchemaHandler: {
+        defineTopLevelProperty: (
+            pluginName: string,
+            schema: JSONSchema4
+        ) => void;
+    };
     service: {
         custom?: {
             lift?: Record<string, unknown>;
@@ -35,6 +46,8 @@ class LiftPlugin {
     private hooks: Record<string, () => Promise<void>>;
 
     constructor(serverless: Serverless) {
+        serverless.pluginManager.addPlugin(Storage);
+
         enableServerlessLogs();
 
         this.serverless = serverless;
