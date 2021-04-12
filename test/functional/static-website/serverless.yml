@@ -12,4 +12,4 @@ custom:
         static-website:
 
 plugins:
-    - ../../../dist/plugin.js
+    - ../../../dist/src/plugin.js

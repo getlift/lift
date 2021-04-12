@@ -1,6 +1,6 @@
-import { Config } from "./src/Config";
-import { PolicyStatement, Stack } from "./src/Stack";
-import { enableServerlessLogs, logServerless } from "./src/utils/logger";
+import { Config } from "./Config";
+import { PolicyStatement, Stack } from "./Stack";
+import { enableServerlessLogs, logServerless } from "./utils/logger";
 
 type Provider = {
     naming: {

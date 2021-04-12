@@ -7,13 +7,13 @@
     "strict": true,
     "target": "es2017",
     "lib": ["ESNext"],
+    "rootDir": "src",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "isolatedModules": true
   },
   "include": [
-    "plugin.ts",
     "bin/lift.ts",
     "test/**/*",
     "src/**/*"

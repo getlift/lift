@@ -17,4 +17,4 @@ functions:
         handler: handler.handler
 
 plugins:
-    - ../../../dist/plugin.js
+    - ../../../dist/src/plugin.js
