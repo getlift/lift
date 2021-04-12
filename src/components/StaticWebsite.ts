@@ -22,46 +22,55 @@ export class StaticWebsite extends Component {
     compile(): CloudFormationResources {
         const bucket: CloudFormationResource = {
             Type: "AWS::S3::Bucket",
-            Properties: {
-                WebsiteConfiguration: {
-                    IndexDocument: "index.html",
-                    ErrorDocument: "index.html",
-                },
-            },
+            Properties: {},
         };
 
-        if (this.props.cors === true) {
-            bucket.Properties.CorsConfiguration = {
-                CorsRules: [
-                    {
-                        AllowedHeaders: ["*"],
-                        AllowedMethods: ["GET"],
-                        AllowedOrigins: ["*"],
-                    },
-                ],
-            };
-        }
+        const originAccessIdentityResourceId =
+            this.bucketResourceName + "OriginAccessIdentity";
 
         const resources: CloudFormationResources = {
             [this.bucketResourceName]: bucket,
-        };
-
-        resources[this.bucketResourceName + "BucketPolicy"] = {
-            Type: "AWS::S3::BucketPolicy",
-            Properties: {
-                Bucket: this.fnRef(this.bucketResourceName),
-                PolicyDocument: {
-                    Statement: [
-                        {
-                            Effect: "Allow",
-                            Principal: "*",
-                            Action: "s3:GetObject",
-                            Resource: this.fnJoin("", [
-                                this.fnGetAtt(this.bucketResourceName, "Arn"),
-                                "/*",
-                            ]),
-                        },
-                    ],
+            [originAccessIdentityResourceId]: {
+                Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+                Properties: {
+                    CloudFrontOriginAccessIdentityConfig: {
+                        // TODO improve the comment
+                        Comment: this.fnRef(this.bucketResourceName),
+                    },
+                },
+            },
+            [this.bucketResourceName + "BucketPolicy"]: {
+                Type: "AWS::S3::BucketPolicy",
+                Properties: {
+                    Bucket: this.fnRef(this.bucketResourceName),
+                    PolicyDocument: {
+                        Statement: [
+                            // Authorize CloudFront to access S3 via an "Origin Access Identity"
+                            {
+                                Effect: "Allow",
+                                Principal: {
+                                    CanonicalUser: this.fnGetAtt(
+                                        originAccessIdentityResourceId,
+                                        "S3CanonicalUserId"
+                                    ),
+                                },
+                                Action: ["s3:GetObject", "s3:ListBucket"],
+                                Resource: [
+                                    this.fnGetAtt(
+                                        this.bucketResourceName,
+                                        "Arn"
+                                    ),
+                                    this.fnJoin("", [
+                                        this.fnGetAtt(
+                                            this.bucketResourceName,
+                                            "Arn"
+                                        ),
+                                        "/*",
+                                    ]),
+                                ],
+                            },
+                        ],
+                    },
                 },
             },
         };
@@ -79,31 +88,22 @@ export class StaticWebsite extends Component {
                     Origins: [
                         {
                             Id: "StaticWebsite",
-                            DomainName: {
-                                "Fn::Select": [
-                                    2,
-                                    {
-                                        "Fn::Split": [
-                                            "/",
-                                            this.fnGetAtt(
-                                                this.bucketResourceName,
-                                                "WebsiteURL"
-                                            ),
-                                        ],
-                                    },
-                                ],
-                            },
-                            CustomOriginConfig: {
-                                // S3 websites only support HTTP
-                                // (this is only accessed by CloudFront, visitors will be using HTTPS)
-                                OriginProtocolPolicy: "http-only",
+                            DomainName: this.fnGetAtt(
+                                this.bucketResourceName,
+                                "RegionalDomainName"
+                            ),
+                            S3OriginConfig: {
+                                OriginAccessIdentity: this.fnJoin("", [
+                                    "origin-access-identity/cloudfront/",
+                                    this.fnRef(originAccessIdentityResourceId),
+                                ]),
                             },
                         },
                     ],
                     DefaultCacheBehavior: {
                         TargetOriginId: "StaticWebsite",
-                        AllowedMethods: ["GET", "HEAD"],
-                        CachedMethods: ["GET", "HEAD"],
+                        AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                        CachedMethods: ["GET", "HEAD", "OPTIONS"],
                         ForwardedValues: {
                             // Do not forward the query string or cookies
                             QueryString: "false",
@@ -111,10 +111,24 @@ export class StaticWebsite extends Component {
                                 Forward: "none",
                             },
                         },
+                        // Redirect to HTTPS by default
                         ViewerProtocolPolicy: "redirect-to-https",
                         // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
                         Compress: "true",
+                        // Cache files for 1 hour by default
+                        DefaultTTL: 3600,
                     },
+                    // Send all page requests to index.html
+                    DefaultRootObject: "index.html",
+                    // For SPA we need dynamic pages to be served by index.html
+                    CustomErrorResponses: [
+                        {
+                            ErrorCode: 404,
+                            ErrorCachingMinTTL: 0,
+                            ResponseCode: 200,
+                            ResponsePagePath: "/index.html",
+                        },
+                    ],
                 },
             },
         };

@@ -73,10 +73,15 @@
     },
     "StaticWebsite": {
       "Type": "AWS::S3::Bucket",
+      "Properties": {}
+    },
+    "StaticWebsiteOriginAccessIdentity": {
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
       "Properties": {
-        "WebsiteConfiguration": {
-          "IndexDocument": "index.html",
-          "ErrorDocument": "index.html"
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": {
+            "Ref": "StaticWebsite"
+          }
         }
       }
     },
@@ -90,22 +95,40 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": "*",
-              "Action": "s3:GetObject",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    {
-                      "Fn::GetAtt": [
-                        "StaticWebsite",
-                        "Arn"
-                      ]
-                    },
-                    "/*"
+              "Principal": {
+                "CanonicalUser": {
+                  "Fn::GetAtt": [
+                    "StaticWebsiteOriginAccessIdentity",
+                    "S3CanonicalUserId"
                   ]
-                ]
-              }
+                }
+              },
+              "Action": [
+                "s3:GetObject",
+                "s3:ListBucket"
+              ],
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "StaticWebsite",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "StaticWebsite",
+                          "Arn"
+                        ]
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -122,23 +145,23 @@
             {
               "Id": "StaticWebsite",
               "DomainName": {
-                "Fn::Select": [
-                  2,
-                  {
-                    "Fn::Split": [
-                      "/",
-                      {
-                        "Fn::GetAtt": [
-                          "StaticWebsite",
-                          "WebsiteURL"
-                        ]
-                      }
-                    ]
-                  }
+                "Fn::GetAtt": [
+                  "StaticWebsite",
+                  "RegionalDomainName"
                 ]
               },
-              "CustomOriginConfig": {
-                "OriginProtocolPolicy": "http-only"
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "origin-access-identity/cloudfront/",
+                      {
+                        "Ref": "StaticWebsiteOriginAccessIdentity"
+                      }
+                    ]
+                  ]
+                }
               }
             }
           ],
@@ -146,11 +169,13 @@
             "TargetOriginId": "StaticWebsite",
             "AllowedMethods": [
               "GET",
-              "HEAD"
+              "HEAD",
+              "OPTIONS"
             ],
             "CachedMethods": [
               "GET",
-              "HEAD"
+              "HEAD",
+              "OPTIONS"
             ],
             "ForwardedValues": {
               "QueryString": "false",
@@ -159,8 +184,18 @@
               }
             },
             "ViewerProtocolPolicy": "redirect-to-https",
-            "Compress": "true"
-          }
+            "Compress": "true",
+            "DefaultTTL": 3600
+          },
+          "DefaultRootObject": "index.html",
+          "CustomErrorResponses": [
+            {
+              "ErrorCode": 404,
+              "ErrorCachingMinTTL": 0,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
+            }
+          ]
         }
       }
     }
