@@ -5,8 +5,8 @@ export abstract class Component<N extends string, S extends JSONSchema> {
     protected readonly name: N;
     protected serverless: Serverless;
 
-    getConfiguration(): FromSchema<S> {
-        return ((this.serverless.service as unknown) as Record<
+    getConfiguration(): FromSchema<S> | undefined {
+        return ((this.serverless.configurationInput as unknown) as Record<
             N,
             FromSchema<S>
         >)[this.name];

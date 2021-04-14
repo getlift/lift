@@ -1,6 +1,7 @@
+import { App, Stack } from "@aws-cdk/core";
 import { Storage } from "./components/Storage";
 import { Config } from "./Config";
-import { PolicyStatement, Stack } from "./Stack";
+import { Stack as CustomStack, PolicyStatement } from "./Stack";
 import { enableServerlessLogs, logServerless } from "./utils/logger";
 import type { Provider, Serverless } from "./types/serverless";
 
@@ -8,12 +9,16 @@ import type { Provider, Serverless } from "./types/serverless";
  * Serverless plugin
  */
 class LiftPlugin {
+    private app: App;
     private serverless: Serverless;
     private provider: Provider;
     private hooks: Record<string, () => Promise<void>>;
 
     constructor(serverless: Serverless) {
         serverless.pluginManager.addPlugin(Storage);
+
+        this.app = new App();
+        serverless.stack = new Stack(this.app);
 
         enableServerlessLogs();
 
@@ -22,7 +27,16 @@ class LiftPlugin {
 
         this.hooks = {
             "before:package:initialize": this.setup.bind(this),
+            "after:print:print": this.print.bind(this),
         };
+    }
+
+    async print() {
+        await Promise.resolve();
+        console.log(
+            this.app.synth().getStackByName(this.serverless.stack.stackName)
+                .template
+        );
     }
 
     async setup() {
@@ -45,7 +59,7 @@ class LiftPlugin {
         this.configurePermissions(await stack.permissionsInStack());
     }
 
-    configureCloudFormation(stack: Stack) {
+    configureCloudFormation(stack: CustomStack) {
         this.serverless.service.resources =
             this.serverless.service.resources ?? {};
         this.serverless.service.resources.Resources =

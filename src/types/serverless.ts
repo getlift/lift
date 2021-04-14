@@ -1,5 +1,6 @@
 import type { JSONSchema } from "json-schema-to-ts";
 import type { AWS } from "@serverless/typescript";
+import type { Stack } from "@aws-cdk/core";
 
 export type Provider = {
     naming: {
@@ -9,6 +10,7 @@ export type Provider = {
 };
 
 export type Serverless = {
+    stack: Stack;
     pluginManager: {
         addPlugin: (plugin: unknown) => void;
     };
@@ -18,6 +20,7 @@ export type Serverless = {
             schema: JSONSchema
         ) => void;
     };
+    configurationInput: AWS;
     service: AWS & {
         custom?: {
             lift?: Record<string, unknown>;

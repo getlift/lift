@@ -5,6 +5,8 @@
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
+    "@aws-cdk/aws-s3": "^1.98.0",
+    "@aws-cdk/core": "^1.98.0",
     "aws-sdk": "^2.737.0",
     "chalk": "^4.1.0",
     "change-case": "^4.1.1",
