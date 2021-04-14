@@ -1,8 +1,8 @@
 {
-  "name": "@mnapoli/lift",
+  "name": "@getlift/lift",
   "license": "UNLICENSED",
-  "homepage": "https://github.com/mnapoli/lift",
-  "repository": "https://github.com/mnapoli/lift",
+  "homepage": "https://github.com/getlift/lift",
+  "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
     "aws-sdk": "^2.737.0",
