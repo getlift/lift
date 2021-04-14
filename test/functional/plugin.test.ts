@@ -16,11 +16,6 @@ function loadFile(path: string): Record<string, unknown> {
     return JSON.parse(json) as Record<string, unknown>;
 }
 
-beforeEach(async () => {
-    // Compile the plugin to JS code
-    await execute("make plugin", `${__dirname}/../..`);
-});
-
 describe("serverless plugin", () => {
     it("should add S3 resources", async function () {
         await slsPackage("s3");

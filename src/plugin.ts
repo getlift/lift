@@ -1,41 +1,8 @@
-import type { JSONSchema4 } from "json-schema";
 import { Storage } from "./components/Storage";
 import { Config } from "./Config";
 import { PolicyStatement, Stack } from "./Stack";
 import { enableServerlessLogs, logServerless } from "./utils/logger";
-
-type Provider = {
-    naming: {
-        getStackName: () => string;
-    };
-    getRegion: () => string;
-};
-
-type Serverless = {
-    pluginManager: {
-        addPlugin: (plugin: unknown) => void;
-    };
-    configSchemaHandler: {
-        defineTopLevelProperty: (
-            pluginName: string,
-            schema: JSONSchema4
-        ) => void;
-    };
-    service: {
-        custom?: {
-            lift?: Record<string, unknown>;
-        };
-        provider: {
-            vpc?: unknown;
-            iamRoleStatements?: PolicyStatement[];
-        };
-        resources?: {
-            Resources?: Record<string, unknown>;
-            Outputs?: Record<string, unknown>;
-        };
-    };
-    getProvider: (provider: string) => Provider;
-};
+import type { Provider, Serverless } from "./types/serverless";
 
 /**
  * Serverless plugin
@@ -100,6 +67,8 @@ class LiftPlugin {
     configurePermissions(permissions: PolicyStatement[]) {
         this.serverless.service.provider.iamRoleStatements =
             this.serverless.service.provider.iamRoleStatements ?? [];
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         this.serverless.service.provider.iamRoleStatements.push(...permissions);
     }
 }

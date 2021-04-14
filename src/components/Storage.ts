@@ -1,4 +1,5 @@
-import { Component, Serverless } from "../classes/Component";
+import type { Serverless } from "../types/serverless";
+import { Component } from "../classes/Component";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const STORAGE_COMPONENT = "storage";

@@ -17,6 +17,7 @@
     "tslib": "^1.13.0"
   },
   "devDependencies": {
+    "@serverless/typescript": "^2.35.0",
     "@types/chai": "^4.2.12",
     "@types/jest": "^26.0.22",
     "@types/js-yaml": "^3.12.5",
@@ -58,7 +59,7 @@
     "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",
-    "test": "jest"
+    "test": "npm run build & jest"
   },
   "types": "lib/index.d.ts"
 }
