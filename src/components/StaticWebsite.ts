@@ -1,5 +1,4 @@
 /* eslint-disable */
-import { Component } from "./Component";
 import {
     CloudFormationOutputs,
     CloudFormationResource,
@@ -7,19 +6,76 @@ import {
     PolicyStatement,
     Stack,
 } from "../Stack";
+import { Component } from "../classes/Component";
+import { Serverless } from "../types/serverless";
+import { cfGetAtt, cfJoin, cfRef } from "../CloudFormation";
 
-export class StaticWebsite extends Component {
-    private readonly props: Record<string, unknown>;
+const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
+const COMPONENT_NAME = "static-websites";
+const COMPONENT_DEFINITION = {
+    type: "object",
+    patternProperties: {
+        [LIFT_COMPONENT_NAME_PATTERN]: {
+            type: "object",
+            properties: {
+                cors: {
+                    anyOf: [{ type: "boolean" }, { type: "string" }],
+                },
+                encrypted: { type: "boolean" },
+                public: { type: "boolean" },
+            },
+            additionalProperties: false,
+        },
+    },
+} as const;
+
+export class StaticWebsite extends Component<
+    typeof COMPONENT_NAME,
+    typeof COMPONENT_DEFINITION
+> {
     private readonly bucketResourceName: string;
+    private readonly stack: Stack;
+    private hooks: Record<string, () => void>;
 
-    constructor(stack: Stack, props: Record<string, unknown> | null) {
-        super(stack);
-        this.props = props ? props : {};
+    constructor(serverless: Serverless, stack: Stack) {
+        super({
+            name: COMPONENT_NAME,
+            serverless,
+            schema: COMPONENT_DEFINITION,
+        });
 
-        this.bucketResourceName = this.formatCloudFormationId("StaticWebsite");
+        this.stack = stack;
+
+        // TODO standardize naming
+        // this.bucketResourceName = this.formatCloudFormationId("StaticWebsite");
+        this.bucketResourceName = "StaticWebsite";
+
+        this.hooks = {
+            "before:package:initialize": this.doCompile.bind(this),
+        };
+    }
+
+    doCompile(): void {
+        this.serverless.service.resources =
+            this.serverless.service.resources ?? {};
+        this.serverless.service.resources.Resources =
+            this.serverless.service.resources.Resources ?? {};
+        this.serverless.service.resources.Outputs =
+            this.serverless.service.resources.Outputs ?? {};
+
+        Object.assign(
+            this.serverless.service.resources.Resources,
+            this.compile()
+        );
+        Object.assign(
+            this.serverless.service.resources.Outputs,
+            this.outputs()
+        );
     }
 
     compile(): CloudFormationResources {
+        const config = this.getConfiguration();
+
         const bucket: CloudFormationResource = {
             Type: "AWS::S3::Bucket",
             Properties: {},
@@ -35,33 +91,30 @@ export class StaticWebsite extends Component {
                 Properties: {
                     CloudFrontOriginAccessIdentityConfig: {
                         // TODO improve the comment
-                        Comment: this.fnRef(this.bucketResourceName),
+                        Comment: cfRef(this.bucketResourceName),
                     },
                 },
             },
             [this.bucketResourceName + "BucketPolicy"]: {
                 Type: "AWS::S3::BucketPolicy",
                 Properties: {
-                    Bucket: this.fnRef(this.bucketResourceName),
+                    Bucket: cfRef(this.bucketResourceName),
                     PolicyDocument: {
                         Statement: [
                             // Authorize CloudFront to access S3 via an "Origin Access Identity"
                             {
                                 Effect: "Allow",
                                 Principal: {
-                                    CanonicalUser: this.fnGetAtt(
+                                    CanonicalUser: cfGetAtt(
                                         originAccessIdentityResourceId,
                                         "S3CanonicalUserId"
                                     ),
                                 },
                                 Action: ["s3:GetObject", "s3:ListBucket"],
                                 Resource: [
-                                    this.fnGetAtt(
-                                        this.bucketResourceName,
-                                        "Arn"
-                                    ),
-                                    this.fnJoin("", [
-                                        this.fnGetAtt(
+                                    cfGetAtt(this.bucketResourceName, "Arn"),
+                                    cfJoin("", [
+                                        cfGetAtt(
                                             this.bucketResourceName,
                                             "Arn"
                                         ),
@@ -88,14 +141,14 @@ export class StaticWebsite extends Component {
                     Origins: [
                         {
                             Id: "StaticWebsite",
-                            DomainName: this.fnGetAtt(
+                            DomainName: cfGetAtt(
                                 this.bucketResourceName,
                                 "RegionalDomainName"
                             ),
                             S3OriginConfig: {
-                                OriginAccessIdentity: this.fnJoin("", [
+                                OriginAccessIdentity: cfJoin("", [
                                     "origin-access-identity/cloudfront/",
-                                    this.fnRef(originAccessIdentityResourceId),
+                                    cfRef(originAccessIdentityResourceId),
                                 ]),
                             },
                         },
@@ -135,13 +188,13 @@ export class StaticWebsite extends Component {
 
         // Custom domain on CloudFront
         if (
-            typeof this.props.domain === "string" ||
-            this.props.domain instanceof String
+            typeof config.domain === "string" ||
+            config.domain instanceof String
         ) {
             if (
                 !(
-                    typeof this.props.certificate === "string" ||
-                    this.props.certificate instanceof String
+                    typeof config.certificate === "string" ||
+                    config.certificate instanceof String
                 )
             ) {
                 throw new Error(
@@ -150,13 +203,13 @@ export class StaticWebsite extends Component {
             }
             // @ts-ignore
             resources.WebsiteCDN.Properties.DistributionConfig["Aliases"] = [
-                this.props.domain,
+                config.domain,
             ];
             // @ts-ignore
             resources.WebsiteCDN.Properties.DistributionConfig[
                 "ViewerCertificate"
             ] = {
-                AcmCertificateArn: this.props.certificate,
+                AcmCertificateArn: config.certificate,
                 // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
                 SslSupportMethod: "sni-only",
                 MinimumProtocolVersion: "TLSv1.1_2016",
@@ -171,11 +224,11 @@ export class StaticWebsite extends Component {
             [this.bucketResourceName + "Bucket"]: {
                 Description:
                     "Name of the bucket that stores the static website.",
-                Value: this.fnRef(this.bucketResourceName),
+                Value: cfRef(this.bucketResourceName),
             },
             CloudFrontDomain: {
                 Description: "CloudFront domain name.",
-                Value: this.fnGetAtt("WebsiteCDN", "DomainName"),
+                Value: cfGetAtt("WebsiteCDN", "DomainName"),
             },
         };
     }
