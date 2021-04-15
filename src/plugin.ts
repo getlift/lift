@@ -2,8 +2,9 @@ import { App, Stack } from "@aws-cdk/core";
 import { Storage } from "./components/Storage";
 import { Config } from "./Config";
 import { Stack as CustomStack, PolicyStatement } from "./Stack";
-import { enableServerlessLogs, logServerless } from "./utils/logger";
+import { enableServerlessLogs } from "./utils/logger";
 import type { Provider, Serverless } from "./types/serverless";
+import { StaticWebsite } from "./components/StaticWebsite";
 
 /**
  * Serverless plugin
@@ -15,10 +16,11 @@ class LiftPlugin {
     private hooks: Record<string, () => Promise<void>>;
 
     constructor(serverless: Serverless) {
-        serverless.pluginManager.addPlugin(Storage);
-
         this.app = new App();
         serverless.stack = new Stack(this.app);
+
+        serverless.pluginManager.addPlugin(Storage);
+        serverless.pluginManager.addPlugin(StaticWebsite);
 
         enableServerlessLogs();
 
@@ -40,20 +42,12 @@ class LiftPlugin {
     }
 
     async setup() {
-        if (
-            !this.serverless.service.custom ||
-            !this.serverless.service.custom.lift
-        ) {
-            return;
-        }
-        logServerless("Lift configuration found, applying config.");
+        const oldLiftConfig = this.serverless.service.custom?.lift
+            ? this.serverless.service.custom.lift
+            : {};
         const serverlessStackName = this.provider.naming.getStackName();
         const region = this.provider.getRegion();
-        const config = new Config(
-            serverlessStackName,
-            region,
-            this.serverless.service.custom.lift
-        );
+        const config = new Config(serverlessStackName, region, oldLiftConfig);
         const stack = config.getStack();
         this.configureCloudFormation(stack);
         this.configurePermissions(await stack.permissionsInStack());
@@ -67,6 +61,7 @@ class LiftPlugin {
         this.serverless.service.resources.Outputs =
             this.serverless.service.resources.Outputs ?? {};
 
+        // TODO remove this
         const template = stack.compile();
         Object.assign(
             this.serverless.service.resources.Resources,
@@ -75,6 +70,23 @@ class LiftPlugin {
         Object.assign(
             this.serverless.service.resources.Outputs,
             template.Outputs
+        );
+
+        // TODO type that properly?
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const extraResources: {
+            Resources: unknown;
+            Outputs: unknown;
+        } = this.app.synth().getStackByName(this.serverless.stack.stackName)
+            .template;
+        // CDK-generated resources
+        Object.assign(
+            this.serverless.service.resources.Resources,
+            extraResources.Resources
+        );
+        Object.assign(
+            this.serverless.service.resources.Outputs,
+            extraResources.Outputs
         );
     }
 

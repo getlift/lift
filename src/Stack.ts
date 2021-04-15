@@ -1,7 +1,6 @@
 import { Component } from "./components/Component";
 import { availabilityZones } from "./Zones";
 import { S3 } from "./components/S3";
-import { StaticWebsite } from "./components/StaticWebsite";
 
 export type CloudFormationTemplate = {
     AWSTemplateFormatVersion: string;
@@ -63,9 +62,6 @@ export class Stack {
             for (const [key, value] of Object.entries(config.s3)) {
                 stack.add(new S3(stack, key, value as Record<string, unknown>));
             }
-        }
-        if (isConfig(config, "static-website")) {
-            stack.add(new StaticWebsite(stack, config["static-website"]));
         }
 
         return stack;

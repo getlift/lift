@@ -71,46 +71,84 @@
         }
       }
     },
-    "StaticWebsite": {
+    "LandingWebsiteBucketD7903DC3": {
       "Type": "AWS::S3::Bucket",
-      "Properties": {}
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete"
     },
-    "StaticWebsiteOriginAccessIdentity": {
-      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
-      "Properties": {
-        "CloudFrontOriginAccessIdentityConfig": {
-          "Comment": {
-            "Ref": "StaticWebsite"
-          }
-        }
-      }
-    },
-    "StaticWebsiteBucketPolicy": {
+    "LandingWebsiteBucketPolicyBD4D4492": {
       "Type": "AWS::S3::BucketPolicy",
       "Properties": {
         "Bucket": {
-          "Ref": "StaticWebsite"
+          "Ref": "LandingWebsiteBucketD7903DC3"
         },
         "PolicyDocument": {
           "Statement": [
             {
+              "Action": "s3:GetObject",
               "Effect": "Allow",
               "Principal": {
                 "CanonicalUser": {
                   "Fn::GetAtt": [
-                    "StaticWebsiteOriginAccessIdentity",
+                    "LandingWebsiteOriginAccessIdentity7F379C01",
                     "S3CanonicalUserId"
                   ]
                 }
               },
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "LandingWebsiteBucketD7903DC3",
+                        "Arn"
+                      ]
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      }
+    },
+    "LandingWebsiteOriginAccessIdentity7F379C01": {
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+      "Properties": {
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": "OAI for landing static website."
+        }
+      }
+    },
+    "LandingWebsiteBucketPolicy383713E2": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "LandingWebsiteBucketD7903DC3"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
               "Action": [
                 "s3:GetObject",
                 "s3:ListBucket"
               ],
+              "Effect": "Allow",
+              "Principal": {
+                "CanonicalUser": {
+                  "Fn::GetAtt": [
+                    "LandingWebsiteOriginAccessIdentity7F379C01",
+                    "S3CanonicalUserId"
+                  ]
+                }
+              },
               "Resource": [
                 {
                   "Fn::GetAtt": [
-                    "StaticWebsite",
+                    "LandingWebsiteBucketD7903DC3",
                     "Arn"
                   ]
                 },
@@ -120,7 +158,7 @@
                     [
                       {
                         "Fn::GetAtt": [
-                          "StaticWebsite",
+                          "LandingWebsiteBucketD7903DC3",
                           "Arn"
                         ]
                       },
@@ -130,43 +168,24 @@
                 }
               ]
             }
-          ]
+          ],
+          "Version": "2012-10-17"
         }
       }
     },
-    "WebsiteCDN": {
+    "LandingWebsiteCDNCFDistribution8079F676": {
       "Type": "AWS::CloudFront::Distribution",
       "Properties": {
         "DistributionConfig": {
-          "Enabled": "true",
-          "PriceClass": "PriceClass_100",
-          "HttpVersion": "http2",
-          "Origins": [
+          "CustomErrorResponses": [
             {
-              "Id": "StaticWebsite",
-              "DomainName": {
-                "Fn::GetAtt": [
-                  "StaticWebsite",
-                  "RegionalDomainName"
-                ]
-              },
-              "S3OriginConfig": {
-                "OriginAccessIdentity": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "origin-access-identity/cloudfront/",
-                      {
-                        "Ref": "StaticWebsiteOriginAccessIdentity"
-                      }
-                    ]
-                  ]
-                }
-              }
+              "ErrorCachingMinTTL": 0,
+              "ErrorCode": 404,
+              "ResponseCode": 200,
+              "ResponsePagePath": "/index.html"
             }
           ],
           "DefaultCacheBehavior": {
-            "TargetOriginId": "StaticWebsite",
             "AllowedMethods": [
               "GET",
               "HEAD",
@@ -177,25 +196,51 @@
               "HEAD",
               "OPTIONS"
             ],
+            "Compress": true,
+            "DefaultTTL": 3600,
             "ForwardedValues": {
-              "QueryString": "false",
               "Cookies": {
                 "Forward": "none"
-              }
+              },
+              "QueryString": false
             },
-            "ViewerProtocolPolicy": "redirect-to-https",
-            "Compress": "true",
-            "DefaultTTL": 3600
+            "TargetOriginId": "origin1",
+            "ViewerProtocolPolicy": "redirect-to-https"
           },
           "DefaultRootObject": "index.html",
-          "CustomErrorResponses": [
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
             {
-              "ErrorCode": 404,
-              "ErrorCachingMinTTL": 0,
-              "ResponseCode": 200,
-              "ResponsePagePath": "/index.html"
+              "ConnectionAttempts": 3,
+              "ConnectionTimeout": 10,
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "LandingWebsiteBucketD7903DC3",
+                  "RegionalDomainName"
+                ]
+              },
+              "Id": "origin1",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "origin-access-identity/cloudfront/",
+                      {
+                        "Ref": "LandingWebsiteOriginAccessIdentity7F379C01"
+                      }
+                    ]
+                  ]
+                }
+              }
             }
-          ]
+          ],
+          "PriceClass": "PriceClass_100",
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true
+          }
         }
       }
     }
@@ -206,17 +251,17 @@
         "Ref": "ServerlessDeploymentBucket"
       }
     },
-    "StaticWebsiteBucket": {
+    "LandingWebsiteBucketName": {
       "Description": "Name of the bucket that stores the static website.",
       "Value": {
-        "Ref": "StaticWebsite"
+        "Ref": "LandingWebsiteBucketD7903DC3"
       }
     },
-    "CloudFrontDomain": {
+    "LandingWebsiteDomain": {
       "Description": "CloudFront domain name.",
       "Value": {
         "Fn::GetAtt": [
-          "WebsiteCDN",
+          "LandingWebsiteCDNCFDistribution8079F676",
           "DomainName"
         ]
       }
