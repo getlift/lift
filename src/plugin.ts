@@ -1,7 +1,6 @@
 import { App, Stack } from "@aws-cdk/core";
 import { Storage } from "./components/Storage";
-import { Config } from "./Config";
-import { Stack as CustomStack, PolicyStatement } from "./Stack";
+import { PolicyStatement } from "./Stack";
 import { enableServerlessLogs } from "./utils/logger";
 import type { Provider, Serverless } from "./types/serverless";
 import { StaticWebsite } from "./components/StaticWebsite";
@@ -13,7 +12,7 @@ class LiftPlugin {
     private app: App;
     private serverless: Serverless;
     private provider: Provider;
-    private hooks: Record<string, () => Promise<void>>;
+    private hooks: Record<string, () => void | Promise<void>>;
 
     constructor(serverless: Serverless) {
         this.app = new App();
@@ -41,36 +40,17 @@ class LiftPlugin {
         );
     }
 
-    async setup() {
-        const oldLiftConfig = this.serverless.service.custom?.lift
-            ? this.serverless.service.custom.lift
-            : {};
-        const serverlessStackName = this.provider.naming.getStackName();
-        const region = this.provider.getRegion();
-        const config = new Config(serverlessStackName, region, oldLiftConfig);
-        const stack = config.getStack();
-        this.configureCloudFormation(stack);
-        this.configurePermissions(await stack.permissionsInStack());
+    setup() {
+        this.configureCloudFormation();
     }
 
-    configureCloudFormation(stack: CustomStack) {
+    configureCloudFormation() {
         this.serverless.service.resources =
             this.serverless.service.resources ?? {};
         this.serverless.service.resources.Resources =
             this.serverless.service.resources.Resources ?? {};
         this.serverless.service.resources.Outputs =
             this.serverless.service.resources.Outputs ?? {};
-
-        // TODO remove this
-        const template = stack.compile();
-        Object.assign(
-            this.serverless.service.resources.Resources,
-            template.Resources
-        );
-        Object.assign(
-            this.serverless.service.resources.Outputs,
-            template.Outputs
-        );
 
         // TODO type that properly?
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

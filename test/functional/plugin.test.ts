@@ -17,15 +17,6 @@ function loadFile(path: string): Record<string, unknown> {
 }
 
 describe("serverless plugin", () => {
-    it("should add S3 resources", async function () {
-        await slsPackage("s3");
-        const actual = loadFile(
-            "s3/.serverless/cloudformation-template-update-stack.json"
-        );
-        const expected = loadFile("s3/expected.json");
-        assert.deepStrictEqual(actual, expected);
-    });
-
     it("should add static website resources", async function () {
         await slsPackage("static-website");
         const actual = loadFile(

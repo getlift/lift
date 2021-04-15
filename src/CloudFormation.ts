@@ -1,4 +1,5 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
+import { availabilityZones } from "./Zones";
 
 export function formatCloudFormationId(name: string): string {
     return pascalCase(name, {
@@ -47,4 +48,14 @@ export function cfTag(
         Key: key,
         Value: value,
     };
+}
+
+export function getAvailabilityZones(region: string): string[] {
+    const allZones = availabilityZones as Record<string, string[]>;
+
+    return (
+        allZones[region]
+            // Keep maximum 3 zones
+            .slice(0, 3)
+    );
 }
