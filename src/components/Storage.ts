@@ -58,7 +58,7 @@ export class Storage extends Component<
         };
 
         this.hooks = {
-            "before:print:print": this.compile.bind(this),
+            "package:compileEvents": this.compile.bind(this),
         };
     }
 
@@ -74,7 +74,7 @@ export class Storage extends Component<
                     storageConfiguration
                 );
                 new Bucket(this.serverless.stack, storageName, {
-                    bucketName: "name",
+                    bucketName: storageName.toLowerCase(),
                     encryption: resolvedStorageConfiguration.encrypted
                         ? BucketEncryption.KMS_MANAGED
                         : BucketEncryption.UNENCRYPTED,

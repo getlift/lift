@@ -37,6 +37,8 @@ export class StaticWebsite extends Component<
     typeof COMPONENT_NAME,
     typeof COMPONENT_DEFINITIONS
 > {
+    private hooks: Record<string, () => void>;
+    
     constructor(serverless: Serverless) {
         super({
             name: COMPONENT_NAME,
@@ -44,8 +46,9 @@ export class StaticWebsite extends Component<
             schema: COMPONENT_DEFINITIONS,
         });
 
-        // TODO use hooks to do this
-        this.compile();
+        this.hooks = {
+            "package:compileEvents": this.compile.bind(this),
+        };
     }
 
     compile(): void {

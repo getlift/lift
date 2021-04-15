@@ -28,3 +28,5 @@ export type Serverless = {
     };
     getProvider: (provider: "aws") => Provider;
 };
+
+export type CloudformationTemplate = AWS["resources"];
