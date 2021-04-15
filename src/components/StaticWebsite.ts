@@ -38,7 +38,7 @@ export class StaticWebsite extends Component<
     typeof COMPONENT_DEFINITIONS
 > {
     private hooks: Record<string, () => void>;
-    
+
     constructor(serverless: Serverless) {
         super({
             name: COMPONENT_NAME,

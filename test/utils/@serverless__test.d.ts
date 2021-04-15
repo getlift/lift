@@ -8,6 +8,9 @@ declare module "@serverless/test/run-serverless" {
         awsRequestStubMap: unknwon;
     }>;
 
+    type RunServerlessFixtureOption = {
+        fixture: string;
+    };
     type RunServerlessCWDOption = {
         cwd: string;
     };
@@ -20,6 +23,7 @@ declare module "@serverless/test/run-serverless" {
 
     type RunServerlessOptions = RunServerlessBaseOptions &
         (
+            | RunServerlessFixtureOption
             | RunServerlessCWDOption
             | RunServerlessConfigOption
             | RunServerlessNoServiceOption
@@ -30,14 +34,29 @@ declare module "@serverless/test/run-serverless" {
         stdoutData: string;
         cfTemplate: {
             Resources: Record<string, unknown>;
+            Outputs: Record<string, unknown>;
         };
         awsNaming: unknown;
     };
 
     function runServerless(
-        serverlessDir: string,
         options: RunServerlessOptions
     ): Promise<RunServerlessReturn>;
 
     export = runServerless;
+}
+
+declare module "@serverless/test/setup-run-serverless-fixtures-engine" {
+    import runServerless from "@serverless/test/run-serverless";
+
+    type SetupRunServerlessFixturesEngineOptions = {
+        fixturesDir: string;
+        serverlessDir: string;
+    };
+
+    function setupRunServerlessFixturesEngine(
+        options: SetupRunServerlessFixturesEngineOptions
+    ): typeof runServerless;
+
+    export = setupRunServerlessFixturesEngine;
 }

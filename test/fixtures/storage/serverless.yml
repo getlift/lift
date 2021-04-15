@@ -1,0 +1,7 @@
+service: storage
+
+provider:
+  name: aws
+
+storage:
+  testStorage:
