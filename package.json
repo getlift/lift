@@ -65,7 +65,7 @@
     "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",
-    "test": "npm run build & jest"
+    "test": "jest"
   },
   "types": "lib/index.d.ts"
 }

@@ -33,18 +33,12 @@ export class Storage extends Component<
     typeof STORAGE_COMPONENT,
     typeof STORAGE_DEFINITIONS
 > {
-    private hooks: Record<string, () => void>;
-
     constructor(serverless: Serverless) {
         super({
             name: STORAGE_COMPONENT,
             serverless,
             schema: STORAGE_DEFINITIONS,
         });
-
-        this.hooks = {
-            "package:compileEvents": this.compile.bind(this),
-        };
     }
 
     compile(): void {

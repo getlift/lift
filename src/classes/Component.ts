@@ -1,8 +1,9 @@
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
-import type { Serverless } from "../types/serverless";
+import type { Hook, Serverless } from "../types/serverless";
 
 export abstract class Component<N extends string, S extends JSONSchema> {
     protected readonly name: N;
+    protected hooks: Record<string, Hook>;
     protected serverless: Serverless;
 
     getConfiguration(): FromSchema<S> | undefined {
@@ -32,5 +33,11 @@ export abstract class Component<N extends string, S extends JSONSchema> {
             this.name,
             schema
         );
+
+        this.hooks = {
+            "package:compileEvents": this.compile.bind(this),
+        };
     }
+
+    abstract compile(): void | Promise<void>;
 }
