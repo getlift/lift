@@ -33,7 +33,6 @@ export class Storage extends Component<
     typeof STORAGE_COMPONENT,
     typeof STORAGE_DEFINITIONS
 > {
-    public readonly commands: Record<string, unknown>;
     private hooks: Record<string, () => void>;
 
     constructor(serverless: Serverless) {
@@ -42,20 +41,6 @@ export class Storage extends Component<
             serverless,
             schema: STORAGE_DEFINITIONS,
         });
-
-        this.commands = {
-            foo: {
-                lifecycleEvents: ["functions"],
-                options: {
-                    function: {
-                        usage:
-                            'Specify the function you want to handle (e.g. "--function myFunction")',
-                        required: false,
-                        type: "string", // Possible options: "string", "boolean", "multiple"
-                    },
-                },
-            },
-        };
 
         this.hooks = {
             "package:compileEvents": this.compile.bind(this),
