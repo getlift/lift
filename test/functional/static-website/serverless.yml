@@ -7,9 +7,8 @@ provider:
     # To avoid versions with random names (easier diffs)
     versionFunctions: false
 
-custom:
-    lift:
-        static-website:
+static-website:
+    landing:
 
 plugins:
     - ../../../dist/src/plugin.js

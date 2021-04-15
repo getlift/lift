@@ -5,6 +5,8 @@
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
+    "@aws-cdk/aws-cloudfront": "^1.98.0",
+    "@aws-cdk/aws-iam": "^1.98.0",
     "@aws-cdk/aws-s3": "^1.98.0",
     "@aws-cdk/core": "^1.98.0",
     "aws-sdk": "^2.737.0",

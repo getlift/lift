@@ -1,3 +1,11 @@
+import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
+
+export function formatCloudFormationId(name: string): string {
+    return pascalCase(name, {
+        transform: pascalCaseTransformMerge,
+    });
+}
+
 export function cfRef(resource: string): { Ref: string } {
     return { Ref: resource };
 }
