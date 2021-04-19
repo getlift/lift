@@ -5,3 +5,4 @@ provider:
 
 static-website:
   landing:
+    path: .

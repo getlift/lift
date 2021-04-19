@@ -3,24 +3,10 @@ service: lift-app
 provider:
     name: aws
     region: us-east-1
-    runtime: nodejs12.x
 
-custom:
-    lift:
-        static-website:
-
-functions:
-    hello:
-        handler: demo/handler.hello
-
-package:
-    exclude:
-        - 'bin/**'
-        - 'dist/**'
-        - 'node_modules/**'
-        - 'src/**'
-        - 'test/**'
-        - 'utils/**'
+static-website:
+    landing:
+        path: 'docs'
 
 plugins:
-    - ./dist/plugin.js
+    - ./dist/src/plugin.js

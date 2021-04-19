@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { Bucket, BucketPolicy } from "@aws-cdk/aws-s3";
 import { PolicyStatement } from "@aws-cdk/aws-iam";
 import {
@@ -12,19 +11,24 @@ import {
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { FromSchema } from "json-schema-to-ts";
+import { spawnSync } from "child_process";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { formatCloudFormationId } from "../CloudFormation";
+import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
+import { log } from "../utils/logger";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "static-website";
 const COMPONENT_DEFINITION = {
     type: "object",
     properties: {
+        path: { type: "string" },
         domain: { type: "string" },
         certificate: { type: "string" },
     },
     additionalProperties: false,
+    required: ["path"],
 } as const;
 const COMPONENT_DEFINITIONS = {
     type: "object",
@@ -32,6 +36,8 @@ const COMPONENT_DEFINITIONS = {
         [LIFT_COMPONENT_NAME_PATTERN]: COMPONENT_DEFINITION,
     },
 } as const;
+
+type WebsiteConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
 
 export class StaticWebsite extends Component<
     typeof COMPONENT_NAME,
@@ -43,6 +49,15 @@ export class StaticWebsite extends Component<
             serverless,
             schema: COMPONENT_DEFINITIONS,
         });
+
+        this.commands = {
+            "static-website-deploy": {
+                lifecycleEvents: ["deploy"],
+            },
+        };
+
+        this.hooks["after:deploy:deploy"] = this.deploy.bind(this);
+        this.hooks["static-website-deploy:deploy"] = this.deploy.bind(this);
     }
 
     compile(): void {
@@ -55,12 +70,9 @@ export class StaticWebsite extends Component<
             ([websiteName, websiteConfiguration]) => {
                 const cfId = formatCloudFormationId(`${websiteName}Website`);
 
-                if (websiteConfiguration === null) {
-                    websiteConfiguration = {};
-                }
                 if (
-                    websiteConfiguration.domain &&
-                    !websiteConfiguration.certificate
+                    websiteConfiguration.domain !== undefined &&
+                    websiteConfiguration.certificate === undefined
                 ) {
                     throw new Error(
                         `Invalid configuration for the static website ${websiteName}: if a domain is configured, then a certificate ARN must be configured as well.`
@@ -152,20 +164,9 @@ export class StaticWebsite extends Component<
                                 responsePagePath: "/index.html",
                             },
                         ],
-                        viewerCertificate: websiteConfiguration.certificate
-                            ? ({
-                                  aliases: websiteConfiguration.domain
-                                      ? [websiteConfiguration.domain]
-                                      : [],
-                                  props: {
-                                      acmCertificateArn:
-                                          websiteConfiguration.certificate,
-                                      // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
-                                      sslSupportMethod: "sni-only",
-                                      minimumProtocolVersion: "TLSv1.1_2016",
-                                  },
-                              } as ViewerCertificate)
-                            : undefined,
+                        viewerCertificate: this.compileViewerCertificate(
+                            websiteConfiguration
+                        ),
                     }
                 );
 
@@ -179,6 +180,68 @@ export class StaticWebsite extends Component<
                     description: "CloudFront domain name.",
                     value: distribution.distributionDomainName,
                 });
+            }
+        );
+    }
+
+    private compileViewerCertificate(config: WebsiteConfiguration) {
+        if (config.certificate === undefined) {
+            return undefined;
+        }
+
+        return {
+            aliases: config.domain !== undefined ? [config.domain] : [],
+            props: {
+                acmCertificateArn: config.certificate,
+                // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
+                sslSupportMethod: "sni-only",
+                minimumProtocolVersion: "TLSv1.1_2016",
+            },
+        } as ViewerCertificate;
+    }
+
+    async deploy(): Promise<void> {
+        // Deploy each website sequentially (to simplify the log output)
+        for (const [websiteName, configuration] of Object.entries(
+            this.getConfiguration() ?? {}
+        )) {
+            await this.deployWebsite(websiteName, configuration);
+        }
+    }
+
+    private async deployWebsite(
+        name: string,
+        configuration: WebsiteConfiguration
+    ) {
+        log(`Deploying the static website "${name}"`);
+
+        const cfId = formatCloudFormationId(`${name}Website`);
+        const bucketName = await getStackOutput(
+            this.getRegion(),
+            this.getStackName(),
+            `${cfId}BucketName`
+        );
+        if (bucketName === undefined) {
+            throw new Error(
+                "Could not find the bucket in which to deploy the website: run 'serverless deploy' first to create it."
+            );
+        }
+
+        log(
+            `Uploading directory '${configuration.path}' to bucket '${bucketName}'`
+        );
+        // TODO proper upload, without going through a subcommand
+        spawnSync(
+            "aws",
+            [
+                "s3",
+                "sync",
+                "--delete",
+                configuration.path,
+                `s3://${bucketName}`,
+            ],
+            {
+                stdio: "inherit",
             }
         );
     }

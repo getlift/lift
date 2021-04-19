@@ -1,6 +1,5 @@
 import { App, Stack } from "@aws-cdk/core";
 import { Storage } from "./components/Storage";
-import { enableServerlessLogs } from "./utils/logger";
 import type {
     CloudformationTemplate,
     Provider,
@@ -23,8 +22,6 @@ class LiftPlugin {
 
         serverless.pluginManager.addPlugin(Storage);
         serverless.pluginManager.addPlugin(StaticWebsite);
-
-        enableServerlessLogs();
 
         this.serverless = serverless;
         this.provider = this.serverless.getProvider("aws");
