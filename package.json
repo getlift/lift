@@ -52,8 +52,8 @@
     "serverless": "^2.35.0"
   },
   "engines": {
-    "node": ">=14.5.0",
-    "npm": ">=7.5.0"
+    "node": ">=15.14.0",
+    "npm": ">=7.7.6"
   },
   "files": [
     "/dist"
@@ -65,7 +65,7 @@
     "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",
-    "test": "jest --maxWorkers=1"
+    "test": "jest"
   },
   "types": "lib/index.d.ts"
 }
