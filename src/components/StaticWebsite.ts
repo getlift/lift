@@ -18,6 +18,7 @@ import {
     ListObjectsV2Output,
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
+import chalk from "chalk";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
@@ -65,6 +66,8 @@ export class StaticWebsite extends Component<
         this.hooks["deploy-static-website:deploy"] = this.deploy.bind(this);
 
         this.hooks["before:remove:remove"] = this.remove.bind(this);
+
+        this.hooks["after:info:info"] = this.info.bind(this);
     }
 
     compile(): void {
@@ -255,25 +258,21 @@ export class StaticWebsite extends Component<
 
     async remove(): Promise<void> {
         for (const websiteName of Object.keys(this.getConfiguration() ?? {})) {
-            await this.removeWebsite(websiteName);
-        }
-    }
+            const cfId = formatCloudFormationId(`${websiteName}Website`);
+            const bucketName = await getStackOutput(
+                this.serverless,
+                `${cfId}BucketName`
+            );
+            if (bucketName === undefined) {
+                // No bucket found => nothing to delete!
+                return;
+            }
 
-    private async removeWebsite(name: string): Promise<void> {
-        const cfId = formatCloudFormationId(`${name}Website`);
-        const bucketName = await getStackOutput(
-            this.serverless,
-            `${cfId}BucketName`
-        );
-        if (bucketName === undefined) {
-            // No bucket found => nothing to delete!
-            return;
+            log(
+                `Emptying S3 bucket '${bucketName}' for the "${websiteName}" static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+            );
+            await this.emptyBucket(bucketName);
         }
-
-        log(
-            `Emptying S3 bucket '${bucketName}' for the "${name}" static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
-        );
-        await this.emptyBucket(bucketName);
     }
 
     private async emptyBucket(bucket: string): Promise<void> {
@@ -298,6 +297,26 @@ export class StaticWebsite extends Component<
         } as DeleteObjectsRequest);
 
         throw new Error("ALL GOOD");
+    }
+
+    async info(): Promise<void> {
+        const getAllDomains = Object.keys(this.getConfiguration() ?? {}).map(
+            async (websiteName) => {
+                const cfId = formatCloudFormationId(`${websiteName}Website`);
+
+                return await getStackOutput(this.serverless, `${cfId}Domain`);
+            }
+        );
+        const domains: string[] = (await Promise.all(getAllDomains)).filter(
+            (domain): domain is string => domain !== undefined
+        );
+        if (domains.length <= 0) {
+            return;
+        }
+        console.log(chalk.yellow("static websites:"));
+        for (const domain of domains) {
+            console.log(`  https://${domain}`);
+        }
     }
 
     async permissions(): Promise<PolicyStatement[]> {
