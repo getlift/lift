@@ -1,9 +1,21 @@
 # Why should I choose Lift ?
 
-- Onboarding
-- Lock-in
-- Features
+In order to achieve Lift goals, we first draw a picture of the current AWS serverless ecosystem. We chose to focus on 3 mail evaluation criterion to rate existing solutions.
 
-| Criterion | Stackery |
-|-----------|:--------:|
-| Cloud-oriented | ✅ |
+### Onboarding
+
+- **Is it feature-oriented ?** *Being an AWS oriented framework requires the developer to have some existing knowledge of AWS services. It is not made for serverless beginners.*
+- **How many steps required to get started ?** *Solution with a complicated onboarding process are cumbersome*
+
+### Lock-in
+
+- **Can I eject easily ?** *In case the solution does not fit my requirements anymore, can I easily opt-out without loosing everything I implemented ?*
+
+### Features
+
+- **Which common web features can I easily implement with the solution ?**
+
+
+| Criterion \ Solution | [Stackery](https://www.stackery.io/) - *SAM-based* | [Architect](https://arc.codes/docs/en/guides/get-started/quickstart) - *SAM-based* | [Laravel Vapor](https://vapor.laravel.com/) | [Amplify](https://docs.amplify.aws/) | [CDK](https://aws.amazon.com/cdk/) | [SST](https://serverless-stack.com/) | [SLS](https://www.serverless.com/) | [SLS Components](https://www.serverless.com/components/) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Feature-oriented | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
