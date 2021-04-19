@@ -13,6 +13,11 @@ import {
 import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { spawnSync } from "child_process";
+import {
+    DeleteObjectsRequest,
+    ListObjectsV2Output,
+    ListObjectsV2Request,
+} from "aws-sdk/clients/s3";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
@@ -51,13 +56,15 @@ export class StaticWebsite extends Component<
         });
 
         this.commands = {
-            "static-website-deploy": {
+            "deploy-static-website": {
                 lifecycleEvents: ["deploy"],
             },
         };
 
         this.hooks["after:deploy:deploy"] = this.deploy.bind(this);
-        this.hooks["static-website-deploy:deploy"] = this.deploy.bind(this);
+        this.hooks["deploy-static-website:deploy"] = this.deploy.bind(this);
+
+        this.hooks["before:remove:remove"] = this.remove.bind(this);
     }
 
     compile(): void {
@@ -222,7 +229,7 @@ export class StaticWebsite extends Component<
         );
         if (bucketName === undefined) {
             throw new Error(
-                "Could not find the bucket in which to deploy the website: run 'serverless deploy' first to create it."
+                `Could not find the bucket in which to deploy the "${name}" website: did you forget to run 'serverless deploy' first?`
             );
         }
 
@@ -243,6 +250,54 @@ export class StaticWebsite extends Component<
                 stdio: "inherit",
             }
         );
+        // TODO CloudFront invalidation
+    }
+
+    async remove(): Promise<void> {
+        for (const websiteName of Object.keys(this.getConfiguration() ?? {})) {
+            await this.removeWebsite(websiteName);
+        }
+    }
+
+    private async removeWebsite(name: string): Promise<void> {
+        const cfId = formatCloudFormationId(`${name}Website`);
+        const bucketName = await getStackOutput(
+            this.serverless,
+            `${cfId}BucketName`
+        );
+        if (bucketName === undefined) {
+            // No bucket found => nothing to delete!
+            return;
+        }
+
+        log(
+            `Emptying S3 bucket '${bucketName}' for the "${name}" static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+        );
+        await this.emptyBucket(bucketName);
+    }
+
+    private async emptyBucket(bucket: string): Promise<void> {
+        const aws = this.serverless.getProvider("aws");
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const data: ListObjectsV2Output = await aws.request(
+            "S3",
+            "listObjectsV2",
+            {
+                Bucket: bucket,
+            } as ListObjectsV2Request
+        );
+        if (data.Contents === undefined) {
+            return;
+        }
+        const keys = data.Contents.map((item) => ({ Key: item.Key }));
+        await aws.request("S3", "deleteObjects", {
+            Bucket: bucket,
+            Delete: {
+                Objects: keys,
+            },
+        } as DeleteObjectsRequest);
+
+        throw new Error("ALL GOOD");
     }
 
     async permissions(): Promise<PolicyStatement[]> {

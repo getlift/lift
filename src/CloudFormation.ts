@@ -1,9 +1,4 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
-// import {
-//     CloudFormationClient,
-//     DescribeStacksCommand,
-//     DescribeStacksCommandOutput,
-// } from "@aws-sdk/client-cloudformation";
 import {
     DescribeStacksInput,
     DescribeStacksOutput,
@@ -32,18 +27,18 @@ export async function getStackOutput(
                 StackName: stackName,
             } as DescribeStacksInput);
     } catch (e) {
-        if ((e as Error).message === "Stack with id Default does not exist") {
-            const region = serverless.getProvider("aws").getRegion();
-            throw new Error(
-                `The stack ${stackName} in region ${region} does not exist, did you forget to deploy with 'serverless deploy' first?`
-            );
+        if (
+            e instanceof Error &&
+            e.message === `Stack with id ${stackName} does not exist`
+        ) {
+            return undefined;
         }
 
         throw e;
     }
 
     if (!data.Stacks || !data.Stacks[0].Outputs) {
-        throw new Error(`Stack ${stackName} is not deployed yet.`);
+        return undefined;
     }
 
     for (const item of data.Stacks[0].Outputs) {
