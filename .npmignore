@@ -1,0 +1,7 @@
+*.md
+.github
+docs
+src
+test
+utils
+dist/test

@@ -14,33 +14,12 @@ jobs:
                 with:
                     node-version: '15'
                     registry-url: https://registry.npmjs.org
-
-            -   run: npm install -g @oclif/dev-cli
-
-            -   run: npm ci
-
             # Store the name of the release
             # See https://stackoverflow.com/questions/58177786/get-the-current-pushed-tag-in-github-actions
-            -   name: Set env
-                run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-
+            -   run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+            -   run: npm ci
             -   run: npm version $RELEASE_VERSION --no-git-tag-version
-
-            -   name: Generate oclif.manifest.json
-                run: oclif-dev manifest
-
-            -   name: Compile the source code
-                run: node esbuild.js
-
-            -   name: Copy files for release
-                run: |
-                    cp oclif.manifest.json dist/
-
-            -   name: Publish
-                run: |
-                    cd dist
-                    npm install
-                    npm version $RELEASE_VERSION --no-git-tag-version
-                    npm publish --access public
+            -   run: npm run build
+            -   run: npm publish --access public
                 env:
                     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
