@@ -1,6 +1,8 @@
 # Why should I choose Lift ?
 
-In order to achieve Lift goals, we first draw a picture of the current AWS serverless ecosystem. We chose to focus on 3 mail evaluation criterion to rate existing solutions.
+## Criterion
+
+In order to achieve Lift goals, we first draw a picture of the current AWS serverless ecosystem. We chose to focus on 3 main evaluation criterion to rate existing solutions.
 
 ### Onboarding
 
@@ -15,6 +17,7 @@ In order to achieve Lift goals, we first draw a picture of the current AWS serve
 
 - **Which common web features can I easily implement with the solution ?**
 
+## Comparison table
 
 | Criterion \ Solution | [Stackery](https://www.stackery.io/) | [Architect](https://arc.codes/docs/en/guides/get-started/quickstart) | [Laravel Vapor](https://vapor.laravel.com/) | [Amplify](https://docs.amplify.aws/) | [CDK](https://aws.amazon.com/cdk/) | [SST](https://serverless-stack.com/) | [SLS](https://www.serverless.com/) | [SLS Components](https://www.serverless.com/components/) |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
