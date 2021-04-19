@@ -20,12 +20,15 @@ export async function getStackOutput(
 
     let data: DescribeStacksOutput;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data = await serverless
             .getProvider("aws")
-            .request("CloudFormation", "describeStacks", {
-                StackName: stackName,
-            } as DescribeStacksInput);
+            .request<DescribeStacksInput, DescribeStacksOutput>(
+                "CloudFormation",
+                "describeStacks",
+                {
+                    StackName: stackName,
+                }
+            );
     } catch (e) {
         if (
             e instanceof Error &&

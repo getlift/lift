@@ -12,8 +12,11 @@ export type Provider = {
     /**
      * Send a request to the AWS API.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    request: (service: string, method: string, params: any) => Promise<any>;
+    request: <Input, Output>(
+        service: string,
+        method: string,
+        params: Input
+    ) => Promise<Output>;
 };
 
 export type Serverless = {

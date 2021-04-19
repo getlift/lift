@@ -14,6 +14,7 @@ import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { spawnSync } from "child_process";
 import {
+    DeleteObjectsOutput,
     DeleteObjectsRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
@@ -277,26 +278,28 @@ export class StaticWebsite extends Component<
 
     private async emptyBucket(bucket: string): Promise<void> {
         const aws = this.serverless.getProvider("aws");
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const data: ListObjectsV2Output = await aws.request(
-            "S3",
-            "listObjectsV2",
-            {
-                Bucket: bucket,
-            } as ListObjectsV2Request
-        );
+        const data = await aws.request<
+            ListObjectsV2Request,
+            ListObjectsV2Output
+        >("S3", "listObjectsV2", {
+            Bucket: bucket,
+        });
         if (data.Contents === undefined) {
             return;
         }
-        const keys = data.Contents.map((item) => ({ Key: item.Key }));
-        await aws.request("S3", "deleteObjects", {
-            Bucket: bucket,
-            Delete: {
-                Objects: keys,
-            },
-        } as DeleteObjectsRequest);
-
-        throw new Error("ALL GOOD");
+        const keys = data.Contents.map((item) => item.Key).filter(
+            (key): key is string => key !== undefined
+        );
+        await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>(
+            "S3",
+            "deleteObjects",
+            {
+                Bucket: bucket,
+                Delete: {
+                    Objects: keys.map((key) => ({ Key: key })),
+                },
+            }
+        );
     }
 
     async info(): Promise<void> {
