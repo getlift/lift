@@ -1,10 +1,15 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
+// import {
+//     CloudFormationClient,
+//     DescribeStacksCommand,
+//     DescribeStacksCommandOutput,
+// } from "@aws-sdk/client-cloudformation";
 import {
-    CloudFormationClient,
-    DescribeStacksCommand,
-    DescribeStacksCommandOutput,
-} from "@aws-sdk/client-cloudformation";
+    DescribeStacksInput,
+    DescribeStacksOutput,
+} from "aws-sdk/clients/cloudformation";
 import { availabilityZones } from "./Zones";
+import { Serverless } from "./types/serverless";
 
 export function formatCloudFormationId(name: string): string {
     return pascalCase(name, {
@@ -13,25 +18,22 @@ export function formatCloudFormationId(name: string): string {
 }
 
 export async function getStackOutput(
-    region: string,
-    stackName: string,
+    serverless: Serverless,
     output: string
 ): Promise<string | undefined> {
-    /**
-     * TODO use awsRequest
-     * https://github.com/serverless/serverless/blob/master/lib/aws/request.js
-     */
-    const client = new CloudFormationClient({ region: region });
+    const stackName = serverless.getProvider("aws").naming.getStackName();
 
-    let data: DescribeStacksCommandOutput;
+    let data: DescribeStacksOutput;
     try {
-        data = await client.send(
-            new DescribeStacksCommand({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        data = await serverless
+            .getProvider("aws")
+            .request("CloudFormation", "describeStacks", {
                 StackName: stackName,
-            })
-        );
+            } as DescribeStacksInput);
     } catch (e) {
         if ((e as Error).message === "Stack with id Default does not exist") {
+            const region = serverless.getProvider("aws").getRegion();
             throw new Error(
                 `The stack ${stackName} in region ${region} does not exist, did you forget to deploy with 'serverless deploy' first?`
             );

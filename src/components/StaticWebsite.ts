@@ -217,8 +217,7 @@ export class StaticWebsite extends Component<
 
         const cfId = formatCloudFormationId(`${name}Website`);
         const bucketName = await getStackOutput(
-            this.getRegion(),
-            this.getStackName(),
+            this.serverless,
             `${cfId}BucketName`
         );
         if (bucketName === undefined) {

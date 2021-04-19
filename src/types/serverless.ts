@@ -9,6 +9,11 @@ export type Provider = {
         getStackName: () => string;
     };
     getRegion: () => string;
+    /**
+     * Send a request to the AWS API.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    request: (service: string, method: string, params: any) => Promise<any>;
 };
 
 export type Serverless = {
