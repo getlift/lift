@@ -18,4 +18,6 @@ In order to achieve Lift goals, we first draw a picture of the current AWS serve
 
 | Criterion \ Solution | [Stackery](https://www.stackery.io/) - *SAM-based* | [Architect](https://arc.codes/docs/en/guides/get-started/quickstart) - *SAM-based* | [Laravel Vapor](https://vapor.laravel.com/) | [Amplify](https://docs.amplify.aws/) | [CDK](https://aws.amazon.com/cdk/) | [SST](https://serverless-stack.com/) | [SLS](https://www.serverless.com/) | [SLS Components](https://www.serverless.com/components/) |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Feature-oriented | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Feature-oriented | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| Onboarding steps | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Ejectable | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ |
