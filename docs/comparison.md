@@ -21,7 +21,17 @@ In order to achieve Lift goals, we first draw a picture of the current AWS serve
 
 | Criterion \ Solution | [Stackery](https://www.stackery.io/) | [Architect](https://arc.codes/docs/en/guides/get-started/quickstart) | [Laravel Vapor](https://vapor.laravel.com/) | [Amplify](https://docs.amplify.aws/) | [CDK](https://aws.amazon.com/cdk/) | [SST](https://serverless-stack.com/) | [SLS](https://www.serverless.com/) | [SLS Components](https://www.serverless.com/components/) |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Underlying technology | SAM | SAM | | | | CDK | CFN | |
-| Feature-oriented | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
-| Onboarding steps | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Ejectable | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| *Underlying technology* | *SAM* | *SAM* | | | | *CDK* | *CFN* | |
+| **Onboarding**: Feature-oriented | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| **Onboarding**: Steps quantity | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Lock-in**: Ejectable | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| **Feature**: File upload | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Feature**: Authentication | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| **Feature**: Asynchronous jobs | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Feature**: Database | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Feature**: Real-time feedback | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Feature**: File storage | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Feature**: Static website | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Feature**: Server-side rendering | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Feature**: HTTP API | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Feature**: Webhook | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
