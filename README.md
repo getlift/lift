@@ -4,6 +4,17 @@
 
 > 🚧 The project is currently a **work in progress**, expect a first beta in May.
 
+## Features
+
+Lift packages well-architected AWS serverless features. It is made both for developers whitout any prior serverless experience, as well as for experienced AWS builders.
+
+- 🌐 **Allows non-serverless developers to dive in** - Developer oriented vocabulary, no AWS services knowledge required
+- 📦 **Increases delivery speed** - Production-ready serverless components with minimal required configuration
+- 🔁 **Leverages your existing serverless project** - Integrates with existing Serverless framework project
+- ⏏️ **Does not lock you in** - Ejectable to CloudFormation at any time
+
+[Why should I choose Lift ?](docs/comparison.md)
+
 ## Quick start
 
 *serverless.yml*
