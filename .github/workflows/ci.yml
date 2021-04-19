@@ -26,6 +26,5 @@ jobs:
             -   uses: actions/setup-node@v2
                 with:
                     node-version: '14'
-            -   run: npm install -g serverless
             -   run: npm ci
             -   run: npm run test
