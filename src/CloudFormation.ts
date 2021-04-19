@@ -2,8 +2,8 @@ import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
 import {
     CloudFormationClient,
     DescribeStacksCommand,
+    DescribeStacksCommandOutput,
 } from "@aws-sdk/client-cloudformation";
-import { DescribeStacksCommandOutput } from "@aws-sdk/client-cloudformation/commands/DescribeStacksCommand";
 import { availabilityZones } from "./Zones";
 
 export function formatCloudFormationId(name: string): string {
