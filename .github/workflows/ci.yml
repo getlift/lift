@@ -14,6 +14,10 @@ jobs:
             -   uses: actions/setup-node@v2
                 with:
                     node-version: '15'
+            -   uses: actions/cache@v2
+                with:
+                    path: ~/.npm
+                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
             -   run: npm ci
             -   name: Typescript checks
                 run: tsc --noEmit
@@ -26,5 +30,9 @@ jobs:
             -   uses: actions/setup-node@v2
                 with:
                     node-version: '15'
+            -   uses: actions/cache@v2
+                with:
+                    path: ~/.npm
+                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
             -   run: npm ci
             -   run: npm test
