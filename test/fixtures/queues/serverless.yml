@@ -1,0 +1,7 @@
+service: app
+
+provider:
+  name: aws
+
+queues:
+  emails:

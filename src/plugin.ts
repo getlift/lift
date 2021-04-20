@@ -7,6 +7,7 @@ import type {
     Serverless,
 } from "./types/serverless";
 import { StaticWebsite } from "./components/StaticWebsite";
+import { Queues } from "./components/Queues";
 
 /**
  * Serverless plugin
@@ -23,6 +24,7 @@ class LiftPlugin {
 
         serverless.pluginManager.addPlugin(Storage);
         serverless.pluginManager.addPlugin(StaticWebsite);
+        serverless.pluginManager.addPlugin(Queues);
 
         this.serverless = serverless;
         this.provider = this.serverless.getProvider("aws");
