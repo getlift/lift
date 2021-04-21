@@ -15,11 +15,20 @@ Lift packages well-architected AWS serverless features. It is made both for deve
 
 [Why should I choose Lift ?](docs/comparison.md)
 
+## Installation
+
+```bash
+npm i -D serverless-lift
+```
+
 ## Quick start
 
 *serverless.yml*
 ```yaml
 service: my-app
+
+plugins:
+    - serverless-lift
 
 provider:
     name: aws
