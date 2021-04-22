@@ -11,7 +11,7 @@ const COMPONENT_NAME = "queues";
 const COMPONENT_DEFINITION = {
     type: "object",
     properties: {
-        worker: { type: "string" },
+        worker: { type: "object" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -35,23 +35,33 @@ export class Queues extends Component<
         });
 
         this.hooks["after:info:info"] = this.info.bind(this);
+        this.appendFunctions();
+    }
+
+    appendFunctions(): void {
+        const configuration = this.getConfiguration() ?? {};
+        Object.entries(configuration).map(([name, queueConfiguration]) => {
+            Object.assign(this.serverless.service.functions, {
+                // TODO: setup the SQS event
+                [`${name}Worker`]: queueConfiguration.worker,
+            });
+        });
     }
 
     compile(): void {
-        const configuration = this.getConfiguration();
-        if (!configuration) {
-            return;
-        }
+        const configuration = this.getConfiguration() ?? {};
 
-        Object.entries(configuration).map(([queueName, configuration]) => {
-            const cfId = formatCloudFormationId(`${queueName}`);
+        Object.entries(configuration).map(([name]) => {
+            const cfId = formatCloudFormationId(`${name}`);
 
             const dlq = new Queue(this.serverless.stack, `${cfId}Dlq`, {
+                queueName: this.getStackName() + "-" + name + "-dlq",
                 // 14 days is the maximum, we want to keep these messages for as long as possible
                 retentionPeriod: Duration.days(14),
             });
 
             const queue = new Queue(this.serverless.stack, `${cfId}Queue`, {
+                queueName: this.getStackName() + "-" + name,
                 // TODO
                 visibilityTimeout: Duration.seconds(10),
                 retentionPeriod: Duration.seconds(60),
@@ -63,11 +73,11 @@ export class Queues extends Component<
 
             // CloudFormation outputs
             new CfnOutput(this.serverless.stack, `${cfId}QueueName`, {
-                description: `Name of the "${queueName}" SQS queue.`,
+                description: `Name of the "${name}" SQS queue.`,
                 value: queue.queueName,
             });
             new CfnOutput(this.serverless.stack, `${cfId}QueueUrl`, {
-                description: `URL of the "${queueName}" SQS queue.`,
+                description: `URL of the "${name}" SQS queue.`,
                 value: queue.queueUrl,
             });
         });
@@ -89,7 +99,7 @@ export class Queues extends Component<
         }
         console.log(chalk.yellow("queues:"));
         for (const queue of queues) {
-            console.log(`  https://${queue}`);
+            console.log(`  ${queue}`);
         }
     }
 

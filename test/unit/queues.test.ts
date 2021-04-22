@@ -10,13 +10,20 @@ describe("queues", () => {
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
+            // Lambda worker
+            "EmailsWorkerLogGroup",
+            "IamRoleLambdaExecution",
+            "EmailsWorkerLambdaFunction",
+            // Queues
             "EmailsDlq3A50F0E0",
             "EmailsQueue3086DFE6",
         ]);
-        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toStrictEqual({
+        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 MessageRetentionPeriod: 60,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                QueueName: expect.stringMatching(/test-queues-\w+-dev-emails/),
                 RedrivePolicy: {
                     deadLetterTargetArn: {
                         "Fn::GetAtt": ["EmailsDlq3A50F0E0", "Arn"],
@@ -28,10 +35,14 @@ describe("queues", () => {
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
         });
-        expect(cfTemplate.Resources.EmailsDlq3A50F0E0).toStrictEqual({
+        expect(cfTemplate.Resources.EmailsDlq3A50F0E0).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 MessageRetentionPeriod: 1209600,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                QueueName: expect.stringMatching(
+                    /test-queues-\w+-dev-emails-dlq/
+                ),
             },
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",

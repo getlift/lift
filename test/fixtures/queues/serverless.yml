@@ -2,6 +2,10 @@ service: app
 
 provider:
   name: aws
+  # To avoid versions with random names (easier diffs)
+  versionFunctions: false
 
 queues:
   emails:
+    worker:
+      handler: worker.handler

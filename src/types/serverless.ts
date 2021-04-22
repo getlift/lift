@@ -31,11 +31,7 @@ export type Serverless = {
         ) => void;
     };
     configurationInput: AWS;
-    service: AWS & {
-        custom?: {
-            lift?: Record<string, unknown>;
-        };
-    };
+    service: AWS;
     getProvider: (provider: "aws") => Provider;
 };
 
