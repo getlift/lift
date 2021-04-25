@@ -20,6 +20,10 @@ import {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import chalk from "chalk";
+import {
+    CreateInvalidationRequest,
+    CreateInvalidationResult,
+} from "aws-sdk/clients/cloudfront";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
@@ -191,6 +195,10 @@ export class StaticWebsite extends Component<
                     description: "CloudFront domain name.",
                     value: distribution.distributionDomainName,
                 });
+                new CfnOutput(this.serverless.stack, `${cfId}DistributionId`, {
+                    description: "ID of the CloudFront distribution.",
+                    value: distribution.distributionId,
+                });
             }
         );
     }
@@ -254,7 +262,7 @@ export class StaticWebsite extends Component<
                 stdio: "inherit",
             }
         );
-        // TODO CloudFront invalidation
+        await this.clearCDNCache(name);
     }
 
     async remove(): Promise<void> {
@@ -324,5 +332,33 @@ export class StaticWebsite extends Component<
 
     async permissions(): Promise<PolicyStatement[]> {
         return Promise.resolve([]);
+    }
+
+    private async clearCDNCache(websiteName: string) {
+        const cfId = formatCloudFormationId(`${websiteName}Website`);
+        const aws = this.serverless.getProvider("aws");
+        const distributionId = await getStackOutput(
+            this.serverless,
+            `${cfId}DistributionId`
+        );
+        if (distributionId === undefined) {
+            return;
+        }
+        await aws.request<CreateInvalidationRequest, CreateInvalidationResult>(
+            "CloudFront",
+            "createInvalidation",
+            {
+                DistributionId: distributionId,
+                InvalidationBatch: {
+                    // This should be a unique ID: we use a timestamp
+                    CallerReference: Date.now().toString(),
+                    Paths: {
+                        // Invalidate everything
+                        Items: ["/*"],
+                        Quantity: 1,
+                    },
+                },
+            }
+        );
     }
 }
