@@ -4,7 +4,11 @@ import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
+import {
+    cfGetAtt,
+    formatCloudFormationId,
+    getStackOutput,
+} from "../CloudFormation";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "queues";
@@ -41,8 +45,20 @@ export class Queues extends Component<
     appendFunctions(): void {
         const configuration = this.getConfiguration() ?? {};
         Object.entries(configuration).map(([name, queueConfiguration]) => {
+            const cfId = formatCloudFormationId(`${name}`);
+            // Override events for the worker
+            queueConfiguration.worker.events = [
+                // Subscribe the worker to the SQS queue
+                {
+                    sqs: {
+                        arn: cfGetAtt(`${cfId}Queue`, "Arn"),
+                        // TODO set good defaults
+                        batchSize: 1,
+                        maximumBatchingWindow: 60,
+                    },
+                },
+            ];
             Object.assign(this.serverless.service.functions, {
-                // TODO: setup the SQS event
                 [`${name}Worker`]: queueConfiguration.worker,
             });
         });

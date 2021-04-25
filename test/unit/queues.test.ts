@@ -14,6 +14,8 @@ describe("queues", () => {
             "EmailsWorkerLogGroup",
             "IamRoleLambdaExecution",
             "EmailsWorkerLambdaFunction",
+            // Lambda subscription to SQS
+            "EmailsWorkerEventSourceMappingSQSEmailsQueue",
             // Queues
             "EmailsDlq3A50F0E0",
             "EmailsQueue3086DFE6",
@@ -46,6 +48,45 @@ describe("queues", () => {
             },
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
+        });
+        expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
+            DependsOn: ["EmailsWorkerLogGroup"],
+            Properties: {
+                Code: {
+                    S3Bucket: {
+                        Ref: "ServerlessDeploymentBucket",
+                    },
+                },
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                FunctionName: expect.stringMatching(
+                    /test-queues-\w+-dev-emailsWorker/
+                ),
+                Handler: "worker.handler",
+                MemorySize: 1024,
+                Role: {
+                    "Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"],
+                },
+                Runtime: "nodejs12.x",
+                Timeout: 6,
+            },
+            Type: "AWS::Lambda::Function",
+        });
+        expect(
+            cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueue
+        ).toEqual({
+            DependsOn: ["IamRoleLambdaExecution"],
+            Properties: {
+                BatchSize: 1,
+                Enabled: true,
+                EventSourceArn: {
+                    "Fn::GetAtt": ["EmailsQueue", "Arn"],
+                },
+                FunctionName: {
+                    "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
+                },
+                MaximumBatchingWindowInSeconds: 60,
+            },
+            Type: "AWS::Lambda::EventSourceMapping",
         });
         expect(cfTemplate.Outputs).toMatchObject({
             EmailsQueueName: {
