@@ -3,7 +3,7 @@ import * as sinon from "sinon";
 import { ListObjectsV2Output, ListObjectsV2Request } from "aws-sdk/clients/s3";
 import * as fs from "fs";
 import * as path from "path";
-import { pluginConfigExt, runServerless } from "../utils/runServerless";
+import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { computeS3ETag } from "../../src/utils/s3-sync";
 
@@ -15,9 +15,15 @@ describe("static websites", () => {
 
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsites",
-            configExt: pluginConfigExt,
             cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                    },
+                },
+            }),
         });
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
@@ -164,11 +170,20 @@ describe("static websites", () => {
         });
     });
 
-    it("should support custom domains", async () => {
+    it("should support a custom domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsitesDomain",
-            configExt: pluginConfigExt,
             cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        domain: "example.com",
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
         });
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         // Check that CloudFront uses the custom ACM certificate and custom domain
@@ -203,9 +218,18 @@ describe("static websites", () => {
 
     it("should support multiple custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsitesDomains",
-            configExt: pluginConfigExt,
             cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        domain: ["example.com", "www.example.com"],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
         });
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         // Check that CloudFront uses all the custom domains

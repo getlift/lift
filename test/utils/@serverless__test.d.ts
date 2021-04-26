@@ -3,7 +3,7 @@ declare module "@serverless/test/run-serverless" {
 
     type RunServerlessBaseOptions = Partial<{
         cliArgs: string[];
-        configExt: Partial<AWS>;
+        configExt: Partial<AWS> | Record<string, unknown>;
         env: Record<string, string>;
         awsRequestStubMap: unknwon;
     }>;

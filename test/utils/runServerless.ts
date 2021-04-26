@@ -3,6 +3,7 @@ import { Names } from "@aws-cdk/core";
 import type originalRunServerless from "@serverless/test/run-serverless";
 import setupRunServerlessFixturesEngine from "@serverless/test/setup-run-serverless-fixtures-engine";
 import { Serverless } from "../../src/types/serverless";
+import type { AWS } from "@serverless/typescript";
 
 type ComputeLogicalId = (...address: string[]) => string;
 
@@ -46,5 +47,13 @@ export const runServerless = async (
 };
 
 export const pluginConfigExt = {
+    plugins: [path.join(process.cwd(), "src/plugin.ts")],
+};
+
+export const baseConfig: AWS = {
+    service: "app",
+    provider: {
+        name: "aws",
+    },
     plugins: [path.join(process.cwd(), "src/plugin.ts")],
 };
