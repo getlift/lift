@@ -1,0 +1,13 @@
+service: storage
+
+provider:
+  name: aws
+
+storage:
+  testStorage:
+
+resources:
+  Resources:
+    UserDefinedResource:
+      Type: AWS::S3::Bucket
+

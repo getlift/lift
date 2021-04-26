@@ -1,4 +1,5 @@
 import { App, Stack } from "@aws-cdk/core";
+import { merge } from "lodash";
 import { Storage } from "./components/Storage";
 import type {
     CloudformationTemplate,
@@ -34,7 +35,7 @@ class LiftPlugin {
     }
 
     appendCloudformationResources() {
-        Object.assign(this.serverless.service, {
+        merge(this.serverless.service, {
             resources: this.app
                 .synth()
                 .getStackByName(this.serverless.stack.stackName)
