@@ -5,3 +5,4 @@ provider:
 
 storage:
   testStorage:
+    encryption: 'kms'

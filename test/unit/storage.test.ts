@@ -7,9 +7,8 @@ describe("storage", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.testStorage076AE1F5).toMatchObject({
-            // user input for storage name was testStorage
-            Properties: { BucketName: "teststorage" },
+        expect(cfTemplate.Resources.testStorageBucket72E88D6C).toMatchObject({
+            Properties: { BucketEncryption: {} },
         });
     });
 });

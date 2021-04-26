@@ -1,4 +1,5 @@
-import { Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
+import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
+import { Construct, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
 import { Component } from "../classes/Component";
@@ -8,11 +9,10 @@ const STORAGE_COMPONENT = "storage";
 const STORAGE_DEFINITION = {
     type: "object",
     properties: {
-        cors: {
-            anyOf: [{ type: "boolean" }, { type: "string" }],
+        archive: { type: "number", min: 30 },
+        encryption: {
+            anyOf: [{ const: "s3" }, { const: "kms" }],
         },
-        encrypted: { type: "boolean" },
-        public: { type: "boolean" },
     },
     additionalProperties: false,
 } as const;
@@ -24,9 +24,8 @@ const STORAGE_DEFINITIONS = {
 } as const;
 
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
-    cors: false,
-    encrypted: false,
-    public: false,
+    archive: 45,
+    encryption: "s3",
 };
 
 export class Storage extends Component<
@@ -48,17 +47,44 @@ export class Storage extends Component<
         }
         Object.entries(configuration).map(
             ([storageName, storageConfiguration]) => {
-                const resolvedStorageConfiguration = Object.assign(
-                    STORAGE_DEFAULTS,
+                new StorageConstruct(
+                    this.serverless.stack,
+                    storageName,
                     storageConfiguration
                 );
-                new Bucket(this.serverless.stack, storageName, {
-                    bucketName: storageName.toLowerCase(),
-                    encryption: resolvedStorageConfiguration.encrypted
-                        ? BucketEncryption.KMS_MANAGED
-                        : BucketEncryption.UNENCRYPTED,
-                });
             }
         );
+    }
+}
+
+class StorageConstruct extends Construct {
+    constructor(
+        scope: Construct,
+        id: string,
+        storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
+    ) {
+        super(scope, id);
+        const resolvedStorageConfiguration = Object.assign(
+            STORAGE_DEFAULTS,
+            storageConfiguration
+        );
+
+        const encryptionOptions = {
+            s3: BucketEncryption.S3_MANAGED,
+            kms: BucketEncryption.KMS_MANAGED,
+        };
+
+        new Bucket(this, "Bucket", {
+            encryption:
+                encryptionOptions[resolvedStorageConfiguration.encryption],
+            versioned: true,
+            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            enforceSSL: true,
+            lifecycleRules: [
+                {
+                    noncurrentVersionExpiration: Duration.days(30),
+                },
+            ],
+        });
     }
 }
