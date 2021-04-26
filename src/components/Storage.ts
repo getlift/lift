@@ -3,6 +3,7 @@ import { Construct, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
 import { Component } from "../classes/Component";
+import { PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const STORAGE_COMPONENT = "storage";
@@ -29,6 +30,7 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
 };
 
 export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS> {
+    private constructs: StorageConstruct[] = [];
     constructor(serverless: Serverless) {
         super({
             name: STORAGE_COMPONENT,
@@ -43,12 +45,24 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             return;
         }
         Object.entries(configuration).map(([storageName, storageConfiguration]) => {
-            new StorageConstruct(this.serverless.stack, storageName, storageConfiguration);
+            this.constructs.push(new StorageConstruct(this.serverless.stack, storageName, storageConfiguration));
         });
+    }
+
+    permission(): void {
+        const role = new Role(this.serverless.stack, 'MyRole', {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+          });
+      
+        role.addToPolicy(new PolicyStatement({
+            resources: this.constructs.map(storage => storage.getBucketArn()),
+            actions: ['s3:PutObject'],
+        }));
     }
 }
 
 class StorageConstruct extends Construct {
+    private bucket: Bucket;
     constructor(scope: Construct, id: string, storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>) {
         super(scope, id);
         const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
@@ -58,16 +72,20 @@ class StorageConstruct extends Construct {
             kms: BucketEncryption.KMS_MANAGED,
         };
 
-        new Bucket(this, "Bucket", {
+        this.bucket = new Bucket(this, "Bucket", {
             encryption: encryptionOptions[resolvedStorageConfiguration.encryption],
             versioned: true,
-            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-            enforceSSL: true,
-            lifecycleRules: [
-                {
-                    noncurrentVersionExpiration: Duration.days(30),
-                },
-            ],
+            // blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            // enforceSSL: true,
+            // lifecycleRules: [
+            //     {
+            //         noncurrentVersionExpiration: Duration.days(30),
+            //     },
+            // ],
         });
+    }
+
+    getBucketArn() {
+        return this.bucket.bucketArn
     }
 }

@@ -23,10 +23,12 @@ export abstract class Component<N extends string, S extends JSONSchema> {
 
         this.hooks = {
             "package:compileEvents": this.compile.bind(this),
+            "after:package:compileEvents": this.permission.bind(this),
         };
     }
 
     abstract compile(): void | Promise<void>;
+    abstract permission(): void | Promise<void>;
 
     protected getRegion(): string {
         return this.serverless.getProvider("aws").getRegion();
