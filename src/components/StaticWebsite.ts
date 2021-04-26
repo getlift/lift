@@ -192,8 +192,10 @@ export class StaticWebsite extends Component<
                     value: bucket.bucketName,
                 });
                 new CfnOutput(this.serverless.stack, `${cfId}Domain`, {
-                    description: "CloudFront domain name.",
-                    value: distribution.distributionDomainName,
+                    description: "Website domain name.",
+                    value:
+                        websiteConfiguration.domain ??
+                        distribution.distributionDomainName,
                 });
                 new CfnOutput(this.serverless.stack, `${cfId}DistributionId`, {
                     description: "ID of the CloudFront distribution.",

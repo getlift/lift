@@ -197,7 +197,7 @@ describe("static website", () => {
                 },
             },
             LandingWebsiteDomain: {
-                Description: "CloudFront domain name.",
+                Description: "Website domain name.",
                 Value: {
                     "Fn::GetAtt": [
                         "LandingWebsiteCDNCFDistribution8079F676",
@@ -210,6 +210,36 @@ describe("static website", () => {
                 Value: {
                     Ref: "LandingWebsiteCDNCFDistribution8079F676",
                 },
+            },
+        });
+    });
+    it("should support custom domains", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "staticWebsiteDomain",
+            configExt: pluginConfigExt,
+            cliArgs: ["package"],
+        });
+        // Check that CloudFront uses the custom ACM certificate
+        expect(
+            cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676
+        ).toMatchObject({
+            Type: "AWS::CloudFront::Distribution",
+            Properties: {
+                DistributionConfig: {
+                    ViewerCertificate: {
+                        AcmCertificateArn:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        MinimumProtocolVersion: "TLSv1.1_2016",
+                        SslSupportMethod: "sni-only",
+                    },
+                },
+            },
+        });
+        // The domain should be the custom domain, not the CloudFront one
+        expect(cfTemplate.Outputs).toMatchObject({
+            LandingWebsiteDomain: {
+                Description: "Website domain name.",
+                Value: "example.com",
             },
         });
     });
