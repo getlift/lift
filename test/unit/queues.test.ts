@@ -24,7 +24,6 @@ describe("queues", () => {
         expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
-                MessageRetentionPeriod: 60,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 QueueName: expect.stringMatching(/test-queues-\w+-dev-emails/),
                 RedrivePolicy: {
@@ -94,7 +93,7 @@ describe("queues", () => {
         });
     });
 
-    it("should configure the SQS visibility timeout to 6 times the function timeout", async () => {
+    it("sets the SQS visibility timeout to 6 times the function timeout", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
@@ -116,6 +115,27 @@ describe("queues", () => {
         expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
             Properties: {
                 Timeout: 7,
+            },
+        });
+    });
+
+    it("allows changing the number of retries", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                queues: {
+                    emails: {
+                        maxRetries: 1,
+                    },
+                },
+            }),
+            cliArgs: ["package"],
+        });
+        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
+            Properties: {
+                RedrivePolicy: {
+                    maxReceiveCount: 1,
+                },
             },
         });
     });

@@ -20,6 +20,7 @@ const COMPONENT_DEFINITION = {
             required: ["handler"],
             additionalProperties: true,
         },
+        maxRetries: { type: "number" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -74,6 +75,8 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
             // The default function timeout is 6 seconds in the Serverless Framework
             const functionTimeout = queueConfig.worker.timeout ?? 6;
 
+            const maxRetries = queueConfig.maxRetries ?? 3;
+
             const dlq = new Queue(this.serverless.stack, `${cfId}Dlq`, {
                 queueName: this.getStackName() + "-" + name + "-dlq",
                 // 14 days is the maximum, we want to keep these messages for as long as possible
@@ -85,10 +88,8 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
                 // This should be 6 times the lambda function's timeout
                 // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
                 visibilityTimeout: Duration.seconds(functionTimeout * 6),
-                // TODO
-                retentionPeriod: Duration.seconds(60),
                 deadLetterQueue: {
-                    maxReceiveCount: 3,
+                    maxReceiveCount: maxRetries,
                     queue: dlq,
                 },
             });
