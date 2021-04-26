@@ -4,6 +4,22 @@ import type { Stack } from "@aws-cdk/core";
 
 export type Hook = () => void | Promise<void>;
 
+export type VariableResolver = {
+    /**
+     * When using such expression in service file ${foo(param1, param2):address}, resolve will be invoked with the following values:
+     *  - address: address
+     *  - params: [param1, param2]
+     *  - resolveConfigurationProperty: use to resolve other parts of the service file. Usage: `await resolveConfigurationProperty(["provider", "stage"])` will resolve provider.stage value
+     *  - options: CLI options passed to the command
+     */
+    resolve: (context: {
+        address: string;
+        params: string[];
+        resolveConfigurationProperty: string;
+        options: Record<string, string>;
+    }) => { value: string } | Promise<{ value: string }>;
+};
+
 export type Provider = {
     naming: {
         getStackName: () => string;
