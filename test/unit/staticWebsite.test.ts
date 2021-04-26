@@ -205,6 +205,15 @@ describe("static website", () => {
                     ],
                 },
             },
+            LandingWebsiteCloudFrontDomain: {
+                Description: "CloudFront CNAME.",
+                Value: {
+                    "Fn::GetAtt": [
+                        "LandingWebsiteCDNCFDistribution8079F676",
+                        "DomainName",
+                    ],
+                },
+            },
             LandingWebsiteDistributionId: {
                 Description: "ID of the CloudFront distribution.",
                 Value: {
@@ -243,6 +252,15 @@ describe("static website", () => {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
+            LandingWebsiteCloudFrontDomain: {
+                Description: "CloudFront CNAME.",
+                Value: {
+                    "Fn::GetAtt": [
+                        "LandingWebsiteCDNCFDistribution8079F676",
+                        "DomainName",
+                    ],
+                },
+            },
         });
     });
 
@@ -268,6 +286,15 @@ describe("static website", () => {
             LandingWebsiteDomain: {
                 Description: "Website domain name.",
                 Value: "example.com",
+            },
+            LandingWebsiteCloudFrontDomain: {
+                Description: "CloudFront CNAME.",
+                Value: {
+                    "Fn::GetAtt": [
+                        "LandingWebsiteCDNCFDistribution8079F676",
+                        "DomainName",
+                    ],
+                },
             },
         });
     });

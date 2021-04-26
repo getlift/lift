@@ -213,6 +213,14 @@ export class StaticWebsite extends Component<
                     description: "Website domain name.",
                     value: websiteDomain,
                 });
+                new CfnOutput(
+                    this.serverless.stack,
+                    `${cfId}CloudFrontDomain`,
+                    {
+                        description: "CloudFront CNAME.",
+                        value: distribution.distributionDomainName,
+                    }
+                );
                 new CfnOutput(this.serverless.stack, `${cfId}DistributionId`, {
                     description: "ID of the CloudFront distribution.",
                     value: distribution.distributionId,
@@ -337,22 +345,41 @@ export class StaticWebsite extends Component<
     }
 
     async info(): Promise<void> {
-        const getAllDomains = Object.keys(this.getConfiguration() ?? {}).map(
-            async (websiteName) => {
-                const cfId = formatCloudFormationId(`${websiteName}Website`);
+        const lines: string[] = [];
+        const config = this.getConfiguration() ?? {};
+        await Promise.all(
+            Object.keys(config).map(async (website) => {
+                const cfId = formatCloudFormationId(`${website}Website`);
 
-                return await getStackOutput(this.serverless, `${cfId}Domain`);
-            }
+                const domain = await getStackOutput(
+                    this.serverless,
+                    `${cfId}Domain`
+                );
+                if (domain === undefined) {
+                    return;
+                }
+                const cname = await getStackOutput(
+                    this.serverless,
+                    `${cfId}CloudFrontDomain`
+                );
+                if (cname === undefined) {
+                    return;
+                }
+                if (domain !== cname) {
+                    lines.push(
+                        `  ${website}: https://${domain} (CNAME: ${cname})`
+                    );
+                } else {
+                    lines.push(`  ${website}: https://${domain}`);
+                }
+            })
         );
-        const domains: string[] = (await Promise.all(getAllDomains)).filter(
-            (domain): domain is string => domain !== undefined
-        );
-        if (domains.length <= 0) {
+        if (lines.length <= 0) {
             return;
         }
         console.log(chalk.yellow("static websites:"));
-        for (const domain of domains) {
-            console.log(`  https://${domain}`);
+        for (const line of lines) {
+            console.log(line);
         }
     }
 
