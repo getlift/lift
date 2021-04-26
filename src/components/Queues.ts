@@ -4,11 +4,7 @@ import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import {
-    cfGetAtt,
-    formatCloudFormationId,
-    getStackOutput,
-} from "../CloudFormation";
+import { cfGetAtt, formatCloudFormationId, getStackOutput } from "../CloudFormation";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "queues";
@@ -27,10 +23,7 @@ const COMPONENT_DEFINITIONS = {
     },
 } as const;
 
-export class Queues extends Component<
-    typeof COMPONENT_NAME,
-    typeof COMPONENT_DEFINITIONS
-> {
+export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS> {
     constructor(serverless: Serverless) {
         super({
             name: COMPONENT_NAME,
@@ -100,13 +93,11 @@ export class Queues extends Component<
     }
 
     async info(): Promise<void> {
-        const getAllQueues = Object.keys(this.getConfiguration() ?? {}).map(
-            async (name) => {
-                const cfId = formatCloudFormationId(`${name}`);
+        const getAllQueues = Object.keys(this.getConfiguration() ?? {}).map(async (name) => {
+            const cfId = formatCloudFormationId(`${name}`);
 
-                return await getStackOutput(this.serverless, `${cfId}QueueUrl`);
-            }
-        );
+            return await getStackOutput(this.serverless, `${cfId}QueueUrl`);
+        });
         const queues: string[] = (await Promise.all(getAllQueues)).filter(
             (queue): queue is string => queue !== undefined
         );

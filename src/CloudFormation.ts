@@ -1,8 +1,5 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
-import {
-    DescribeStacksInput,
-    DescribeStacksOutput,
-} from "aws-sdk/clients/cloudformation";
+import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
 import { availabilityZones } from "./Zones";
 import { Serverless } from "./types/serverless";
 
@@ -12,28 +9,18 @@ export function formatCloudFormationId(name: string): string {
     });
 }
 
-export async function getStackOutput(
-    serverless: Serverless,
-    output: string
-): Promise<string | undefined> {
+export async function getStackOutput(serverless: Serverless, output: string): Promise<string | undefined> {
     const stackName = serverless.getProvider("aws").naming.getStackName();
 
     let data: DescribeStacksOutput;
     try {
         data = await serverless
             .getProvider("aws")
-            .request<DescribeStacksInput, DescribeStacksOutput>(
-                "CloudFormation",
-                "describeStacks",
-                {
-                    StackName: stackName,
-                }
-            );
+            .request<DescribeStacksInput, DescribeStacksOutput>("CloudFormation", "describeStacks", {
+                StackName: stackName,
+            });
     } catch (e) {
-        if (
-            e instanceof Error &&
-            e.message === `Stack with id ${stackName} does not exist`
-        ) {
+        if (e instanceof Error && e.message === `Stack with id ${stackName} does not exist`) {
             return undefined;
         }
 
@@ -57,19 +44,13 @@ export function cfRef(resource: string): { Ref: string } {
     return { Ref: resource };
 }
 
-export function cfGetAtt(
-    resource: string,
-    attribute: string
-): Record<string, [string, string]> {
+export function cfGetAtt(resource: string, attribute: string): Record<string, [string, string]> {
     return {
         "Fn::GetAtt": [resource, attribute],
     };
 }
 
-export function cfJoin(
-    glue: string,
-    strings: Array<unknown>
-): Record<string, [string, Array<unknown>]> {
+export function cfJoin(glue: string, strings: Array<unknown>): Record<string, [string, Array<unknown>]> {
     return {
         "Fn::Join": [glue, strings],
     };
@@ -86,10 +67,7 @@ type CloudFormationTag = {
     Value: string | Record<string, unknown>;
 };
 
-export function cfTag(
-    key: string,
-    value: string | Record<string, unknown>
-): CloudFormationTag {
+export function cfTag(key: string, value: string | Record<string, unknown>): CloudFormationTag {
     return {
         Key: key,
         Value: value,

@@ -12,11 +12,7 @@ export type Provider = {
     /**
      * Send a request to the AWS API.
      */
-    request: <Input, Output>(
-        service: string,
-        method: string,
-        params: Input
-    ) => Promise<Output>;
+    request: <Input, Output>(service: string, method: string, params: Input) => Promise<Output>;
 };
 
 export type Serverless = {
@@ -25,10 +21,7 @@ export type Serverless = {
         addPlugin: (plugin: unknown) => void;
     };
     configSchemaHandler: {
-        defineTopLevelProperty: (
-            pluginName: string,
-            schema: JSONSchema
-        ) => void;
+        defineTopLevelProperty: (pluginName: string, schema: JSONSchema) => void;
     };
     configurationInput: AWS;
     service: AWS;

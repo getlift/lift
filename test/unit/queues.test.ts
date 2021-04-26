@@ -42,9 +42,7 @@ describe("queues", () => {
             Properties: {
                 MessageRetentionPeriod: 1209600,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                QueueName: expect.stringMatching(
-                    /test-queues-\w+-dev-emails-dlq/
-                ),
+                QueueName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq/),
             },
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
@@ -58,9 +56,7 @@ describe("queues", () => {
                     },
                 },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                FunctionName: expect.stringMatching(
-                    /test-queues-\w+-dev-emailsWorker/
-                ),
+                FunctionName: expect.stringMatching(/test-queues-\w+-dev-emailsWorker/),
                 Handler: "worker.handler",
                 MemorySize: 1024,
                 Role: {
@@ -71,9 +67,7 @@ describe("queues", () => {
             },
             Type: "AWS::Lambda::Function",
         });
-        expect(
-            cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueue
-        ).toEqual({
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueue).toEqual({
             DependsOn: ["IamRoleLambdaExecution"],
             Properties: {
                 BatchSize: 1,

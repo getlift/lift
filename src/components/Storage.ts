@@ -28,10 +28,7 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     encryption: "s3",
 };
 
-export class Storage extends Component<
-    typeof STORAGE_COMPONENT,
-    typeof STORAGE_DEFINITIONS
-> {
+export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS> {
     constructor(serverless: Serverless) {
         super({
             name: STORAGE_COMPONENT,
@@ -45,29 +42,16 @@ export class Storage extends Component<
         if (!configuration) {
             return;
         }
-        Object.entries(configuration).map(
-            ([storageName, storageConfiguration]) => {
-                new StorageConstruct(
-                    this.serverless.stack,
-                    storageName,
-                    storageConfiguration
-                );
-            }
-        );
+        Object.entries(configuration).map(([storageName, storageConfiguration]) => {
+            new StorageConstruct(this.serverless.stack, storageName, storageConfiguration);
+        });
     }
 }
 
 class StorageConstruct extends Construct {
-    constructor(
-        scope: Construct,
-        id: string,
-        storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
-    ) {
+    constructor(scope: Construct, id: string, storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>) {
         super(scope, id);
-        const resolvedStorageConfiguration = Object.assign(
-            STORAGE_DEFAULTS,
-            storageConfiguration
-        );
+        const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
@@ -75,8 +59,7 @@ class StorageConstruct extends Construct {
         };
 
         new Bucket(this, "Bucket", {
-            encryption:
-                encryptionOptions[resolvedStorageConfiguration.encryption],
+            encryption: encryptionOptions[resolvedStorageConfiguration.encryption],
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
             enforceSSL: true,

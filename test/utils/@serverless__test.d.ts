@@ -39,9 +39,7 @@ declare module "@serverless/test/run-serverless" {
         awsNaming: unknown;
     };
 
-    function runServerless(
-        options: RunServerlessOptions
-    ): Promise<RunServerlessReturn>;
+    function runServerless(options: RunServerlessOptions): Promise<RunServerlessReturn>;
 
     export = runServerless;
 }
@@ -54,9 +52,7 @@ declare module "@serverless/test/setup-run-serverless-fixtures-engine" {
         serverlessDir: string;
     };
 
-    function setupRunServerlessFixturesEngine(
-        options: SetupRunServerlessFixturesEngineOptions
-    ): typeof runServerless;
+    function setupRunServerlessFixturesEngine(options: SetupRunServerlessFixturesEngineOptions): typeof runServerless;
 
     export = setupRunServerlessFixturesEngine;
 }

@@ -1,11 +1,7 @@
 import { App, Stack } from "@aws-cdk/core";
 import { merge } from "lodash";
 import { Storage } from "./components/Storage";
-import type {
-    CloudformationTemplate,
-    Provider,
-    Serverless,
-} from "./types/serverless";
+import type { CloudformationTemplate, Provider, Serverless } from "./types/serverless";
 import { StaticWebsite } from "./components/StaticWebsite";
 import { Queues } from "./components/Queues";
 
@@ -30,17 +26,13 @@ class LiftPlugin {
         this.provider = this.serverless.getProvider("aws");
 
         this.hooks = {
-            "after:package:compileEvents": this.appendCloudformationResources.bind(
-                this
-            ),
+            "after:package:compileEvents": this.appendCloudformationResources.bind(this),
         };
     }
 
     appendCloudformationResources() {
         merge(this.serverless.service, {
-            resources: this.app
-                .synth()
-                .getStackByName(this.serverless.stack.stackName)
+            resources: this.app.synth().getStackByName(this.serverless.stack.stackName)
                 .template as CloudformationTemplate,
         });
     }

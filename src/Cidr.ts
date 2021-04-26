@@ -31,9 +31,7 @@ export const cidrSubnets = {
 export function getZoneId(availabilityZone: string): "a" | "b" | "c" {
     const id = availabilityZone.substr(-1, 1);
     if (id !== "a" && id !== "b" && id !== "c") {
-        throw new Error(
-            `Availability zone ${id} is not supported (cannot generate CIDR block).`
-        );
+        throw new Error(`Availability zone ${id} is not supported (cannot generate CIDR block).`);
     }
 
     return id;
