@@ -40,7 +40,8 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
             schema: COMPONENT_DEFINITIONS,
         });
 
-        this.hooks["after:info:info"] = this.info.bind(this);
+        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
+
         this.appendFunctions();
     }
 

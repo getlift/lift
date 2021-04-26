@@ -81,7 +81,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
         this.hooks["before:remove:remove"] = this.remove.bind(this);
 
-        this.hooks["after:info:info"] = this.info.bind(this);
+        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
     }
 
     compile(): void {
