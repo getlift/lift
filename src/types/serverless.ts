@@ -29,3 +29,5 @@ export type Serverless = {
 };
 
 export type CloudformationTemplate = AWS["resources"];
+
+export type CommandsDefinition = Record<string, { lifecycleEvents?: string[]; commands?: CommandsDefinition }>;

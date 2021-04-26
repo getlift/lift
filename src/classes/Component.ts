@@ -1,10 +1,10 @@
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
-import type { Hook, Serverless } from "../types/serverless";
+import type { CommandsDefinition, Hook, Serverless } from "../types/serverless";
 
 export abstract class Component<N extends string, S extends JSONSchema> {
     protected readonly name: N;
     protected hooks: Record<string, Hook>;
-    protected commands: Record<string, { lifecycleEvents: string[] }> = {};
+    protected commands: CommandsDefinition = {};
     protected serverless: Serverless;
 
     getConfiguration(): FromSchema<S> | undefined {

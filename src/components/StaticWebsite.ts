@@ -66,13 +66,18 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
         });
 
         this.commands = {
-            "deploy-static-website": {
-                lifecycleEvents: ["deploy"],
+            "static-website": {
+                commands: {
+                    // Sub-command: `serverless static-website deploy`
+                    deploy: {
+                        lifecycleEvents: ["deploy"],
+                    },
+                },
             },
         };
 
         this.hooks["after:deploy:deploy"] = this.deploy.bind(this);
-        this.hooks["deploy-static-website:deploy"] = this.deploy.bind(this);
+        this.hooks["static-website:deploy:deploy"] = this.deploy.bind(this);
 
         this.hooks["before:remove:remove"] = this.remove.bind(this);
 
@@ -219,13 +224,13 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     }
 
     private async deployWebsite(name: string, configuration: WebsiteConfiguration) {
-        log(`Deploying the static website "${name}"`);
+        log(`Deploying the static website '${name}'`);
 
         const cfId = formatCloudFormationId(`${name}Website`);
         const bucketName = await getStackOutput(this.serverless, `${cfId}BucketName`);
         if (bucketName === undefined) {
             throw new Error(
-                `Could not find the bucket in which to deploy the "${name}" website: did you forget to run 'serverless deploy' first?`
+                `Could not find the bucket in which to deploy the '${name}' website: did you forget to run 'serverless deploy' first?`
             );
         }
 
@@ -247,7 +252,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
             }
 
             log(
-                `Emptying S3 bucket '${bucketName}' for the "${websiteName}" static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+                `Emptying S3 bucket '${bucketName}' for the '${websiteName}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
             );
             await this.emptyBucket(bucketName);
         }
