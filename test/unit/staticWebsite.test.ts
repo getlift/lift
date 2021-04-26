@@ -213,19 +213,21 @@ describe("static website", () => {
             },
         });
     });
+
     it("should support custom domains", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "staticWebsiteDomain",
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        // Check that CloudFront uses the custom ACM certificate
+        // Check that CloudFront uses the custom ACM certificate and custom domain
         expect(
             cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676
         ).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
+                    Aliases: ["example.com"],
                     ViewerCertificate: {
                         AcmCertificateArn:
                             "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
@@ -236,6 +238,32 @@ describe("static website", () => {
             },
         });
         // The domain should be the custom domain, not the CloudFront one
+        expect(cfTemplate.Outputs).toMatchObject({
+            LandingWebsiteDomain: {
+                Description: "Website domain name.",
+                Value: "example.com",
+            },
+        });
+    });
+
+    it("should support multiple custom domains", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "staticWebsiteDomains",
+            configExt: pluginConfigExt,
+            cliArgs: ["package"],
+        });
+        // Check that CloudFront uses all the custom domains
+        expect(
+            cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676
+        ).toMatchObject({
+            Type: "AWS::CloudFront::Distribution",
+            Properties: {
+                DistributionConfig: {
+                    Aliases: ["example.com", "www.example.com"],
+                },
+            },
+        });
+        // This should contain the first domain of the list
         expect(cfTemplate.Outputs).toMatchObject({
             LandingWebsiteDomain: {
                 Description: "Website domain name.",

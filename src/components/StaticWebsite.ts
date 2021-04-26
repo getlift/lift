@@ -35,7 +35,17 @@ const COMPONENT_DEFINITION = {
     type: "object",
     properties: {
         path: { type: "string" },
-        domain: { type: "string" },
+        domain: {
+            oneOf: [
+                { type: "string" },
+                {
+                    type: "array",
+                    items: {
+                        type: "string",
+                    },
+                },
+            ],
+        },
         certificate: { type: "string" },
     },
     additionalProperties: false,
@@ -191,11 +201,17 @@ export class StaticWebsite extends Component<
                         "Name of the bucket that stores the static website.",
                     value: bucket.bucketName,
                 });
+                let websiteDomain: string = distribution.distributionDomainName;
+                if (websiteConfiguration.domain !== undefined) {
+                    // In case of multiple domains, we take the first one
+                    websiteDomain =
+                        typeof websiteConfiguration.domain === "string"
+                            ? websiteConfiguration.domain
+                            : websiteConfiguration.domain[0];
+                }
                 new CfnOutput(this.serverless.stack, `${cfId}Domain`, {
                     description: "Website domain name.",
-                    value:
-                        websiteConfiguration.domain ??
-                        distribution.distributionDomainName,
+                    value: websiteDomain,
                 });
                 new CfnOutput(this.serverless.stack, `${cfId}DistributionId`, {
                     description: "ID of the CloudFront distribution.",
@@ -210,8 +226,16 @@ export class StaticWebsite extends Component<
             return undefined;
         }
 
+        let aliases: string[] = [];
+        if (config.domain !== undefined) {
+            aliases =
+                typeof config.domain === "string"
+                    ? [config.domain]
+                    : config.domain;
+        }
+
         return {
-            aliases: config.domain !== undefined ? [config.domain] : [],
+            aliases: aliases,
             props: {
                 acmCertificateArn: config.certificate,
                 // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html

@@ -1,0 +1,12 @@
+service: storage
+
+provider:
+  name: aws
+
+static-website:
+  landing:
+    path: .
+    domain:
+      - example.com
+      - www.example.com
+    certificate: arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123
