@@ -11,7 +11,15 @@ const COMPONENT_NAME = "queues";
 const COMPONENT_DEFINITION = {
     type: "object",
     properties: {
-        worker: { type: "object" },
+        worker: {
+            type: "object",
+            properties: {
+                handler: { type: "string" },
+                timeout: { type: "number" },
+            },
+            required: ["handler"],
+            additionalProperties: true,
+        },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -60,8 +68,11 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     compile(): void {
         const configuration = this.getConfiguration() ?? {};
 
-        Object.entries(configuration).map(([name]) => {
+        Object.entries(configuration).map(([name, queueConfig]) => {
             const cfId = formatCloudFormationId(`${name}`);
+
+            // The default function timeout is 6 seconds in the Serverless Framework
+            const functionTimeout = queueConfig.worker.timeout ?? 6;
 
             const dlq = new Queue(this.serverless.stack, `${cfId}Dlq`, {
                 queueName: this.getStackName() + "-" + name + "-dlq",
@@ -71,8 +82,10 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
 
             const queue = new Queue(this.serverless.stack, `${cfId}Queue`, {
                 queueName: this.getStackName() + "-" + name,
+                // This should be 6 times the lambda function's timeout
+                // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
+                visibilityTimeout: Duration.seconds(functionTimeout * 6),
                 // TODO
-                visibilityTimeout: Duration.seconds(10),
                 retentionPeriod: Duration.seconds(60),
                 deadLetterQueue: {
                     maxReceiveCount: 3,

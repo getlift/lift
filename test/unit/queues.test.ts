@@ -1,3 +1,4 @@
+import { merge } from "lodash";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
 describe("queues", () => {
@@ -32,7 +33,7 @@ describe("queues", () => {
                     },
                     maxReceiveCount: 3,
                 },
-                VisibilityTimeout: 10,
+                VisibilityTimeout: 36,
             },
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
@@ -50,11 +51,6 @@ describe("queues", () => {
         expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
             DependsOn: ["EmailsWorkerLogGroup"],
             Properties: {
-                Code: {
-                    S3Bucket: {
-                        Ref: "ServerlessDeploymentBucket",
-                    },
-                },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 FunctionName: expect.stringMatching(/test-queues-\w+-dev-emailsWorker/),
                 Handler: "worker.handler",
@@ -94,6 +90,32 @@ describe("queues", () => {
                 Value: {
                     Ref: "EmailsQueue3086DFE6",
                 },
+            },
+        });
+    });
+
+    it("should configure the SQS visibility timeout to 6 times the function timeout", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                queues: {
+                    emails: {
+                        worker: {
+                            timeout: 7,
+                        },
+                    },
+                },
+            }),
+            cliArgs: ["package"],
+        });
+        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
+            Properties: {
+                VisibilityTimeout: 7 * 6,
+            },
+        });
+        expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
+            Properties: {
+                Timeout: 7,
             },
         });
     });
