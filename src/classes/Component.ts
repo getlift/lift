@@ -1,5 +1,7 @@
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
+import { AwsIamPolicyStatements } from "@serverless/typescript";
 import type { Hook, Serverless } from "../types/serverless";
+import { PolicyStatement } from "../Stack";
 
 export abstract class Component<N extends string, S extends JSONSchema> {
     protected readonly name: N;
@@ -36,11 +38,26 @@ export abstract class Component<N extends string, S extends JSONSchema> {
         );
 
         this.hooks = {
+            initialize: this.appendPermissions.bind(this),
             "package:compileEvents": this.compile.bind(this),
         };
     }
 
     abstract compile(): void | Promise<void>;
+
+    appendPermissions(): void {
+        const statements = (this.permissions() as unknown) as AwsIamPolicyStatements;
+        if (statements.length === 0) {
+            return;
+        }
+        this.serverless.service.provider.iamRoleStatements =
+            this.serverless.service.provider.iamRoleStatements ?? [];
+        this.serverless.service.provider.iamRoleStatements.push(...statements);
+    }
+
+    permissions(): PolicyStatement[] {
+        return [];
+    }
 
     protected getRegion(): string {
         return this.serverless.getProvider("aws").getRegion();

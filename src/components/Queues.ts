@@ -1,4 +1,3 @@
-import { PolicyStatement } from "@aws-cdk/aws-iam";
 import { CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
@@ -9,6 +8,7 @@ import {
     formatCloudFormationId,
     getStackOutput,
 } from "../CloudFormation";
+import { PolicyStatement } from "../Stack";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "queues";
@@ -119,7 +119,15 @@ export class Queues extends Component<
         }
     }
 
-    async permissions(): Promise<PolicyStatement[]> {
-        return Promise.resolve([]);
+    permissions(): PolicyStatement[] {
+        const configuration = this.getConfiguration() ?? {};
+
+        return Object.entries(configuration).map(([name]) => {
+            const cfId = formatCloudFormationId(`${name}`);
+
+            return new PolicyStatement("sqs:SendMessage", [
+                cfGetAtt(`${cfId}Queue`, "Arn"),
+            ]);
+        });
     }
 }

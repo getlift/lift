@@ -383,10 +383,6 @@ export class StaticWebsite extends Component<
         }
     }
 
-    async permissions(): Promise<PolicyStatement[]> {
-        return Promise.resolve([]);
-    }
-
     private async clearCDNCache(websiteName: string) {
         const cfId = formatCloudFormationId(`${websiteName}Website`);
         const aws = this.serverless.getProvider("aws");

@@ -102,5 +102,32 @@ describe("queues", () => {
                 },
             },
         });
+        // Lambda functions of the app are authorized to publish to SQS
+        expect(cfTemplate.Resources.IamRoleLambdaExecution).toMatchObject({
+            Type: "AWS::IAM::Role",
+            Properties: {
+                Policies: [
+                    {
+                        PolicyDocument: {
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                            Statement: expect.arrayContaining([
+                                {
+                                    Action: "sqs:SendMessage",
+                                    Effect: "Allow",
+                                    Resource: [
+                                        {
+                                            "Fn::GetAtt": [
+                                                "EmailsQueue",
+                                                "Arn",
+                                            ],
+                                        },
+                                    ],
+                                },
+                            ]),
+                        },
+                    },
+                ],
+            },
+        });
     });
 });
