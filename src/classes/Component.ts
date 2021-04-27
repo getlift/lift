@@ -1,9 +1,10 @@
+import { Construct } from "@aws-cdk/core";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../types/serverless";
 
-export abstract class Component<N extends string, S extends JSONSchema> {
+export abstract class Component<N extends string, S extends JSONSchema> extends Construct {
     protected readonly name: N;
-    protected hooks: Record<string, Hook>;
+    protected hooks: Record<string, Hook> = {};
     protected commands: CommandsDefinition = {};
     protected configurationVariablesSources: Record<string, VariableResolver> = {};
     protected serverless: Serverless;
@@ -17,17 +18,17 @@ export abstract class Component<N extends string, S extends JSONSchema> {
     }
 
     protected constructor({ serverless, name, schema }: { serverless: Serverless; name: N; schema: S }) {
+        super(serverless.stack, name);
         this.name = name;
         this.serverless = serverless;
 
         this.serverless.configSchemaHandler.defineTopLevelProperty(this.name, schema);
 
-        this.hooks = {
-            "package:compileEvents": this.compile.bind(this),
-        };
+        // At the moment, no hook is triggered soon enough to be able to compile component configuration into actual components before fwk validation
+        this.compile();
     }
 
-    abstract compile(): void | Promise<void>;
+    abstract compile(): void;
 
     protected getRegion(): string {
         return this.serverless.getProvider("aws").getRegion();

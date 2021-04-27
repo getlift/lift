@@ -1,6 +1,7 @@
 import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
-import { Construct, Duration } from "@aws-cdk/core";
+import { Construct, Duration, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
+import { has } from "lodash";
 import type { Serverless } from "../types/serverless";
 import { Component } from "../classes/Component";
 
@@ -35,6 +36,31 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             serverless,
             schema: STORAGE_DEFINITIONS,
         });
+
+        this.configurationVariablesSources = {
+            [STORAGE_COMPONENT]: {
+                resolve: this.resolve.bind(this),
+            },
+        };
+    }
+
+    resolve({ address }: { address: string }): { value: string } {
+        const configuration = this.getConfiguration();
+        if (!configuration) {
+            throw new Error("No configuration");
+        }
+        if (!has(configuration, address)) {
+            throw new Error(
+                `No storage named ${address} configured in service file. Available components are: ${Object.keys(
+                    configuration
+                ).join(", ")}`
+            );
+        }
+        const child = this.node.tryFindChild(address) as StorageConstruct;
+
+        return {
+            value: Stack.of(this).resolve(child.getBucketArn()) as string,
+        };
     }
 
     compile(): void {
@@ -43,12 +69,14 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             return;
         }
         Object.entries(configuration).map(([storageName, storageConfiguration]) => {
-            new StorageConstruct(this.serverless.stack, storageName, storageConfiguration);
+            new StorageConstruct(this, storageName, storageConfiguration);
         });
     }
 }
 
 class StorageConstruct extends Construct {
+    private bucket: Bucket;
+
     constructor(scope: Construct, id: string, storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>) {
         super(scope, id);
         const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
@@ -58,7 +86,7 @@ class StorageConstruct extends Construct {
             kms: BucketEncryption.KMS_MANAGED,
         };
 
-        new Bucket(this, "Bucket", {
+        this.bucket = new Bucket(this, "Bucket", {
             encryption: encryptionOptions[resolvedStorageConfiguration.encryption],
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -69,5 +97,9 @@ class StorageConstruct extends Construct {
                 },
             ],
         });
+    }
+
+    getBucketArn(): string {
+        return this.bucket.bucketArn;
     }
 }
