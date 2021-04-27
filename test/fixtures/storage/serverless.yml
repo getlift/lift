@@ -2,9 +2,6 @@ service: storage
 
 provider:
   name: aws
-  # environment:
-  #   TEST_STORAGE_BUCKET_NAME: ${storage(testStorage):bucketName}
 
 storage:
-  testStorage:
-    encryption: 'kms'
+  avatars:
