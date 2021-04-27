@@ -35,6 +35,23 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             serverless,
             schema: STORAGE_DEFINITIONS,
         });
+
+        this.configurationVariablesSources = {
+            storage: {
+                resolve: this.resolve.bind(this)
+            },
+        };
+    }
+
+    resolve({ address }: {address: string}) {
+        const configuration = this.getConfiguration();
+        if (!configuration) {
+            throw new Error('toto')
+        }
+        if ( !configuration[address] ) throw new Error('toto')
+        return {
+            value: "Hello",
+        };
     }
 
     compile(): void {
