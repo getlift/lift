@@ -37,20 +37,22 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
         });
 
         this.configurationVariablesSources = {
-            storage: {
+            [STORAGE_COMPONENT]: {
                 resolve: this.resolve.bind(this)
             },
         };
     }
 
     resolve({ address }: {address: string}) {
+        this.compile();
         const configuration = this.getConfiguration();
         if (!configuration) {
             throw new Error('toto')
         }
         if ( !configuration[address] ) throw new Error('toto')
+        const child = this.node.tryFindChild(address) as StorageConstruct;
         return {
-            value: "Hello",
+            value: child.getBucketArn(),
         };
     }
 
@@ -60,12 +62,13 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             return;
         }
         Object.entries(configuration).map(([storageName, storageConfiguration]) => {
-            new StorageConstruct(this.serverless.stack, storageName, storageConfiguration);
+            new StorageConstruct(this, storageName, storageConfiguration);
         });
     }
 }
 
 class StorageConstruct extends Construct {
+    private bucket;
     constructor(scope: Construct, id: string, storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>) {
         super(scope, id);
         const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
@@ -75,7 +78,7 @@ class StorageConstruct extends Construct {
             kms: BucketEncryption.KMS_MANAGED,
         };
 
-        new Bucket(this, "Bucket", {
+        this.bucket = new Bucket(this, "Bucket", {
             encryption: encryptionOptions[resolvedStorageConfiguration.encryption],
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -86,5 +89,9 @@ class StorageConstruct extends Construct {
                 },
             ],
         });
+    }
+
+    getBucketArn(): unknown {
+        return this.bucket.stack.resolve(this.bucket.bucketArn);
     }
 }

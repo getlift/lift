@@ -1,7 +1,8 @@
+import { Construct } from "@aws-cdk/core";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../types/serverless";
 
-export abstract class Component<N extends string, S extends JSONSchema> {
+export abstract class Component<N extends string, S extends JSONSchema> extends Construct {
     protected readonly name: N;
     protected hooks: Record<string, Hook>;
     protected commands: CommandsDefinition = {};
@@ -17,6 +18,7 @@ export abstract class Component<N extends string, S extends JSONSchema> {
     }
 
     protected constructor({ serverless, name, schema }: { serverless: Serverless; name: N; schema: S }) {
+        super(serverless.stack, name);
         this.name = name;
         this.serverless = serverless;
 
