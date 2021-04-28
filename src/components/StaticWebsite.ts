@@ -94,15 +94,13 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async deploy(): Promise<void> {
         // Deploy each website sequentially (to simplify the log output)
-        for (const name of Object.keys(this.getConfiguration())) {
-            const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
+        for (const website of this.node.children as StaticWebsiteConstruct[]) {
             await website.deployWebsite();
         }
     }
 
     async remove(): Promise<void> {
-        for (const websiteName of Object.keys(this.getConfiguration())) {
-            const website = this.node.tryFindChild(websiteName) as StaticWebsiteConstruct;
+        for (const website of this.node.children as StaticWebsiteConstruct[]) {
             await website.emptyBucket();
         }
     }
@@ -110,9 +108,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     async info(): Promise<void> {
         const lines: string[] = [];
         await Promise.all(
-            Object.keys(this.getConfiguration()).map(async (name) => {
-                const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
-
+            (this.node.children as StaticWebsiteConstruct[]).map(async (website) => {
                 const domain = await website.getDomain();
                 if (domain === undefined) {
                     return;
@@ -122,9 +118,9 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
                     return;
                 }
                 if (domain !== cname) {
-                    lines.push(`  ${name}: https://${domain} (CNAME: ${cname})`);
+                    lines.push(`  ${website.name}: https://${domain} (CNAME: ${cname})`);
                 } else {
-                    lines.push(`  ${name}: https://${domain}`);
+                    lines.push(`  ${website.name}: https://${domain}`);
                 }
             })
         );
@@ -146,7 +142,7 @@ class StaticWebsiteConstruct extends Construct {
 
     constructor(
         scope: Construct,
-        private readonly name: string,
+        readonly name: string,
         private readonly configuration: ComponentConfiguration,
         private readonly serverless: Serverless
     ) {

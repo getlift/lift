@@ -78,9 +78,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     async info(): Promise<void> {
-        const getAllQueues = Object.keys(this.getConfiguration()).map(async (name) => {
-            const queue = this.node.tryFindChild(name) as QueueConstruct;
-
+        const getAllQueues = (this.node.children as QueueConstruct[]).map(async (queue) => {
             return await queue.getQueueUrl();
         });
         const queues: string[] = (await Promise.all(getAllQueues)).filter(
@@ -96,9 +94,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     permissions(): PolicyStatement[] {
-        return Object.keys(this.getConfiguration()).map((name) => {
-            const queue = this.node.tryFindChild(name) as QueueConstruct;
-
+        return (this.node.children as QueueConstruct[]).map((queue) => {
             return new PolicyStatement("sqs:SendMessage", [queue.referenceQueueArn()]);
         });
     }
