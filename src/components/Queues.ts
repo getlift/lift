@@ -27,9 +27,11 @@ const COMPONENT_DEFINITION = {
 } as const;
 const COMPONENT_DEFINITIONS = {
     type: "object",
+    minProperties: 1,
     patternProperties: {
         [LIFT_COMPONENT_NAME_PATTERN]: COMPONENT_DEFINITION,
     },
+    additionalProperties: false,
 } as const;
 
 export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS> {

@@ -11,7 +11,7 @@ const STORAGE_COMPONENT = "storage";
 const STORAGE_DEFINITION = {
     type: "object",
     properties: {
-        archive: { type: "number", min: 30 },
+        archive: { type: "number", minimum: 30 },
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
@@ -20,9 +20,11 @@ const STORAGE_DEFINITION = {
 } as const;
 const STORAGE_DEFINITIONS = {
     type: "object",
+    minProperties: 1,
     patternProperties: {
         [LIFT_COMPONENT_NAME_PATTERN]: STORAGE_DEFINITION,
     },
+    additionalProperties: false,
 } as const;
 
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {

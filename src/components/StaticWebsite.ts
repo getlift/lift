@@ -50,9 +50,11 @@ const COMPONENT_DEFINITION = {
 } as const;
 const COMPONENT_DEFINITIONS = {
     type: "object",
+    minProperties: 1,
     patternProperties: {
         [LIFT_COMPONENT_NAME_PATTERN]: COMPONENT_DEFINITION,
     },
+    additionalProperties: false,
 } as const;
 
 type WebsiteConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
