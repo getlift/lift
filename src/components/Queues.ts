@@ -1,4 +1,3 @@
-import { PolicyStatement } from "@aws-cdk/aws-iam";
 import { CfnOutput, Construct, Duration, Stack } from "@aws-cdk/core";
 import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
@@ -6,6 +5,7 @@ import { FromSchema } from "json-schema-to-ts";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { cfGetAtt, formatCloudFormationId, getStackOutput } from "../CloudFormation";
+import { PolicyStatement } from "../Stack";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "queues";
@@ -92,8 +92,12 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
         }
     }
 
-    async permissions(): Promise<PolicyStatement[]> {
-        return Promise.resolve([]);
+    permissions(): PolicyStatement[] {
+        return Object.keys(this.getConfiguration()).map((name) => {
+            const queue = this.node.tryFindChild(name) as QueueConstruct;
+
+            return new PolicyStatement("sqs:SendMessage", [queue.referenceQueueArn()]);
+        });
     }
 }
 
