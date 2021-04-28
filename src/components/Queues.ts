@@ -4,7 +4,7 @@ import { Queue } from "@aws-cdk/aws-sqs";
 import { FromSchema } from "json-schema-to-ts";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { cfGetAtt, formatCloudFormationId, getStackOutput } from "../CloudFormation";
+import { getStackOutput } from "../CloudFormation";
 import { PolicyStatement } from "../Stack";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
@@ -49,13 +49,14 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
 
     appendFunctions(): void {
         Object.entries(this.getConfiguration()).map(([name, queueConfiguration]) => {
-            const cfId = formatCloudFormationId(`${name}`);
+            const queue = this.node.tryFindChild(name) as QueueConstruct;
+
             // Override events for the worker
             queueConfiguration.worker.events = [
                 // Subscribe the worker to the SQS queue
                 {
                     sqs: {
-                        arn: cfGetAtt(`${cfId}Queue`, "Arn"),
+                        arn: queue.referenceQueueArn(),
                         // TODO set good defaults
                         batchSize: 1,
                         maximumBatchingWindow: 60,

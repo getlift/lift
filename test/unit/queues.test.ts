@@ -16,7 +16,7 @@ describe("queues", () => {
             "IamRoleLambdaExecution",
             "EmailsWorkerLambdaFunction",
             // Lambda subscription to SQS
-            "EmailsWorkerEventSourceMappingSQSEmailsQueue",
+            "EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE",
             // Queues
             "queuesemailsDlq7ACDC28D",
             "queuesemailsQueueCEEDDDDE",
@@ -62,13 +62,13 @@ describe("queues", () => {
             },
             Type: "AWS::Lambda::Function",
         });
-        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueue).toEqual({
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE).toEqual({
             DependsOn: ["IamRoleLambdaExecution"],
             Properties: {
                 BatchSize: 1,
                 Enabled: true,
                 EventSourceArn: {
-                    "Fn::GetAtt": ["EmailsQueue", "Arn"],
+                    "Fn::GetAtt": ["queuesemailsQueueCEEDDDDE", "Arn"],
                 },
                 FunctionName: {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
