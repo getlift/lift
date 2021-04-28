@@ -12,23 +12,6 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
     protected configurationVariablesSources: Record<string, VariableResolver> = {};
     protected serverless: Serverless;
 
-    private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {
-        return has(serviceDefinition, this.name);
-    }
-
-    getConfiguration(): FromSchema<S> | Record<string, never> {
-        const serviceDefinition = this.serverless.configurationInput;
-        if (this.hasComponentConfiguration(serviceDefinition)) {
-            return serviceDefinition[this.name];
-        }
-
-        return {};
-    }
-
-    getName(): N {
-        return this.name;
-    }
-
     protected constructor({ serverless, name, schema }: { serverless: Serverless; name: N; schema: S }) {
         super(serverless.stack, name);
         this.name = name;
@@ -45,6 +28,19 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
     }
 
     abstract compile(): void;
+
+    protected getConfiguration(): FromSchema<S> | Record<string, never> {
+        const serviceDefinition = this.serverless.configurationInput;
+        if (this.hasComponentConfiguration(serviceDefinition)) {
+            return serviceDefinition[this.name];
+        }
+
+        return {};
+    }
+
+    protected getName(): N {
+        return this.name;
+    }
 
     appendPermissions(): void {
         const statements = (this.permissions() as unknown) as AwsIamPolicyStatements;
@@ -65,5 +61,9 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
 
     protected getStackName(): string {
         return this.serverless.getProvider("aws").naming.getStackName();
+    }
+
+    private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {
+        return has(serviceDefinition, this.name);
     }
 }
