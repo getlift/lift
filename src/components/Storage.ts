@@ -47,9 +47,6 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
 
     resolve({ address }: { address: string }): { value: Record<string, unknown> } {
         const configuration = this.getConfiguration();
-        if (!configuration) {
-            throw new Error("No configuration");
-        }
         if (!has(configuration, address)) {
             throw new Error(
                 `No storage named ${address} configured in service file. Available components are: ${Object.keys(
@@ -65,11 +62,7 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
     }
 
     compile(): void {
-        const configuration = this.getConfiguration();
-        if (!configuration) {
-            return;
-        }
-        Object.entries(configuration).map(([storageName, storageConfiguration]) => {
+        Object.entries(this.getConfiguration()).map(([storageName, storageConfiguration]) => {
             new StorageConstruct(this, storageName, this.serverless, storageConfiguration);
         });
     }

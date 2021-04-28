@@ -1,5 +1,6 @@
 import { Construct } from "@aws-cdk/core";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
+import { has } from "lodash";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../types/serverless";
 
 export abstract class Component<N extends string, S extends JSONSchema> extends Construct {
@@ -9,8 +10,17 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
     protected configurationVariablesSources: Record<string, VariableResolver> = {};
     protected serverless: Serverless;
 
-    getConfiguration(): FromSchema<S> | undefined {
-        return ((this.serverless.configurationInput as unknown) as Record<N, FromSchema<S>>)[this.name];
+    private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {
+        return has(serviceDefinition, this.name);
+    }
+
+    getConfiguration(): FromSchema<S> | Record<string, never> {
+        const serviceDefinition = this.serverless.configurationInput;
+        if (this.hasComponentConfiguration(serviceDefinition)) {
+            return serviceDefinition[this.name];
+        }
+
+        return {};
     }
 
     getName(): N {

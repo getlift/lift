@@ -46,8 +46,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     appendFunctions(): void {
-        const configuration = this.getConfiguration() ?? {};
-        Object.entries(configuration).map(([name, queueConfiguration]) => {
+        Object.entries(this.getConfiguration()).map(([name, queueConfiguration]) => {
             const cfId = formatCloudFormationId(`${name}`);
             // Override events for the worker
             queueConfiguration.worker.events = [
@@ -68,9 +67,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     compile(): void {
-        const configuration = this.getConfiguration() ?? {};
-
-        Object.entries(configuration).map(([name, queueConfig]) => {
+        Object.entries(this.getConfiguration()).map(([name, queueConfig]) => {
             const cfId = formatCloudFormationId(`${name}`);
 
             // The default function timeout is 6 seconds in the Serverless Framework
@@ -108,7 +105,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     async info(): Promise<void> {
-        const getAllQueues = Object.keys(this.getConfiguration() ?? {}).map(async (name) => {
+        const getAllQueues = Object.keys(this.getConfiguration()).map(async (name) => {
             const cfId = formatCloudFormationId(`${name}`);
 
             return await getStackOutput(this.serverless, `${cfId}QueueUrl`);

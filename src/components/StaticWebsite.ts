@@ -85,12 +85,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     }
 
     compile(): void {
-        const configuration = this.getConfiguration();
-        if (!configuration) {
-            return;
-        }
-
-        Object.entries(configuration).map(([websiteName, websiteConfiguration]) => {
+        Object.entries(this.getConfiguration()).map(([websiteName, websiteConfiguration]) => {
             const cfId = formatCloudFormationId(`${websiteName}Website`);
 
             if (websiteConfiguration.domain !== undefined && websiteConfiguration.certificate === undefined) {
@@ -218,7 +213,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async deploy(): Promise<void> {
         // Deploy each website sequentially (to simplify the log output)
-        for (const [websiteName, configuration] of Object.entries(this.getConfiguration() ?? {})) {
+        for (const [websiteName, configuration] of Object.entries(this.getConfiguration())) {
             await this.deployWebsite(websiteName, configuration);
         }
     }
@@ -243,7 +238,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     }
 
     async remove(): Promise<void> {
-        for (const websiteName of Object.keys(this.getConfiguration() ?? {})) {
+        for (const websiteName of Object.keys(this.getConfiguration())) {
             const cfId = formatCloudFormationId(`${websiteName}Website`);
             const bucketName = await getStackOutput(this.serverless, `${cfId}BucketName`);
             if (bucketName === undefined) {
@@ -277,9 +272,8 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async info(): Promise<void> {
         const lines: string[] = [];
-        const config = this.getConfiguration() ?? {};
         await Promise.all(
-            Object.keys(config).map(async (website) => {
+            Object.keys(this.getConfiguration()).map(async (website) => {
                 const cfId = formatCloudFormationId(`${website}Website`);
 
                 const domain = await getStackOutput(this.serverless, `${cfId}Domain`);
