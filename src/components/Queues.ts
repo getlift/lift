@@ -155,14 +155,6 @@ class QueueConstruct extends Construct {
         return Stack.of(this).resolve(this.queue.queueArn) as Record<string, unknown>;
     }
 
-    async getQueueArn(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.queueArnOutput.logicalId);
-    }
-
-    referenceQueueUrl(): Record<string, unknown> {
-        return Stack.of(this).resolve(this.queue.queueUrl) as Record<string, unknown>;
-    }
-
     async getQueueUrl(): Promise<string | undefined> {
         return await getStackOutput(this.serverless, this.queueUrlOutput.logicalId);
     }
