@@ -17,7 +17,7 @@ export type VariableResolver = {
         params: string[];
         resolveConfigurationProperty: string;
         options: Record<string, string>;
-    }) => { value: string } | Promise<{ value: string }>;
+    }) => { value: string | Record<string, unknown> } | Promise<{ value: string | Record<string, unknown> }>;
 };
 
 export type Provider = {

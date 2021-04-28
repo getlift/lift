@@ -1,9 +1,10 @@
 import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
-import { Construct, Duration, Stack } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { has } from "lodash";
 import type { Serverless } from "../types/serverless";
 import { Component } from "../classes/Component";
+import { getStackOutput } from "../CloudFormation";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const STORAGE_COMPONENT = "storage";
@@ -44,7 +45,7 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
         };
     }
 
-    resolve({ address }: { address: string }): { value: string } {
+    resolve({ address }: { address: string }): { value: Record<string, unknown> } {
         const configuration = this.getConfiguration();
         if (!configuration) {
             throw new Error("No configuration");
@@ -59,7 +60,7 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
         const child = this.node.tryFindChild(address) as StorageConstruct;
 
         return {
-            value: Stack.of(this).resolve(child.getBucketArn()) as string,
+            value: child.referenceBucketArn(),
         };
     }
 
@@ -69,15 +70,21 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             return;
         }
         Object.entries(configuration).map(([storageName, storageConfiguration]) => {
-            new StorageConstruct(this, storageName, storageConfiguration);
+            new StorageConstruct(this, storageName, this.serverless, storageConfiguration);
         });
     }
 }
 
 class StorageConstruct extends Construct {
     private bucket: Bucket;
+    private output: CfnOutput;
 
-    constructor(scope: Construct, id: string, storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>) {
+    constructor(
+        scope: Construct,
+        id: string,
+        private serverless: Serverless,
+        storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
+    ) {
         super(scope, id);
         const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
 
@@ -97,9 +104,17 @@ class StorageConstruct extends Construct {
                 },
             ],
         });
+
+        this.output = new CfnOutput(this, "BucketArn", {
+            value: this.bucket.bucketArn,
+        });
     }
 
-    getBucketArn(): string {
-        return this.bucket.bucketArn;
+    referenceBucketArn(): Record<string, unknown> {
+        return Stack.of(this).resolve(this.bucket.bucketArn) as Record<string, unknown>;
+    }
+
+    async getBucketArn() {
+        await getStackOutput(this.serverless, this.output.logicalId);
     }
 }
