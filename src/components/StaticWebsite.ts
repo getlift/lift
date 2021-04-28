@@ -10,7 +10,7 @@ import {
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { spawnSync } from "child_process";
 import {
@@ -23,7 +23,7 @@ import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { formatCloudFormationId, getStackOutput } from "../CloudFormation";
+import { getStackOutput } from "../CloudFormation";
 import { log } from "../utils/logger";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
@@ -57,7 +57,7 @@ const COMPONENT_DEFINITIONS = {
     additionalProperties: false,
 } as const;
 
-type WebsiteConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
+type ComponentConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
 
 export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS> {
     constructor(serverless: Serverless) {
@@ -88,129 +88,8 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     compile(): void {
         Object.entries(this.getConfiguration()).map(([websiteName, websiteConfiguration]) => {
-            const cfId = formatCloudFormationId(`${websiteName}Website`);
-
-            if (websiteConfiguration.domain !== undefined && websiteConfiguration.certificate === undefined) {
-                throw new Error(
-                    `Invalid configuration for the static website ${websiteName}: if a domain is configured, then a certificate ARN must be configured as well.`
-                );
-            }
-
-            const bucket = new Bucket(this.serverless.stack, `${cfId}Bucket`, {
-                // For a static website, the content is code that should be versioned elsewhere
-                removalPolicy: RemovalPolicy.DESTROY,
-            });
-
-            const cloudFrontOAI = new OriginAccessIdentity(this.serverless.stack, `${cfId}OriginAccessIdentity`, {
-                // TODO improve the comment
-                comment: `OAI for ${websiteName} static website.`,
-            });
-
-            // Authorize CloudFront to access S3 via an "Origin Access Identity"
-            const bucketPolicy = new BucketPolicy(this.serverless.stack, `${cfId}BucketPolicy`, {
-                bucket: bucket,
-            });
-            const policyStatement = new PolicyStatement({
-                actions: ["s3:GetObject", "s3:ListBucket"],
-                resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
-            });
-            policyStatement.addCanonicalUserPrincipal(cloudFrontOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId);
-            bucketPolicy.document.addStatements(policyStatement);
-
-            const distribution = new CloudFrontWebDistribution(this.serverless.stack, `${cfId}CDN`, {
-                // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
-                priceClass: PriceClass.PRICE_CLASS_100,
-                // Enable http2 transfer for better performances
-                httpVersion: HttpVersion.HTTP2,
-                viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                // Send all page requests to index.html
-                defaultRootObject: "index.html",
-                // Origins are where CloudFront fetches content
-                originConfigs: [
-                    {
-                        s3OriginSource: {
-                            s3BucketSource: bucket,
-                            originAccessIdentity: cloudFrontOAI,
-                        },
-                        behaviors: [
-                            {
-                                isDefaultBehavior: true,
-                                allowedMethods: CloudFrontAllowedMethods.GET_HEAD_OPTIONS,
-                                cachedMethods: CloudFrontAllowedCachedMethods.GET_HEAD_OPTIONS,
-                                forwardedValues: {
-                                    // Do not forward the query string or cookies
-                                    queryString: false,
-                                    cookies: {
-                                        forward: "none",
-                                    },
-                                },
-                                // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
-                                compress: true,
-                                // Cache files in CloudFront for 1 hour by default
-                                defaultTtl: Duration.hours(1),
-                            },
-                        ],
-                    },
-                ],
-                // For SPA we need dynamic pages to be served by index.html
-                errorConfigurations: [
-                    {
-                        errorCode: 404,
-                        errorCachingMinTtl: 0,
-                        responseCode: 200,
-                        responsePagePath: "/index.html",
-                    },
-                ],
-                viewerCertificate: this.compileViewerCertificate(websiteConfiguration),
-            });
-
-            // CloudFormation outputs
-            new CfnOutput(this.serverless.stack, `${cfId}BucketName`, {
-                description: "Name of the bucket that stores the static website.",
-                value: bucket.bucketName,
-            });
-            let websiteDomain: string = distribution.distributionDomainName;
-            if (websiteConfiguration.domain !== undefined) {
-                // In case of multiple domains, we take the first one
-                websiteDomain =
-                    typeof websiteConfiguration.domain === "string"
-                        ? websiteConfiguration.domain
-                        : websiteConfiguration.domain[0];
-            }
-            new CfnOutput(this.serverless.stack, `${cfId}Domain`, {
-                description: "Website domain name.",
-                value: websiteDomain,
-            });
-            new CfnOutput(this.serverless.stack, `${cfId}CloudFrontDomain`, {
-                description: "CloudFront CNAME.",
-                value: distribution.distributionDomainName,
-            });
-            new CfnOutput(this.serverless.stack, `${cfId}DistributionId`, {
-                description: "ID of the CloudFront distribution.",
-                value: distribution.distributionId,
-            });
+            new StaticWebsiteConstruct(this, websiteName, websiteConfiguration, this.serverless);
         });
-    }
-
-    private compileViewerCertificate(config: WebsiteConfiguration) {
-        if (config.certificate === undefined) {
-            return undefined;
-        }
-
-        let aliases: string[] = [];
-        if (config.domain !== undefined) {
-            aliases = typeof config.domain === "string" ? [config.domain] : config.domain;
-        }
-
-        return {
-            aliases: aliases,
-            props: {
-                acmCertificateArn: config.certificate,
-                // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
-                sslSupportMethod: "sni-only",
-                minimumProtocolVersion: "TLSv1.1_2016",
-            },
-        } as ViewerCertificate;
     }
 
     async deploy(): Promise<void> {
@@ -220,11 +99,11 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
         }
     }
 
-    private async deployWebsite(name: string, configuration: WebsiteConfiguration) {
+    private async deployWebsite(name: string, configuration: ComponentConfiguration) {
         log(`Deploying the static website '${name}'`);
 
-        const cfId = formatCloudFormationId(`${name}Website`);
-        const bucketName = await getStackOutput(this.serverless, `${cfId}BucketName`);
+        const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
+        const bucketName = await website.getBucketName();
         if (bucketName === undefined) {
             throw new Error(
                 `Could not find the bucket in which to deploy the '${name}' website: did you forget to run 'serverless deploy' first?`
@@ -241,8 +120,8 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async remove(): Promise<void> {
         for (const websiteName of Object.keys(this.getConfiguration())) {
-            const cfId = formatCloudFormationId(`${websiteName}Website`);
-            const bucketName = await getStackOutput(this.serverless, `${cfId}BucketName`);
+            const website = this.node.tryFindChild(websiteName) as StaticWebsiteConstruct;
+            const bucketName = await website.getBucketName();
             if (bucketName === undefined) {
                 // No bucket found => nothing to delete!
                 return;
@@ -275,21 +154,21 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     async info(): Promise<void> {
         const lines: string[] = [];
         await Promise.all(
-            Object.keys(this.getConfiguration()).map(async (website) => {
-                const cfId = formatCloudFormationId(`${website}Website`);
+            Object.keys(this.getConfiguration()).map(async (name) => {
+                const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
 
-                const domain = await getStackOutput(this.serverless, `${cfId}Domain`);
+                const domain = await website.getDomain();
                 if (domain === undefined) {
                     return;
                 }
-                const cname = await getStackOutput(this.serverless, `${cfId}CloudFrontDomain`);
+                const cname = await website.getCName();
                 if (cname === undefined) {
                     return;
                 }
                 if (domain !== cname) {
-                    lines.push(`  ${website}: https://${domain} (CNAME: ${cname})`);
+                    lines.push(`  ${name}: https://${domain} (CNAME: ${cname})`);
                 } else {
-                    lines.push(`  ${website}: https://${domain}`);
+                    lines.push(`  ${name}: https://${domain}`);
                 }
             })
         );
@@ -303,12 +182,13 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     }
 
     private async clearCDNCache(websiteName: string) {
-        const cfId = formatCloudFormationId(`${websiteName}Website`);
-        const aws = this.serverless.getProvider("aws");
-        const distributionId = await getStackOutput(this.serverless, `${cfId}DistributionId`);
+        const website = this.node.tryFindChild(websiteName) as StaticWebsiteConstruct;
+
+        const distributionId = await website.getDistributionId();
         if (distributionId === undefined) {
             return;
         }
+        const aws = this.serverless.getProvider("aws");
         await aws.request<CreateInvalidationRequest, CreateInvalidationResult>("CloudFront", "createInvalidation", {
             DistributionId: distributionId,
             InvalidationBatch: {
@@ -321,5 +201,155 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
                 },
             },
         });
+    }
+}
+
+class StaticWebsiteConstruct extends Construct {
+    private readonly bucketNameOutput: CfnOutput;
+    private readonly domainOutput: CfnOutput;
+    private readonly cnameOutput: CfnOutput;
+    private readonly distributionIdOutput: CfnOutput;
+
+    constructor(
+        scope: Construct,
+        name: string,
+        readonly configuration: ComponentConfiguration,
+        private serverless: Serverless
+    ) {
+        super(scope, name);
+
+        if (configuration.domain !== undefined && configuration.certificate === undefined) {
+            throw new Error(
+                `Invalid configuration for the static website ${name}: if a domain is configured, then a certificate ARN must be configured as well.`
+            );
+        }
+
+        const bucket = new Bucket(this, "Bucket", {
+            // For a static website, the content is code that should be versioned elsewhere
+            removalPolicy: RemovalPolicy.DESTROY,
+        });
+
+        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
+            // TODO improve the comment
+            comment: `OAI for ${name} static website.`,
+        });
+
+        // Authorize CloudFront to access S3 via an "Origin Access Identity"
+        const bucketPolicy = new BucketPolicy(this, "BucketPolicy", {
+            bucket: bucket,
+        });
+        const policyStatement = new PolicyStatement({
+            actions: ["s3:GetObject", "s3:ListBucket"],
+            resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
+        });
+        policyStatement.addCanonicalUserPrincipal(cloudFrontOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId);
+        bucketPolicy.document.addStatements(policyStatement);
+
+        const distribution = new CloudFrontWebDistribution(this, "CDN", {
+            // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
+            priceClass: PriceClass.PRICE_CLASS_100,
+            // Enable http2 transfer for better performances
+            httpVersion: HttpVersion.HTTP2,
+            viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            // Send all page requests to index.html
+            defaultRootObject: "index.html",
+            // Origins are where CloudFront fetches content
+            originConfigs: [
+                {
+                    s3OriginSource: {
+                        s3BucketSource: bucket,
+                        originAccessIdentity: cloudFrontOAI,
+                    },
+                    behaviors: [
+                        {
+                            isDefaultBehavior: true,
+                            allowedMethods: CloudFrontAllowedMethods.GET_HEAD_OPTIONS,
+                            cachedMethods: CloudFrontAllowedCachedMethods.GET_HEAD_OPTIONS,
+                            forwardedValues: {
+                                // Do not forward the query string or cookies
+                                queryString: false,
+                                cookies: {
+                                    forward: "none",
+                                },
+                            },
+                            // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
+                            compress: true,
+                            // Cache files in CloudFront for 1 hour by default
+                            defaultTtl: Duration.hours(1),
+                        },
+                    ],
+                },
+            ],
+            // For SPA we need dynamic pages to be served by index.html
+            errorConfigurations: [
+                {
+                    errorCode: 404,
+                    errorCachingMinTtl: 0,
+                    responseCode: 200,
+                    responsePagePath: "/index.html",
+                },
+            ],
+            viewerCertificate: this.compileViewerCertificate(configuration),
+        });
+
+        // CloudFormation outputs
+        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
+            description: "Name of the bucket that stores the static website.",
+            value: bucket.bucketName,
+        });
+        let websiteDomain: string = distribution.distributionDomainName;
+        if (configuration.domain !== undefined) {
+            // In case of multiple domains, we take the first one
+            websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
+        }
+        this.domainOutput = new CfnOutput(this, "Domain", {
+            description: "Website domain name.",
+            value: websiteDomain,
+        });
+        this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
+            description: "CloudFront CNAME.",
+            value: distribution.distributionDomainName,
+        });
+        this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
+            description: "ID of the CloudFront distribution.",
+            value: distribution.distributionId,
+        });
+    }
+
+    private compileViewerCertificate(config: ComponentConfiguration) {
+        if (config.certificate === undefined) {
+            return undefined;
+        }
+
+        let aliases: string[] = [];
+        if (config.domain !== undefined) {
+            aliases = typeof config.domain === "string" ? [config.domain] : config.domain;
+        }
+
+        return {
+            aliases: aliases,
+            props: {
+                acmCertificateArn: config.certificate,
+                // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
+                sslSupportMethod: "sni-only",
+                minimumProtocolVersion: "TLSv1.1_2016",
+            },
+        } as ViewerCertificate;
+    }
+
+    async getBucketName(): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, this.bucketNameOutput.logicalId);
+    }
+
+    async getDomain(): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, this.domainOutput.logicalId);
+    }
+
+    async getCName(): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, this.cnameOutput.logicalId);
+    }
+
+    async getDistributionId(): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, this.distributionIdOutput.logicalId);
     }
 }

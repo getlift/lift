@@ -10,21 +10,21 @@ describe("static website", () => {
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
-            "LandingWebsiteBucketD7903DC3",
-            "LandingWebsiteBucketPolicyBD4D4492",
-            "LandingWebsiteOriginAccessIdentity7F379C01",
-            "LandingWebsiteBucketPolicy383713E2",
-            "LandingWebsiteCDNCFDistribution8079F676",
+            "staticwebsitelandingBucket2D9A4B68",
+            "staticwebsitelandingBucketPolicy0949F05B",
+            "staticwebsitelandingOriginAccessIdentityF09189E5",
+            "staticwebsitelandingBucketPolicyEE429D75",
+            "staticwebsitelandingCDNCFDistributionE1B79734",
         ]);
-        expect(cfTemplate.Resources.LandingWebsiteBucketD7903DC3).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingBucket2D9A4B68).toMatchObject({
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
         });
-        expect(cfTemplate.Resources.LandingWebsiteBucketPolicyBD4D4492).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingBucketPolicy0949F05B).toMatchObject({
             Properties: {
                 Bucket: {
-                    Ref: "LandingWebsiteBucketD7903DC3",
+                    Ref: "staticwebsitelandingBucket2D9A4B68",
                 },
                 PolicyDocument: {
                     Statement: [
@@ -33,7 +33,10 @@ describe("static website", () => {
                             Effect: "Allow",
                             Principal: {
                                 CanonicalUser: {
-                                    "Fn::GetAtt": ["LandingWebsiteOriginAccessIdentity7F379C01", "S3CanonicalUserId"],
+                                    "Fn::GetAtt": [
+                                        "staticwebsitelandingOriginAccessIdentityF09189E5",
+                                        "S3CanonicalUserId",
+                                    ],
                                 },
                             },
                             Resource: {
@@ -41,7 +44,7 @@ describe("static website", () => {
                                     "",
                                     [
                                         {
-                                            "Fn::GetAtt": ["LandingWebsiteBucketD7903DC3", "Arn"],
+                                            "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "Arn"],
                                         },
                                         "/*",
                                     ],
@@ -53,7 +56,7 @@ describe("static website", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources.LandingWebsiteOriginAccessIdentity7F379C01).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingOriginAccessIdentityF09189E5).toMatchObject({
             Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
             Properties: {
                 CloudFrontOriginAccessIdentityConfig: {
@@ -61,11 +64,11 @@ describe("static website", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources.LandingWebsiteBucketPolicy383713E2).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingBucketPolicyEE429D75).toMatchObject({
             Type: "AWS::S3::BucketPolicy",
             Properties: {
                 Bucket: {
-                    Ref: "LandingWebsiteBucketD7903DC3",
+                    Ref: "staticwebsitelandingBucket2D9A4B68",
                 },
                 PolicyDocument: {
                     Statement: [
@@ -74,19 +77,22 @@ describe("static website", () => {
                             Effect: "Allow",
                             Principal: {
                                 CanonicalUser: {
-                                    "Fn::GetAtt": ["LandingWebsiteOriginAccessIdentity7F379C01", "S3CanonicalUserId"],
+                                    "Fn::GetAtt": [
+                                        "staticwebsitelandingOriginAccessIdentityF09189E5",
+                                        "S3CanonicalUserId",
+                                    ],
                                 },
                             },
                             Resource: [
                                 {
-                                    "Fn::GetAtt": ["LandingWebsiteBucketD7903DC3", "Arn"],
+                                    "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "Arn"],
                                 },
                                 {
                                     "Fn::Join": [
                                         "",
                                         [
                                             {
-                                                "Fn::GetAtt": ["LandingWebsiteBucketD7903DC3", "Arn"],
+                                                "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "Arn"],
                                             },
                                             "/*",
                                         ],
@@ -99,7 +105,7 @@ describe("static website", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingCDNCFDistributionE1B79734).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
@@ -134,7 +140,7 @@ describe("static website", () => {
                             ConnectionAttempts: 3,
                             ConnectionTimeout: 10,
                             DomainName: {
-                                "Fn::GetAtt": ["LandingWebsiteBucketD7903DC3", "RegionalDomainName"],
+                                "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "RegionalDomainName"],
                             },
                             Id: "origin1",
                             S3OriginConfig: {
@@ -144,7 +150,7 @@ describe("static website", () => {
                                         [
                                             "origin-access-identity/cloudfront/",
                                             {
-                                                Ref: "LandingWebsiteOriginAccessIdentity7F379C01",
+                                                Ref: "staticwebsitelandingOriginAccessIdentityF09189E5",
                                             },
                                         ],
                                     ],
@@ -160,28 +166,28 @@ describe("static website", () => {
             },
         });
         expect(cfTemplate.Outputs).toMatchObject({
-            LandingWebsiteBucketName: {
+            staticwebsitelandingBucketNameD7BAF2DC: {
                 Description: "Name of the bucket that stores the static website.",
                 Value: {
-                    Ref: "LandingWebsiteBucketD7903DC3",
+                    Ref: "staticwebsitelandingBucket2D9A4B68",
                 },
             },
-            LandingWebsiteDomain: {
+            staticwebsitelandingDomain28425DC9: {
                 Description: "Website domain name.",
                 Value: {
-                    "Fn::GetAtt": ["LandingWebsiteCDNCFDistribution8079F676", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
                 },
             },
-            LandingWebsiteCloudFrontDomain: {
+            staticwebsitelandingCloudFrontCName4703AED9: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["LandingWebsiteCDNCFDistribution8079F676", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
                 },
             },
-            LandingWebsiteDistributionId: {
+            staticwebsitelandingDistributionId09E6715C: {
                 Description: "ID of the CloudFront distribution.",
                 Value: {
-                    Ref: "LandingWebsiteCDNCFDistribution8079F676",
+                    Ref: "staticwebsitelandingCDNCFDistributionE1B79734",
                 },
             },
         });
@@ -194,7 +200,7 @@ describe("static website", () => {
             cliArgs: ["package"],
         });
         // Check that CloudFront uses the custom ACM certificate and custom domain
-        expect(cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingCDNCFDistributionE1B79734).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
@@ -210,14 +216,14 @@ describe("static website", () => {
         });
         // The domain should be the custom domain, not the CloudFront one
         expect(cfTemplate.Outputs).toMatchObject({
-            LandingWebsiteDomain: {
+            staticwebsitelandingDomain28425DC9: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            LandingWebsiteCloudFrontDomain: {
+            staticwebsitelandingCloudFrontCName4703AED9: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["LandingWebsiteCDNCFDistribution8079F676", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
                 },
             },
         });
@@ -230,7 +236,7 @@ describe("static website", () => {
             cliArgs: ["package"],
         });
         // Check that CloudFront uses all the custom domains
-        expect(cfTemplate.Resources.LandingWebsiteCDNCFDistribution8079F676).toMatchObject({
+        expect(cfTemplate.Resources.staticwebsitelandingCDNCFDistributionE1B79734).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
@@ -240,14 +246,14 @@ describe("static website", () => {
         });
         // This should contain the first domain of the list
         expect(cfTemplate.Outputs).toMatchObject({
-            LandingWebsiteDomain: {
+            staticwebsitelandingDomain28425DC9: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            LandingWebsiteCloudFrontDomain: {
+            staticwebsitelandingCloudFrontCName4703AED9: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["LandingWebsiteCDNCFDistribution8079F676", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
                 },
             },
         });
