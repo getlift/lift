@@ -94,61 +94,17 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async deploy(): Promise<void> {
         // Deploy each website sequentially (to simplify the log output)
-        for (const [websiteName, configuration] of Object.entries(this.getConfiguration())) {
-            await this.deployWebsite(websiteName, configuration);
+        for (const name of Object.keys(this.getConfiguration())) {
+            const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
+            await website.deployWebsite();
         }
-    }
-
-    private async deployWebsite(name: string, configuration: ComponentConfiguration) {
-        log(`Deploying the static website '${name}'`);
-
-        const website = this.node.tryFindChild(name) as StaticWebsiteConstruct;
-        const bucketName = await website.getBucketName();
-        if (bucketName === undefined) {
-            throw new Error(
-                `Could not find the bucket in which to deploy the '${name}' website: did you forget to run 'serverless deploy' first?`
-            );
-        }
-
-        log(`Uploading directory '${configuration.path}' to bucket '${bucketName}'`);
-        // TODO proper upload, without going through a subcommand
-        spawnSync("aws", ["s3", "sync", "--delete", configuration.path, `s3://${bucketName}`], {
-            stdio: "inherit",
-        });
-        await this.clearCDNCache(name);
     }
 
     async remove(): Promise<void> {
         for (const websiteName of Object.keys(this.getConfiguration())) {
             const website = this.node.tryFindChild(websiteName) as StaticWebsiteConstruct;
-            const bucketName = await website.getBucketName();
-            if (bucketName === undefined) {
-                // No bucket found => nothing to delete!
-                return;
-            }
-
-            log(
-                `Emptying S3 bucket '${bucketName}' for the '${websiteName}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
-            );
-            await this.emptyBucket(bucketName);
+            await website.emptyBucket();
         }
-    }
-
-    private async emptyBucket(bucket: string): Promise<void> {
-        const aws = this.serverless.getProvider("aws");
-        const data = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
-            Bucket: bucket,
-        });
-        if (data.Contents === undefined) {
-            return;
-        }
-        const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
-        await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
-            Bucket: bucket,
-            Delete: {
-                Objects: keys.map((key) => ({ Key: key })),
-            },
-        });
     }
 
     async info(): Promise<void> {
@@ -180,28 +136,6 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
             console.log(line);
         }
     }
-
-    private async clearCDNCache(websiteName: string) {
-        const website = this.node.tryFindChild(websiteName) as StaticWebsiteConstruct;
-
-        const distributionId = await website.getDistributionId();
-        if (distributionId === undefined) {
-            return;
-        }
-        const aws = this.serverless.getProvider("aws");
-        await aws.request<CreateInvalidationRequest, CreateInvalidationResult>("CloudFront", "createInvalidation", {
-            DistributionId: distributionId,
-            InvalidationBatch: {
-                // This should be a unique ID: we use a timestamp
-                CallerReference: Date.now().toString(),
-                Paths: {
-                    // Invalidate everything
-                    Items: ["/*"],
-                    Quantity: 1,
-                },
-            },
-        });
-    }
 }
 
 class StaticWebsiteConstruct extends Construct {
@@ -212,9 +146,9 @@ class StaticWebsiteConstruct extends Construct {
 
     constructor(
         scope: Construct,
-        name: string,
-        readonly configuration: ComponentConfiguration,
-        private serverless: Serverless
+        private readonly name: string,
+        private readonly configuration: ComponentConfiguration,
+        private readonly serverless: Serverless
     ) {
         super(scope, name);
 
@@ -351,5 +285,69 @@ class StaticWebsiteConstruct extends Construct {
 
     async getDistributionId(): Promise<string | undefined> {
         return await getStackOutput(this.serverless, this.distributionIdOutput.logicalId);
+    }
+
+    async deployWebsite() {
+        log(`Deploying the static website '${this.name}'`);
+
+        const bucketName = await this.getBucketName();
+        if (bucketName === undefined) {
+            throw new Error(
+                `Could not find the bucket in which to deploy the '${this.name}' website: did you forget to run 'serverless deploy' first?`
+            );
+        }
+
+        log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
+        // TODO proper upload, without going through a subcommand
+        spawnSync("aws", ["s3", "sync", "--delete", this.configuration.path, `s3://${bucketName}`], {
+            stdio: "inherit",
+        });
+        await this.clearCDNCache();
+    }
+
+    private async clearCDNCache(): Promise<void> {
+        const distributionId = await this.getDistributionId();
+        if (distributionId === undefined) {
+            return;
+        }
+        const aws = this.serverless.getProvider("aws");
+        await aws.request<CreateInvalidationRequest, CreateInvalidationResult>("CloudFront", "createInvalidation", {
+            DistributionId: distributionId,
+            InvalidationBatch: {
+                // This should be a unique ID: we use a timestamp
+                CallerReference: Date.now().toString(),
+                Paths: {
+                    // Invalidate everything
+                    Items: ["/*"],
+                    Quantity: 1,
+                },
+            },
+        });
+    }
+
+    async emptyBucket(): Promise<void> {
+        const bucketName = await this.getBucketName();
+        if (bucketName === undefined) {
+            // No bucket found => nothing to delete!
+            return;
+        }
+
+        log(
+            `Emptying S3 bucket '${bucketName}' for the '${this.name}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+        );
+        const aws = this.serverless.getProvider("aws");
+        const data = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+            Bucket: bucketName,
+        });
+        if (data.Contents === undefined) {
+            return;
+        }
+        const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
+        await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+            Bucket: bucketName,
+            Delete: {
+                Objects: keys.map((key) => ({ Key: key })),
+            },
+        });
     }
 }
