@@ -18,17 +18,17 @@ describe("queues", () => {
             // Lambda subscription to SQS
             "EmailsWorkerEventSourceMappingSQSEmailsQueue",
             // Queues
-            "EmailsDlq3A50F0E0",
-            "EmailsQueue3086DFE6",
+            "queuesemailsDlq7ACDC28D",
+            "queuesemailsQueueCEEDDDDE",
         ]);
-        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
+        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 QueueName: expect.stringMatching(/test-queues-\w+-dev-emails/),
                 RedrivePolicy: {
                     deadLetterTargetArn: {
-                        "Fn::GetAtt": ["EmailsDlq3A50F0E0", "Arn"],
+                        "Fn::GetAtt": ["queuesemailsDlq7ACDC28D", "Arn"],
                     },
                     maxReceiveCount: 3,
                 },
@@ -37,7 +37,7 @@ describe("queues", () => {
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
         });
-        expect(cfTemplate.Resources.EmailsDlq3A50F0E0).toMatchObject({
+        expect(cfTemplate.Resources.queuesemailsDlq7ACDC28D).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 MessageRetentionPeriod: 1209600,
@@ -78,16 +78,16 @@ describe("queues", () => {
             Type: "AWS::Lambda::EventSourceMapping",
         });
         expect(cfTemplate.Outputs).toMatchObject({
-            EmailsQueueName: {
+            queuesemailsQueueName8E6EF14C: {
                 Description: 'Name of the "emails" SQS queue.',
                 Value: {
-                    "Fn::GetAtt": ["EmailsQueue3086DFE6", "QueueName"],
+                    "Fn::GetAtt": ["queuesemailsQueueCEEDDDDE", "QueueName"],
                 },
             },
-            EmailsQueueUrl: {
+            queuesemailsQueueUrlF73A22D6: {
                 Description: 'URL of the "emails" SQS queue.',
                 Value: {
-                    Ref: "EmailsQueue3086DFE6",
+                    Ref: "queuesemailsQueueCEEDDDDE",
                 },
             },
         });
@@ -107,7 +107,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
+        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
             Properties: {
                 VisibilityTimeout: 7 * 6,
             },
@@ -131,7 +131,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.EmailsQueue3086DFE6).toMatchObject({
+        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
             Properties: {
                 RedrivePolicy: {
                     maxReceiveCount: 1,
