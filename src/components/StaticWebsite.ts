@@ -10,7 +10,7 @@ import {
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { CfnOutput, Construct, Duration, RemovalPolicy, Stack } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { spawnSync } from "child_process";
 import {
@@ -21,9 +21,8 @@ import {
 } from "aws-sdk/clients/s3";
 import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
-import { Component } from "../classes/Component";
+import { Component, ComponentConstruct } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { getStackOutput } from "../CloudFormation";
 import { log } from "../utils/logger";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
@@ -88,7 +87,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     compile(): void {
         Object.entries(this.getConfiguration()).map(([websiteName, websiteConfiguration]) => {
-            new StaticWebsiteConstruct(this, websiteName, websiteConfiguration, this.serverless);
+            new StaticWebsiteConstruct(this, websiteName, this.serverless, websiteConfiguration);
         });
     }
 
@@ -118,9 +117,9 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
                     return;
                 }
                 if (domain !== cname) {
-                    lines.push(`  ${website.name}: https://${domain} (CNAME: ${cname})`);
+                    lines.push(`  ${website.id}: https://${domain} (CNAME: ${cname})`);
                 } else {
-                    lines.push(`  ${website.name}: https://${domain}`);
+                    lines.push(`  ${website.id}: https://${domain}`);
                 }
             })
         );
@@ -134,23 +133,18 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     }
 }
 
-class StaticWebsiteConstruct extends Construct {
+class StaticWebsiteConstruct extends ComponentConstruct {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(
-        scope: Construct,
-        readonly name: string,
-        private readonly configuration: ComponentConfiguration,
-        private readonly serverless: Serverless
-    ) {
-        super(scope, name);
+    constructor(scope: Construct, id: string, serverless: Serverless, readonly configuration: ComponentConfiguration) {
+        super(scope, id, serverless);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
-                `Invalid configuration for the static website ${name}: if a domain is configured, then a certificate ARN must be configured as well.`
+                `Invalid configuration for the static website ${id}: if a domain is configured, then a certificate ARN must be configured as well.`
             );
         }
 
@@ -161,7 +155,7 @@ class StaticWebsiteConstruct extends Construct {
 
         const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
             // TODO improve the comment
-            comment: `OAI for ${name} static website.`,
+            comment: `OAI for ${id} static website.`,
         });
 
         // Authorize CloudFront to access S3 via an "Origin Access Identity"
@@ -268,28 +262,28 @@ class StaticWebsiteConstruct extends Construct {
     }
 
     async getBucketName(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.bucketNameOutput.logicalId));
+        return this.getOutputValue(this.bucketNameOutput);
     }
 
     async getDomain(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.domainOutput.logicalId));
+        return this.getOutputValue(this.domainOutput);
     }
 
     async getCName(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.cnameOutput.logicalId));
+        return this.getOutputValue(this.cnameOutput);
     }
 
     async getDistributionId(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.distributionIdOutput.logicalId));
+        return this.getOutputValue(this.distributionIdOutput);
     }
 
     async deployWebsite() {
-        log(`Deploying the static website '${this.name}'`);
+        log(`Deploying the static website '${this.id}'`);
 
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
             throw new Error(
-                `Could not find the bucket in which to deploy the '${this.name}' website: did you forget to run 'serverless deploy' first?`
+                `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`
             );
         }
 
@@ -329,7 +323,7 @@ class StaticWebsiteConstruct extends Construct {
         }
 
         log(
-            `Emptying S3 bucket '${bucketName}' for the '${this.name}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+            `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
         const aws = this.serverless.getProvider("aws");
         const data = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {

@@ -1,13 +1,12 @@
-import { CfnOutput, Construct, Duration, Stack } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
 import { FromSchema } from "json-schema-to-ts";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
-import { Component } from "../classes/Component";
+import { Component, ComponentConstruct } from "../classes/Component";
 import { Serverless } from "../types/serverless";
-import { getStackOutput } from "../CloudFormation";
 import { PolicyStatement } from "../Stack";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
@@ -77,7 +76,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
 
     compile(): void {
         Object.entries(this.getConfiguration()).map(([name, queueConfig]) => {
-            new QueueConstruct(this, name, this.getStackName(), queueConfig, this.serverless);
+            new QueueConstruct(this, name, this.serverless, queueConfig);
         });
     }
 
@@ -104,19 +103,13 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 }
 
-class QueueConstruct extends Construct {
+class QueueConstruct extends ComponentConstruct {
     private readonly queue: Queue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
 
-    constructor(
-        scope: Construct,
-        name: string,
-        stackName: string,
-        readonly configuration: ComponentConfiguration,
-        private serverless: Serverless
-    ) {
-        super(scope, name);
+    constructor(scope: Construct, id: string, serverless: Serverless, readonly configuration: ComponentConfiguration) {
+        super(scope, id, serverless);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
@@ -124,13 +117,13 @@ class QueueConstruct extends Construct {
         const maxRetries = configuration.maxRetries ?? 3;
 
         const dlq = new Queue(this, "Dlq", {
-            queueName: stackName + "-" + name + "-dlq",
+            queueName: this.stackName + "-" + id + "-dlq",
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
         this.queue = new Queue(this, "Queue", {
-            queueName: stackName + "-" + name,
+            queueName: this.stackName + "-" + id,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
             visibilityTimeout: Duration.seconds(functionTimeout * 6),
@@ -143,8 +136,8 @@ class QueueConstruct extends Construct {
         const alarmEmail = configuration.alarm;
         if (alarmEmail !== undefined) {
             const alarmTopic = new Topic(this, "AlarmTopic", {
-                topicName: stackName + "-" + name + "-dlq-alarm-topic",
-                displayName: `[Alert][${name}] There are failed jobs in the dead letter queue.`,
+                topicName: this.stackName + "-" + id + "-dlq-alarm-topic",
+                displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
             });
             new Subscription(this, "AlarmTopicSubscription", {
                 topic: alarmTopic,
@@ -153,7 +146,7 @@ class QueueConstruct extends Construct {
             });
 
             const alarm = new Alarm(this, "Alarm", {
-                alarmName: stackName + "-" + name + "-dlq-alarm",
+                alarmName: this.stackName + "-" + id + "-dlq-alarm",
                 alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
                 metric: new Metric({
                     namespace: "AWS/SQS",
@@ -178,20 +171,20 @@ class QueueConstruct extends Construct {
 
         // CloudFormation outputs
         this.queueArnOutput = new CfnOutput(this, "QueueName", {
-            description: `Name of the "${name}" SQS queue.`,
+            description: `Name of the "${id}" SQS queue.`,
             value: this.queue.queueName,
         });
         this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
-            description: `URL of the "${name}" SQS queue.`,
+            description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });
     }
 
     referenceQueueArn(): Record<string, unknown> {
-        return Stack.of(this).resolve(this.queue.queueArn) as Record<string, unknown>;
+        return this.getCloudFormationReference(this.queue.queueArn);
     }
 
     async getQueueUrl(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.queueUrlOutput.logicalId));
+        return this.getOutputValue(this.queueUrlOutput);
     }
 }

@@ -1,9 +1,10 @@
-import { Construct } from "@aws-cdk/core";
+import { CfnOutput, Construct, Stack } from "@aws-cdk/core";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import { has } from "lodash";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../types/serverless";
 import { PolicyStatement } from "../Stack";
+import { getStackOutput } from "../CloudFormation";
 
 export abstract class Component<N extends string, S extends JSONSchema> extends Construct {
     protected readonly name: N;
@@ -65,5 +66,29 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
 
     private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {
         return has(serviceDefinition, this.name);
+    }
+}
+
+export abstract class ComponentConstruct extends Construct {
+    readonly id: string;
+    protected readonly stackName: string;
+    protected readonly serverless: Serverless;
+
+    protected constructor(scope: Construct, id: string, serverless: Serverless) {
+        super(scope, id);
+        this.id = id;
+        this.serverless = serverless;
+        this.stackName = serverless.getProvider("aws").naming.getStackName();
+    }
+
+    /**
+     * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
+     */
+    protected getCloudFormationReference(value: string): Record<string, unknown> {
+        return Stack.of(this).resolve(value) as Record<string, unknown>;
+    }
+
+    protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(output.logicalId));
     }
 }

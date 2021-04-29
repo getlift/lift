@@ -1,10 +1,9 @@
 import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
-import { CfnOutput, Construct, Duration, Stack } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { has } from "lodash";
 import type { Serverless } from "../types/serverless";
-import { Component } from "../classes/Component";
-import { getStackOutput } from "../CloudFormation";
+import { Component, ComponentConstruct } from "../classes/Component";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const STORAGE_COMPONENT = "storage";
@@ -70,17 +69,17 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
     }
 }
 
-class StorageConstruct extends Construct {
+class StorageConstruct extends ComponentConstruct {
     private bucket: Bucket;
     private output: CfnOutput;
 
     constructor(
         scope: Construct,
         id: string,
-        private serverless: Serverless,
+        serverless: Serverless,
         storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
     ) {
-        super(scope, id);
+        super(scope, id, serverless);
         const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
 
         const encryptionOptions = {
@@ -106,10 +105,10 @@ class StorageConstruct extends Construct {
     }
 
     referenceBucketArn(): Record<string, unknown> {
-        return Stack.of(this).resolve(this.bucket.bucketArn) as Record<string, unknown>;
+        return this.getCloudFormationReference(this.bucket.bucketArn);
     }
 
     async getBucketArn() {
-        await getStackOutput(this.serverless, Stack.of(this).resolve(this.output.logicalId));
+        return this.getOutputValue(this.output);
     }
 }
