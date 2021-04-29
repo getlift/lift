@@ -110,6 +110,6 @@ class StorageConstruct extends Construct {
     }
 
     async getBucketArn() {
-        await getStackOutput(this.serverless, this.output.logicalId);
+        await getStackOutput(this.serverless, Stack.of(this).resolve(this.output.logicalId));
     }
 }

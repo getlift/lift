@@ -192,6 +192,6 @@ class QueueConstruct extends Construct {
     }
 
     async getQueueUrl(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.queueUrlOutput.logicalId);
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.queueUrlOutput.logicalId));
     }
 }

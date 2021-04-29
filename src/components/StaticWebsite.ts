@@ -10,7 +10,7 @@ import {
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { CfnOutput, Construct, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, RemovalPolicy, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { spawnSync } from "child_process";
 import {
@@ -268,19 +268,19 @@ class StaticWebsiteConstruct extends Construct {
     }
 
     async getBucketName(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.bucketNameOutput.logicalId);
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.bucketNameOutput.logicalId));
     }
 
     async getDomain(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.domainOutput.logicalId);
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.domainOutput.logicalId));
     }
 
     async getCName(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.cnameOutput.logicalId);
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.cnameOutput.logicalId));
     }
 
     async getDistributionId(): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, this.distributionIdOutput.logicalId);
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(this.distributionIdOutput.logicalId));
     }
 
     async deployWebsite() {
