@@ -5,6 +5,7 @@ import { FromSchema } from "json-schema-to-ts";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
+import { has } from "lodash";
 import { Component, ComponentConstruct } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { PolicyStatement } from "../Stack";
@@ -48,6 +49,12 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
         });
 
         this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
+
+        this.configurationVariablesSources = {
+            [COMPONENT_NAME]: {
+                resolve: this.resolveVariable.bind(this),
+            },
+        };
 
         this.appendFunctions();
     }
@@ -100,6 +107,33 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
         return (this.node.children as QueueConstruct[]).map((queue) => {
             return new PolicyStatement("sqs:SendMessage", [queue.referenceQueueArn()]);
         });
+    }
+
+    resolveVariable({ address }: { address: string }): { value: Record<string, unknown> } {
+        const [id, property] = address.split(".", 2);
+
+        const configuration = this.getConfiguration();
+        if (!has(configuration, id)) {
+            throw new Error(
+                `No queue named ${id} configured in service file. Available components are: ${Object.keys(
+                    configuration
+                ).join(", ")}.`
+            );
+        }
+        const queue = this.node.tryFindChild(id) as QueueConstruct;
+
+        const properties = queue.exposedVariables();
+        if (!has(properties, id)) {
+            throw new Error(
+                `\${${this.getName()}:${id}.${property}} does not exist. Properties available on \${${this.getName()}:${id}} are: ${Object.keys(
+                    properties
+                ).join(", ")}.`
+            );
+        }
+
+        return {
+            value: properties[property](),
+        };
     }
 }
 
@@ -184,7 +218,18 @@ class QueueConstruct extends ComponentConstruct {
         return this.getCloudFormationReference(this.queue.queueArn);
     }
 
+    referenceQueueUrl(): Record<string, unknown> {
+        return this.getCloudFormationReference(this.queue.queueUrl);
+    }
+
     async getQueueUrl(): Promise<string | undefined> {
         return this.getOutputValue(this.queueUrlOutput);
+    }
+
+    exposedVariables(): Record<string, () => Record<string, unknown>> {
+        return {
+            queueArn: () => this.referenceQueueArn(),
+            queueUrl: () => this.referenceQueueUrl(),
+        };
     }
 }
