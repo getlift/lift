@@ -163,4 +163,75 @@ describe("queues", () => {
             },
         });
     });
+
+    it("allows defining a DLQ email alarm", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                queues: {
+                    emails: {
+                        alarm: "alerting@example.com",
+                    },
+                },
+            }),
+            cliArgs: ["package"],
+        });
+        expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
+            "ServerlessDeploymentBucket",
+            "ServerlessDeploymentBucketPolicy",
+            "EmailsWorkerLogGroup",
+            "IamRoleLambdaExecution",
+            "EmailsWorkerLambdaFunction",
+            "EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE",
+            "queuesemailsDlq7ACDC28D",
+            "queuesemailsQueueCEEDDDDE",
+            // Alarm
+            "queuesemailsAlarmTopic4EC198A9",
+            "queuesemailsAlarmTopicSubscription9A3D35C5",
+            "queuesemailsAlarm0E7F75C1",
+        ]);
+        expect(cfTemplate.Resources.queuesemailsAlarm0E7F75C1).toMatchObject({
+            Properties: {
+                AlarmActions: [
+                    {
+                        Ref: "queuesemailsAlarmTopic4EC198A9",
+                    },
+                ],
+                AlarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                AlarmName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm/),
+                ComparisonOperator: "GreaterThanThreshold",
+                Dimensions: [
+                    {
+                        Name: "QueueName",
+                        Value: {
+                            "Fn::GetAtt": ["queuesemailsDlq7ACDC28D", "QueueName"],
+                        },
+                    },
+                ],
+                EvaluationPeriods: 1,
+                MetricName: "ApproximateNumberOfMessagesVisible",
+                Namespace: "AWS/SQS",
+                Period: 60,
+                Statistic: "Sum",
+                Threshold: 0,
+            },
+        });
+        expect(cfTemplate.Resources.queuesemailsAlarmTopic4EC198A9).toMatchObject({
+            Properties: {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                TopicName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm-topic/),
+                DisplayName: "[Alert][emails] There are failed jobs in the dead letter queue.",
+            },
+        });
+        expect(cfTemplate.Resources.queuesemailsAlarmTopicSubscription9A3D35C5).toMatchObject({
+            Properties: {
+                Endpoint: "alerting@example.com",
+                Protocol: "email",
+                TopicArn: {
+                    Ref: "queuesemailsAlarmTopic4EC198A9",
+                },
+            },
+        });
+    });
 });

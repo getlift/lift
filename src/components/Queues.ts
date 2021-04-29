@@ -2,6 +2,9 @@ import { CfnOutput, Construct, Duration, Stack } from "@aws-cdk/core";
 import chalk from "chalk";
 import { Queue } from "@aws-cdk/aws-sqs";
 import { FromSchema } from "json-schema-to-ts";
+import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
+import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
+import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Component } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { getStackOutput } from "../CloudFormation";
@@ -22,6 +25,7 @@ const COMPONENT_DEFINITION = {
             additionalProperties: true,
         },
         maxRetries: { type: "number" },
+        alarm: { type: "string" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -135,6 +139,42 @@ class QueueConstruct extends Construct {
                 queue: dlq,
             },
         });
+
+        const alarmEmail = configuration.alarm;
+        if (alarmEmail !== undefined) {
+            const alarmTopic = new Topic(this, "AlarmTopic", {
+                topicName: stackName + "-" + name + "-dlq-alarm-topic",
+                displayName: `[Alert][${name}] There are failed jobs in the dead letter queue.`,
+            });
+            new Subscription(this, "AlarmTopicSubscription", {
+                topic: alarmTopic,
+                protocol: SubscriptionProtocol.EMAIL,
+                endpoint: alarmEmail,
+            });
+
+            const alarm = new Alarm(this, "Alarm", {
+                alarmName: stackName + "-" + name + "-dlq-alarm",
+                alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
+                metric: new Metric({
+                    namespace: "AWS/SQS",
+                    metricName: "ApproximateNumberOfMessagesVisible",
+                    dimensions: {
+                        QueueName: dlq.queueName,
+                    },
+                    statistic: "Sum",
+                    period: Duration.minutes(1),
+                }),
+                evaluationPeriods: 1,
+                // Alert as soon as we have 1 message in the DLQ
+                threshold: 0,
+                comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+            });
+            alarm.addAlarmAction({
+                bind(): AlarmActionConfig {
+                    return { alarmActionArn: alarmTopic.topicArn };
+                },
+            });
+        }
 
         // CloudFormation outputs
         this.queueArnOutput = new CfnOutput(this, "QueueName", {
