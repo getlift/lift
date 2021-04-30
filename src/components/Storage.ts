@@ -1,7 +1,8 @@
 import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
 import { CfnOutput, Construct, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { has } from "lodash";
+import { has, isString } from "lodash";
+import chalk from "chalk";
 import type { Serverless } from "../types/serverless";
 import { Component, ComponentConstruct } from "../classes/Component";
 
@@ -44,6 +45,8 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
                 resolve: this.resolve.bind(this),
             },
         };
+
+        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
     }
 
     resolve({ address }: { address: string }): { value: Record<string, unknown> } {
@@ -67,11 +70,27 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
             new StorageConstruct(this, storageName, this.serverless, storageConfiguration);
         });
     }
+
+    async info(): Promise<void> {
+        const getAllStorageBucketNames = await Promise.all(
+            this.getComponents().map(async (storage) => {
+                return await storage.getBucketName();
+            })
+        );
+        const foundBucketNames = getAllStorageBucketNames.filter(isString);
+        if (foundBucketNames.length <= 0) {
+            return;
+        }
+        console.log(chalk.yellow("storage:"));
+        for (const storage of foundBucketNames) {
+            console.log(`  ${storage}`);
+        }
+    }
 }
 
 class StorageConstruct extends ComponentConstruct {
     private bucket: Bucket;
-    private output: CfnOutput;
+    private bucketNameOutput: CfnOutput;
 
     constructor(
         scope: Construct,
@@ -99,8 +118,8 @@ class StorageConstruct extends ComponentConstruct {
             ],
         });
 
-        this.output = new CfnOutput(this, "BucketArn", {
-            value: this.bucket.bucketArn,
+        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
+            value: this.bucket.bucketName,
         });
     }
 
@@ -108,7 +127,7 @@ class StorageConstruct extends ComponentConstruct {
         return this.getCloudFormationReference(this.bucket.bucketArn);
     }
 
-    async getBucketArn() {
-        return this.getOutputValue(this.output);
+    async getBucketName() {
+        return this.getOutputValue(this.bucketNameOutput);
     }
 }
