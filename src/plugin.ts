@@ -1,7 +1,7 @@
 import { App, Stack } from "@aws-cdk/core";
 import { merge } from "lodash";
 import { Storage } from "./components/Storage";
-import type { CloudformationTemplate, Provider, Serverless } from "./types/serverless";
+import type { CloudformationTemplate, Serverless } from "./types/serverless";
 import { StaticWebsite } from "./components/StaticWebsite";
 import { Queues } from "./components/Queues";
 
@@ -11,7 +11,6 @@ import { Queues } from "./components/Queues";
 class LiftPlugin {
     private app: App;
     private serverless: Serverless;
-    private provider: Provider;
     private hooks: Record<string, () => void | Promise<void>>;
 
     constructor(serverless: Serverless) {
@@ -23,7 +22,6 @@ class LiftPlugin {
         serverless.pluginManager.addPlugin(Queues);
 
         this.serverless = serverless;
-        this.provider = this.serverless.getProvider("aws");
 
         this.hooks = {
             "after:package:compileEvents": this.appendCloudformationResources.bind(this),
