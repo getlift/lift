@@ -58,7 +58,11 @@ const COMPONENT_DEFINITIONS = {
 
 type ComponentConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
 
-export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS> {
+export class StaticWebsite extends Component<
+    typeof COMPONENT_NAME,
+    typeof COMPONENT_DEFINITIONS,
+    StaticWebsiteConstruct
+> {
     constructor(serverless: Serverless) {
         super({
             name: COMPONENT_NAME,
@@ -93,13 +97,13 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
 
     async deploy(): Promise<void> {
         // Deploy each website sequentially (to simplify the log output)
-        for (const website of this.node.children as StaticWebsiteConstruct[]) {
+        for (const website of this.getComponents()) {
             await website.deployWebsite();
         }
     }
 
     async remove(): Promise<void> {
-        for (const website of this.node.children as StaticWebsiteConstruct[]) {
+        for (const website of this.getComponents()) {
             await website.emptyBucket();
         }
     }
@@ -107,7 +111,7 @@ export class StaticWebsite extends Component<typeof COMPONENT_NAME, typeof COMPO
     async info(): Promise<void> {
         const lines: string[] = [];
         await Promise.all(
-            (this.node.children as StaticWebsiteConstruct[]).map(async (website) => {
+            this.getComponents().map(async (website) => {
                 const domain = await website.getDomain();
                 if (domain === undefined) {
                     return;

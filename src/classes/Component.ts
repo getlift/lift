@@ -1,4 +1,4 @@
-import { CfnOutput, Construct, Stack } from "@aws-cdk/core";
+import { CfnOutput, Construct, IConstruct, Stack } from "@aws-cdk/core";
 import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 import { has } from "lodash";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
@@ -6,7 +6,11 @@ import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../
 import { PolicyStatement } from "../Stack";
 import { getStackOutput } from "../CloudFormation";
 
-export abstract class Component<N extends string, S extends JSONSchema> extends Construct {
+export abstract class Component<
+    N extends string,
+    S extends JSONSchema,
+    C extends ComponentConstruct
+> extends Construct {
     protected readonly name: N;
     protected hooks: Record<string, Hook>;
     protected commands: CommandsDefinition = {};
@@ -62,6 +66,20 @@ export abstract class Component<N extends string, S extends JSONSchema> extends 
 
     protected getStackName(): string {
         return this.serverless.getProvider("aws").naming.getStackName();
+    }
+
+    protected getComponents(): C[] {
+        return this.node.children.reduce<C[]>((components, child) => {
+            if (this.isChildAComponent(child)) {
+                return [child, ...components];
+            }
+
+            return components;
+        }, []);
+    }
+
+    private isChildAComponent(child: IConstruct): child is C {
+        return child instanceof ComponentConstruct;
     }
 
     private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {

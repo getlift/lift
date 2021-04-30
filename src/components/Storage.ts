@@ -31,7 +31,7 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     encryption: "s3",
 };
 
-export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS> {
+export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS, StorageConstruct> {
     constructor(serverless: Serverless) {
         super({
             name: STORAGE_COMPONENT,

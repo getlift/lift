@@ -40,7 +40,7 @@ const COMPONENT_DEFINITIONS = {
 } as const;
 type ComponentConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
 
-export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS> {
+export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DEFINITIONS, QueueConstruct> {
     constructor(serverless: Serverless) {
         super({
             name: COMPONENT_NAME,
@@ -88,7 +88,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     async info(): Promise<void> {
-        const getAllQueues = (this.node.children as QueueConstruct[]).map(async (queue) => {
+        const getAllQueues = this.getComponents().map(async (queue) => {
             return await queue.getQueueUrl();
         });
         const queues: string[] = (await Promise.all(getAllQueues)).filter(
@@ -104,7 +104,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
     }
 
     permissions(): PolicyStatement[] {
-        return (this.node.children as QueueConstruct[]).map((queue) => {
+        return this.getComponents().map((queue) => {
             return new PolicyStatement("sqs:SendMessage", [queue.referenceQueueArn()]);
         });
     }
