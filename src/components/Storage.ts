@@ -1,4 +1,4 @@
-import { BlockPublicAccess, Bucket, BucketEncryption } from "@aws-cdk/aws-s3";
+import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { CfnOutput, Construct, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { has, isString } from "lodash";
@@ -112,6 +112,14 @@ class StorageConstruct extends ComponentConstruct {
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
             enforceSSL: true,
             lifecycleRules: [
+                {
+                    transitions: [
+                        {
+                            storageClass: StorageClass.INTELLIGENT_TIERING,
+                            transitionAfter: Duration.days(0),
+                        },
+                    ],
+                },
                 {
                     noncurrentVersionExpiration: Duration.days(30),
                 },
