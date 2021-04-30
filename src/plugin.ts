@@ -1,9 +1,7 @@
 import { App, Stack } from "@aws-cdk/core";
 import { merge } from "lodash";
-import { Storage } from "./components/Storage";
 import type { CloudformationTemplate, Serverless } from "./types/serverless";
-import { StaticWebsite } from "./components/StaticWebsite";
-import { Queues } from "./components/Queues";
+import { default as components } from "./components";
 
 /**
  * Serverless plugin
@@ -17,9 +15,7 @@ class LiftPlugin {
         this.app = new App();
         serverless.stack = new Stack(this.app);
 
-        serverless.pluginManager.addPlugin(Storage);
-        serverless.pluginManager.addPlugin(StaticWebsite);
-        serverless.pluginManager.addPlugin(Queues);
+        Object.values(components).map((component) => serverless.pluginManager.addPlugin(component));
 
         this.serverless = serverless;
 
