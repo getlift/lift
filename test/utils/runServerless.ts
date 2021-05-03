@@ -12,7 +12,7 @@ type RunServerlessReturn = ThenArg<RunServerlessPromiseReturn>;
 const computeLogicalId = (serverless: Record<string, unknown>, ...address: string[]): string => {
     // @ts-expect-error Comes from the stack being declared by plugin.ts. Serverless context object definition shall be improved.
     const initialNode = serverless.stack.node as ConstructNode;
-    const foundNode = [...address, "Resource"].reduce((currentNode, nextNodeId) => {
+    const foundNode = [...address].reduce((currentNode, nextNodeId) => {
         const nextNode = currentNode.tryFindChild(nextNodeId);
         if (!nextNode) {
             throw new Error(`No node named ${nextNodeId} found in ${address.join(".")} address.`);
@@ -20,6 +20,12 @@ const computeLogicalId = (serverless: Record<string, unknown>, ...address: strin
 
         return nextNode.node;
     }, initialNode);
+
+    // Some CDK constructs have a sub-node called `Resource`, some others don't
+    const resourceNode = foundNode.tryFindChild("Resource");
+    if (resourceNode) {
+        return Names.nodeUniqueId(resourceNode.node);
+    }
 
     return Names.nodeUniqueId(foundNode);
 };

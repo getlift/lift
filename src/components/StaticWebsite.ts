@@ -158,20 +158,8 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         });
 
         const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
-            // TODO improve the comment
-            comment: `OAI for ${id} static website.`,
+            comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
-
-        // Authorize CloudFront to access S3 via an "Origin Access Identity"
-        const bucketPolicy = new BucketPolicy(this, "BucketPolicy", {
-            bucket: bucket,
-        });
-        const policyStatement = new PolicyStatement({
-            actions: ["s3:GetObject", "s3:ListBucket"],
-            resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
-        });
-        policyStatement.addCanonicalUserPrincipal(cloudFrontOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId);
-        bucketPolicy.document.addStatements(policyStatement);
 
         const distribution = new CloudFrontWebDistribution(this, "CDN", {
             // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
@@ -184,6 +172,7 @@ class StaticWebsiteConstruct extends ComponentConstruct {
             // Origins are where CloudFront fetches content
             originConfigs: [
                 {
+                    // The CDK will automatically allow CloudFront to access S3 via the "Origin Access Identity"
                     s3OriginSource: {
                         s3BucketSource: bucket,
                         originAccessIdentity: cloudFrontOAI,
