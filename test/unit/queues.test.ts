@@ -3,7 +3,7 @@ import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
 describe("queues", () => {
     it("should create all required resources", async () => {
-        const { cfTemplate } = await runServerless({
+        const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
             cliArgs: ["package"],
@@ -21,7 +21,7 @@ describe("queues", () => {
             "queuesemailsDlq7ACDC28D",
             "queuesemailsQueueCEEDDDDE",
         ]);
-        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -37,7 +37,7 @@ describe("queues", () => {
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
         });
-        expect(cfTemplate.Resources.queuesemailsDlq7ACDC28D).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Dlq")]).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 MessageRetentionPeriod: 1209600,
@@ -118,7 +118,7 @@ describe("queues", () => {
     });
 
     it("sets the SQS visibility timeout to 6 times the function timeout", async () => {
-        const { cfTemplate } = await runServerless({
+        const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
                 queues: {
@@ -131,7 +131,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
             Properties: {
                 VisibilityTimeout: 7 * 6,
             },
@@ -144,7 +144,7 @@ describe("queues", () => {
     });
 
     it("allows changing the number of retries", async () => {
-        const { cfTemplate } = await runServerless({
+        const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
                 queues: {
@@ -155,7 +155,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.queuesemailsQueueCEEDDDDE).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
             Properties: {
                 RedrivePolicy: {
                     maxReceiveCount: 1,
@@ -165,7 +165,7 @@ describe("queues", () => {
     });
 
     it("allows defining a DLQ email alarm", async () => {
-        const { cfTemplate } = await runServerless({
+        const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
                 queues: {
@@ -190,7 +190,7 @@ describe("queues", () => {
             "queuesemailsAlarmTopicSubscription9A3D35C5",
             "queuesemailsAlarm0E7F75C1",
         ]);
-        expect(cfTemplate.Resources.queuesemailsAlarm0E7F75C1).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Alarm")]).toMatchObject({
             Properties: {
                 AlarmActions: [
                     {
@@ -217,14 +217,14 @@ describe("queues", () => {
                 Threshold: 0,
             },
         });
-        expect(cfTemplate.Resources.queuesemailsAlarmTopic4EC198A9).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "AlarmTopic")]).toMatchObject({
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 TopicName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm-topic/),
                 DisplayName: "[Alert][emails] There are failed jobs in the dead letter queue.",
             },
         });
-        expect(cfTemplate.Resources.queuesemailsAlarmTopicSubscription9A3D35C5).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "AlarmTopicSubscription")]).toMatchObject({
             Properties: {
                 Endpoint: "alerting@example.com",
                 Protocol: "email",
