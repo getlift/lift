@@ -164,6 +164,25 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the batch size", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                queues: {
+                    emails: {
+                        batchSize: 10,
+                    },
+                },
+            }),
+            cliArgs: ["package"],
+        });
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE).toMatchObject({
+            Properties: {
+                BatchSize: 10,
+            },
+        });
+    });
+
     it("allows defining a DLQ email alarm", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",

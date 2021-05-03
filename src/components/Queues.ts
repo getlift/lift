@@ -26,6 +26,11 @@ const COMPONENT_DEFINITION = {
         },
         maxRetries: { type: "number" },
         alarm: { type: "string" },
+        batchSize: {
+            type: "number",
+            minimum: 1,
+            maximum: 10,
+        },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -63,14 +68,17 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
         Object.entries(this.getConfiguration()).map(([name, queueConfiguration]) => {
             const queue = this.node.tryFindChild(name) as QueueConstruct;
 
+            // The default batch size is 1
+            const batchSize = queueConfiguration.batchSize ?? 1;
+
             // Override events for the worker
             queueConfiguration.worker.events = [
                 // Subscribe the worker to the SQS queue
                 {
                     sqs: {
                         arn: queue.referenceQueueArn(),
+                        batchSize: batchSize,
                         // TODO set good defaults
-                        batchSize: 1,
                         maximumBatchingWindow: 60,
                     },
                 },
