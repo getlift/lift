@@ -286,6 +286,11 @@ class StaticWebsiteConstruct extends ComponentConstruct {
             stdio: "inherit",
         });
         await this.clearCDNCache();
+
+        const domain = await this.getDomain();
+        if (domain !== undefined) {
+            log("Deployed " + chalk.green(`https://${domain}`));
+        }
     }
 
     private async clearCDNCache(): Promise<void> {
