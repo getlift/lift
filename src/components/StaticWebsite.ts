@@ -1,5 +1,4 @@
-import { Bucket, BucketPolicy } from "@aws-cdk/aws-s3";
-import { PolicyStatement } from "@aws-cdk/aws-iam";
+import { Bucket } from "@aws-cdk/aws-s3";
 import {
     CloudFrontAllowedCachedMethods,
     CloudFrontAllowedMethods,

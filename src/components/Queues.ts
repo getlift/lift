@@ -78,7 +78,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
                     sqs: {
                         arn: queue.referenceQueueArn(),
                         batchSize: batchSize,
-                        // TODO set good defaults
+                        // TODO add setting
                         maximumBatchingWindow: 60,
                     },
                 },
