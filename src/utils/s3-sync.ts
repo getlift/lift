@@ -1,0 +1,140 @@
+import {
+    DeleteObjectsOutput,
+    DeleteObjectsRequest,
+    ListObjectsV2Output,
+    ListObjectsV2Request,
+    PutObjectOutput,
+    PutObjectRequest,
+    Object as S3Object,
+} from "aws-sdk/clients/s3";
+import * as fs from "fs";
+import * as util from "util";
+import * as path from "path";
+import * as crypto from "crypto";
+import { chunk } from "lodash";
+import chalk from "chalk";
+import { Provider } from "../types/serverless";
+
+const readFile = util.promisify(fs.readFile);
+const readdir = util.promisify(fs.readdir);
+const stat = util.promisify(fs.stat);
+
+type S3Objects = Record<string, S3Object>;
+
+/**
+ * Synchronize a local folder to a S3 bucket.
+ *
+ * @return True if some changes were uploaded.
+ */
+export async function s3Sync(aws: Provider, localPath: string, bucketName: string): Promise<boolean> {
+    let hasChanges = false;
+    const filesToUpload: string[] = await listFilesRecursively(localPath);
+    const existingS3Objects = await s3ListAll(aws, bucketName);
+
+    // Upload files 5 by 5
+    for (const batch of chunk(filesToUpload, 2)) {
+        await Promise.all(
+            batch.map(async (file) => {
+                const fileContent = await readFile(path.join(localPath, file));
+
+                // Check that the file isn't already uploaded
+                if (file in existingS3Objects) {
+                    const existingObject = existingS3Objects[file];
+                    const etag = computeS3ETag(fileContent);
+                    if (etag === existingObject.ETag) {
+                        console.log(chalk.gray(`Skipping ${file}, no changes`));
+
+                        return;
+                    }
+                }
+
+                console.log(`Uploading ${file}`);
+                await s3Put(aws, bucketName, file, fileContent);
+                hasChanges = true;
+            })
+        );
+    }
+
+    const objectsToDelete = findObjectsToDelete(Object.keys(existingS3Objects), filesToUpload);
+    if (objectsToDelete.length > 0) {
+        objectsToDelete.map((key) => console.log(`Deleting ${key}`));
+        await s3Delete(aws, bucketName, objectsToDelete);
+        hasChanges = true;
+    }
+
+    return hasChanges;
+}
+
+async function listFilesRecursively(directory: string): Promise<string[]> {
+    const items = await readdir(directory);
+
+    const files = await Promise.all(
+        items.map(async (fileName) => {
+            const fullPath = path.join(directory, fileName);
+            const fileStat = await stat(fullPath);
+            if (fileStat.isFile()) {
+                return [fileName];
+            } else if (fileStat.isDirectory()) {
+                const subFiles = await listFilesRecursively(fullPath);
+
+                return subFiles.map((subFileName) => path.join(fileName, subFileName));
+            }
+
+            return [];
+        })
+    );
+
+    return files.flat(1);
+}
+
+async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> {
+    let result;
+    let continuationToken = undefined;
+    const objects: Record<string, S3Object> = {};
+    do {
+        result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+            Bucket: bucketName,
+            MaxKeys: 1000,
+            ContinuationToken: continuationToken,
+        });
+        (result.Contents ?? []).forEach((object) => {
+            if (object.Key === undefined) {
+                return;
+            }
+            objects[object.Key] = object;
+        });
+        continuationToken = result.NextContinuationToken;
+    } while (result.IsTruncated === true);
+
+    return objects;
+}
+
+function findObjectsToDelete(existing: string[], target: string[]): string[] {
+    // Returns every key that shouldn't exist anymore
+    return existing.filter((key) => target.indexOf(key) === -1);
+}
+
+async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
+    await aws.request<PutObjectRequest, PutObjectOutput>("S3", "putObject", {
+        Bucket: bucket,
+        Key: key,
+        Body: fileContent,
+    });
+}
+
+async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<void> {
+    await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+        Bucket: bucket,
+        Delete: {
+            Objects: keys.map((key) => {
+                return {
+                    Key: key,
+                };
+            }),
+        },
+    });
+}
+
+function computeS3ETag(fileContent: Buffer) {
+    return '"' + crypto.createHash("md5").update(fileContent).digest("hex") + '"';
+}
