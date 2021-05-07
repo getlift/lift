@@ -11,7 +11,6 @@ import {
 } from "@aws-cdk/aws-cloudfront";
 import { CfnOutput, Construct, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { spawnSync } from "child_process";
 import {
     DeleteObjectsOutput,
     DeleteObjectsRequest,
@@ -23,6 +22,7 @@ import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/cli
 import { Component, ComponentConstruct } from "../classes/Component";
 import { Serverless } from "../types/serverless";
 import { log } from "../utils/logger";
+import { s3Sync } from "../utils/s3-sync";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const COMPONENT_NAME = "static-websites";
@@ -280,11 +280,10 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         }
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
-        // TODO proper upload, without going through a subcommand
-        spawnSync("aws", ["s3", "sync", "--delete", this.configuration.path, `s3://${bucketName}`], {
-            stdio: "inherit",
-        });
-        await this.clearCDNCache();
+        const changes = await s3Sync(this.serverless.getProvider("aws"), this.configuration.path, bucketName);
+        if (changes) {
+            await this.clearCDNCache();
+        }
 
         const domain = await this.getDomain();
         if (domain !== undefined) {
