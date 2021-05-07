@@ -1,6 +1,5 @@
 import { Construct, Fn } from "@aws-cdk/core";
-import { CfnIntegration, CfnRoute, HttpApi, HttpMethod } from "@aws-cdk/aws-apigatewayv2";
-import { HttpProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
+import { CfnIntegration, CfnRoute, HttpApi } from "@aws-cdk/aws-apigatewayv2";
 import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
@@ -13,7 +12,9 @@ const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
         path: { type: "string" },
+        type: { type: "string" },
     },
+    required: ["path"],
     additionalProperties: false,
 } as const;
 const WEBHOOK_DEFINITIONS = {
@@ -24,10 +25,6 @@ const WEBHOOK_DEFINITIONS = {
     },
     additionalProperties: false,
 } as const;
-
-const WEBHOOK_DEFAULTS: Required<FromSchema<typeof WEBHOOK_DEFINITION>> = {
-    path: "/test",
-};
 
 export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
     constructor(serverless: Serverless) {
@@ -82,16 +79,6 @@ class WebhookConstruct extends ComponentConstruct {
         webhookConfiguration: FromSchema<typeof WEBHOOK_DEFINITION>
     ) {
         super(scope, id, serverless);
-        const resolvedWebhookConfiguration = Object.assign(WEBHOOK_DEFAULTS, webhookConfiguration);
-
-        const integration = new HttpProxyIntegration({
-            url: "https://webhook.site/9ed7b0d4-3fa8-4719-a095-e82a0283926b",
-        });
-        api.addRoutes({
-            path: resolvedWebhookConfiguration.path,
-            methods: [HttpMethod.POST],
-            integration,
-        });
 
         const eventBridgeIntegration = new CfnIntegration(this, "Integration", {
             apiId: api.apiId,
@@ -101,15 +88,15 @@ class WebhookConstruct extends ComponentConstruct {
             integrationType: "AWS_PROXY",
             payloadFormatVersion: "1.0",
             requestParameters: {
-                DetailType: "$request.body.payload",
-                Detail: "$request.body.type",
-                Source: "Webhook",
+                DetailType: webhookConfiguration.type ?? "Webhook",
+                Detail: "$request.body",
+                Source: id,
                 EventBusName: bus.eventBusName,
             },
         });
         new CfnRoute(this, "Route", {
             apiId: api.apiId,
-            routeKey: "POST /webhook",
+            routeKey: `POST ${webhookConfiguration.path}`,
             target: Fn.join("/", ["integrations", eventBridgeIntegration.ref]),
         });
     }
