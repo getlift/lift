@@ -57,7 +57,15 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
                 },
             });
             webhookConfigurations.map(([webhookName, webhookConfiguration]) => {
-                new WebhookConstruct(this, webhookName, this.serverless, api, bus, apiGatewayRole, webhookConfiguration);
+                new WebhookConstruct(
+                    this,
+                    webhookName,
+                    this.serverless,
+                    api,
+                    bus,
+                    apiGatewayRole,
+                    webhookConfiguration
+                );
             });
         }
     }
