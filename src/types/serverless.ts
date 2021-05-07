@@ -23,6 +23,7 @@ export type VariableResolver = {
 export type Provider = {
     naming: {
         getStackName: () => string;
+        getLambdaLogicalId: (functionName: string) => string;
     };
     getRegion: () => string;
     /**
