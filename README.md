@@ -24,6 +24,7 @@ npm i -D serverless-lift
 ## Quick start
 
 *serverless.yml*
+
 ```yaml
 service: my-app
 
@@ -34,12 +35,28 @@ provider:
     name: aws
 
 static-website:
+    # you can name your static website however you'd like to
     landing-page:
+        # Requied. The path were your assets are.
+        path: "public/landing"
+        # Optional. A custom domain
+        # you can also provided several domains :
+        # domain:
+        #   - mysiteweb.com
+        #   - app.mysiteweb.com
         domain: mywebsite.com
+        # Optional. ARN of an ACM certificate for the domain, registered in us-east-1
+        certificate: arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123
 
 storage:
-    assets:
-        encrypted: true
+    # you can name your storage however you'd like to
+    thumbnails:
+        # Optional. The kind of encryption you'd like to use. Could be either 's3' or 'kms'.
+        # Default is s3.
+        encryption: "s3"
+        # Optional. Intelligent Tiering configuration: days before the files are moved to IA storage class.
+        # Default is 45.
+        archive: 30
 ```
 
 ## What is Lift ?
@@ -62,3 +79,4 @@ Deploying static websites and single-page applications, for example React, VueJS
 
 <a href="https://www.theodo.fr/" title="Theodo"><img src="docs/theodo.png" width="100"></a>
 <a href="https://null.tc/" title="null"><img src="docs/null.png" width="100"></a>
+
