@@ -52,9 +52,9 @@ Stay updated by *Watching* the repository on GitHub.
 
 ### Static Website
 
-Deploying static websites and single-page applications, for example React, VueJS or Angular apps.
+Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
-[Get involved in the static website component internal design and interface](https://github.com/getlift/lift/discussions/5)
+[**Static website documentation**](docs/static-websites.md)
 
 ---
 
