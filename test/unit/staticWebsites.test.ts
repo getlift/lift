@@ -28,6 +28,7 @@ describe("static websites", () => {
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
         const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
+        const edgeFunction = computeLogicalId("landing", "EdgeFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
@@ -35,6 +36,7 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             originAccessIdentityLogicalId,
+            edgeFunction,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -107,6 +109,14 @@ describe("static websites", () => {
                         },
                         TargetOriginId: "origin1",
                         ViewerProtocolPolicy: "redirect-to-https",
+                        FunctionAssociations: [
+                            {
+                                EventType: "viewer-response",
+                                FunctionARN: {
+                                    "Fn::GetAtt": [edgeFunction, "FunctionARN"],
+                                },
+                            },
+                        ],
                     },
                     DefaultRootObject: "index.html",
                     Enabled: true,
@@ -166,6 +176,17 @@ describe("static websites", () => {
                 Value: {
                     Ref: cfDistributionLogicalId,
                 },
+            },
+        });
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                AutoPublish: true,
+                FunctionConfig: {
+                    Comment: "app-dev-us-east-1-landing-response",
+                    Runtime: "cloudfront-js-1.0",
+                },
+                Name: "app-dev-us-east-1-landing-response",
             },
         });
     });
