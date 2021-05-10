@@ -1,6 +1,6 @@
 # Static websites
 
-The `static-website` component let us deploy:
+The `static-website` component lets us deploy:
 
 - **single-page applications**, for example React or VueJS applications
 - **plain static websites** composed of HTML files and assets (CSS, JS…)
@@ -10,7 +10,7 @@ The `static-website` component let us deploy:
 ```yaml
 service: my-app
 provider:
-    name: aws
+  name: aws
 
 static-website:
   landing:
@@ -100,6 +100,3 @@ static-website:
       - mywebsite.com
       - app.mywebsite.com
 ```
-
-
-
