@@ -116,7 +116,6 @@ class WebhookConstruct extends ComponentConstruct {
     ) {
         super(scope, id, serverless);
 
-        const region = serverless.getProvider("aws").getRegion();
         const lambda = Function.fromFunctionArn(
             this,
             "LambdaAuthorizer",
@@ -134,7 +133,7 @@ class WebhookConstruct extends ComponentConstruct {
             identitySource: ["$request.header.Authorization"],
             enableSimpleResponses: true,
             authorizerUri: Fn.join("/", [
-                `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions`,
+                `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions`,
                 lambda.functionArn,
                 "invocations",
             ]),

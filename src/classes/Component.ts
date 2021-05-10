@@ -72,14 +72,6 @@ export abstract class Component<
         return [];
     }
 
-    protected getRegion(): string {
-        return this.serverless.getProvider("aws").getRegion();
-    }
-
-    protected getStackName(): string {
-        return this.serverless.getProvider("aws").naming.getStackName();
-    }
-
     protected getComponents(): C[] {
         return this.node.children.reduce<C[]>((components, child) => {
             if (this.isChildAComponent(child)) {
@@ -101,9 +93,11 @@ export abstract class Component<
 
 export abstract class ComponentConstruct extends ExtendedConstruct<string> {
     protected readonly stackName: string;
+    protected readonly region: string;
 
     protected constructor(scope: Construct, id: string, serverless: Serverless) {
         super(scope, id, serverless);
         this.stackName = serverless.getProvider("aws").naming.getStackName();
+        this.region = serverless.getProvider("aws").getRegion();
     }
 }
