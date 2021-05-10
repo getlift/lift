@@ -62,6 +62,12 @@ Deploy preconfigured S3 buckets to store files.
 
 [**Storage documentation**](docs/storage.md)
 
+### Queues
+
+Deploy queues and workers for asynchronous processing.
+
+[**Queues documentation**](docs/queues.md)
+
 ---
 
 ## Lift is built and maintained with love ❤️ by
