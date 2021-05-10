@@ -28,18 +28,18 @@ npm i -D serverless-lift
 service: my-app
 
 plugins:
-    - serverless-lift
+  - serverless-lift
 
 provider:
-    name: aws
+  name: aws
 
 static-website:
-    landing-page:
-        domain: mywebsite.com
+  landing-page:
+    domain: mywebsite.com
 
 storage:
-    assets:
-        encrypted: true
+  assets:
+    encrypted: true
 ```
 
 ## What is Lift ?
@@ -56,9 +56,15 @@ Deploy static websites and single-page applications, for example React, VueJS or
 
 [**Static website documentation**](docs/static-websites.md)
 
+### Storage
+
+Deploy preconfigured S3 buckets to store files.
+
+[**Storage documentation**](docs/storage.md)
+
 ---
 
-## Lift is built and maintened with love ❤️ by
+## Lift is built and maintained with love ❤️ by
 
 <a href="https://www.theodo.fr/" title="Theodo"><img src="docs/theodo.png" width="100"></a>
 <a href="https://null.tc/" title="null"><img src="docs/null.png" width="100"></a>
