@@ -69,7 +69,7 @@ The configuration above will activate the custom domain `mywebsite.com` on Cloud
 
 After running `serverless deploy` (or `serverless info`), you should see the following output in the terminal:
 
-```yaml
+```
 static websites:
   landing: https://mywebsite.com (CNAME: s1p63x3kjhocjp.cloudfront.net)
 ```
