@@ -1,4 +1,4 @@
-import { Construct, Fn, Stack } from "@aws-cdk/core";
+import { Construct, Fn } from "@aws-cdk/core";
 import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "@aws-cdk/aws-apigatewayv2";
 import { Function } from "@aws-cdk/aws-lambda";
 import { EventBus } from "@aws-cdk/aws-events";
@@ -56,7 +56,7 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
     resolve({ address }: { address: string }): { value: Record<string, unknown> } {
         if (address === "busName" && this.bus) {
             return {
-                value: Stack.of(this).resolve(this.bus.eventBusName) as Record<string, unknown>,
+                value: this.getCloudFormationReference(this.bus.eventBusName),
             };
         }
         throw new Error("Only ${webhook:busName} is a valid variable");

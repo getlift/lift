@@ -6,23 +6,35 @@ import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "../
 import { PolicyStatement } from "../Stack";
 import { getStackOutput } from "../CloudFormation";
 
+abstract class ExtendedConstruct<N extends string> extends Construct {
+    protected constructor(protected scope: Construct, readonly id: N, protected readonly serverless: Serverless) {
+        super(scope, id);
+    }
+    /**
+     * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
+     */
+    protected getCloudFormationReference(value: string): Record<string, unknown> {
+        return Stack.of(this).resolve(value) as Record<string, unknown>;
+    }
+
+    protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
+        return await getStackOutput(this.serverless, Stack.of(this).resolve(output.logicalId));
+    }
+}
+
 export abstract class Component<
     N extends string,
     S extends JSONSchema,
     C extends ComponentConstruct
-> extends Construct {
-    protected readonly name: N;
+> extends ExtendedConstruct<N> {
     protected hooks: Record<string, Hook>;
     protected commands: CommandsDefinition = {};
     protected configurationVariablesSources: Record<string, VariableResolver> = {};
-    protected serverless: Serverless;
 
     protected constructor({ serverless, name, schema }: { serverless: Serverless; name: N; schema: S }) {
-        super(serverless.stack, name);
-        this.name = name;
-        this.serverless = serverless;
+        super(serverless.stack, name, serverless);
 
-        this.serverless.configSchemaHandler.defineTopLevelProperty(this.name, schema);
+        this.serverless.configSchemaHandler.defineTopLevelProperty(this.id, schema);
 
         // At the moment, no hook is triggered soon enough to be able to compile component configuration into actual components before fwk validation
         this.compile();
@@ -37,14 +49,14 @@ export abstract class Component<
     protected getConfiguration(): FromSchema<S> | Record<string, never> {
         const serviceDefinition = this.serverless.configurationInput;
         if (this.hasComponentConfiguration(serviceDefinition)) {
-            return serviceDefinition[this.name];
+            return serviceDefinition[this.id];
         }
 
         return {};
     }
 
     protected getName(): N {
-        return this.name;
+        return this.id;
     }
 
     appendPermissions(): void {
@@ -83,30 +95,15 @@ export abstract class Component<
     }
 
     private hasComponentConfiguration(serviceDefinition: unknown): serviceDefinition is Record<N, FromSchema<S>> {
-        return has(serviceDefinition, this.name);
+        return has(serviceDefinition, this.id);
     }
 }
 
-export abstract class ComponentConstruct extends Construct {
-    readonly id: string;
+export abstract class ComponentConstruct extends ExtendedConstruct<string> {
     protected readonly stackName: string;
-    protected readonly serverless: Serverless;
 
     protected constructor(scope: Construct, id: string, serverless: Serverless) {
-        super(scope, id);
-        this.id = id;
-        this.serverless = serverless;
+        super(scope, id, serverless);
         this.stackName = serverless.getProvider("aws").naming.getStackName();
-    }
-
-    /**
-     * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
-     */
-    protected getCloudFormationReference(value: string): Record<string, unknown> {
-        return Stack.of(this).resolve(value) as Record<string, unknown>;
-    }
-
-    protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(output.logicalId));
     }
 }
