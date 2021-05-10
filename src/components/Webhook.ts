@@ -121,6 +121,7 @@ class WebhookConstruct extends ComponentConstruct {
                 lambda.functionArn,
                 "invocations",
             ]),
+            authorizerCredentialsArn: apiGatewayRole.roleArn,
         });
         const eventBridgeIntegration = new CfnIntegration(this, "Integration", {
             apiId: api.apiId,
