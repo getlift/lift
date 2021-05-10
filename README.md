@@ -3,15 +3,19 @@
 *Shipping Serverless features made easy*
 
 > 🚧 The project is currently a **work in progress**, expect a first beta in May.
+>
+> Stay updated by *Watching* the repository.
 
 ## Features
 
-Lift packages well-architected AWS serverless features. It is made both for developers whitout any prior serverless experience, as well as for experienced AWS builders.
+Lift is a [Serverless](https://www.serverless.com/) plugin that simplifies deploying well-architected serverless applications.
 
-- 🌐 **Allows non-serverless developers to dive in** - Developer oriented vocabulary, no AWS services knowledge required
-- 📦 **Increases delivery speed** - Production-ready serverless components with minimal required configuration
-- 🔁 **Leverages your existing serverless project** - Integrates with existing Serverless framework project
-- ⏏️ **Does not lock you in** - Ejectable to CloudFormation at any time
+It is made for developers new to serverless, as well as experienced AWS builders.
+
+- ⚡️ **Get started with Serverless** - Developer-friendly vocabulary, no AWS knowledge required
+- 📦 **Faster delivery** - Production-ready components with minimal configuration
+- 🔁 **Not invasive** - Integrates with existing Serverless Framework projects
+- ⏏️ **No lock-in** - Eject to CloudFormation at any time
 
 [Why should I choose Lift ?](docs/comparison.md)
 
@@ -23,7 +27,8 @@ npm i -D serverless-lift
 
 ## Quick start
 
-*serverless.yml*
+Once installed, require the `serverless-lift` plugin and start using Lift components in `serverless.yml`:
+
 ```yaml
 service: my-app
 
@@ -35,18 +40,13 @@ provider:
 
 static-website:
   landing-page:
+    path: 'landing/dist'
     domain: mywebsite.com
 
 storage:
-  assets:
+  avatars:
     encrypted: true
 ```
-
-## What is Lift ?
-
-Lift is a [Serverless](https://www.serverless.com/) plugin that simplifies deploying well-designed serverless applications.
-
-Stay updated by *Watching* the repository on GitHub.
 
 ## Components
 
