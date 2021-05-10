@@ -1,4 +1,4 @@
-import { Construct, Fn } from "@aws-cdk/core";
+import { Construct, Fn, Stack } from "@aws-cdk/core";
 import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "@aws-cdk/aws-apigatewayv2";
 import { Function } from "@aws-cdk/aws-lambda";
 import { EventBus } from "@aws-cdk/aws-events";
@@ -36,6 +36,7 @@ const WEBHOOK_DEFINITIONS = {
 } as const;
 
 export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
+    private bus?: EventBus;
     constructor(serverless: Serverless) {
         super({
             name: WEBHOOK_COMPONENT,
@@ -43,7 +44,22 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
             schema: WEBHOOK_DEFINITIONS,
         });
 
+        this.configurationVariablesSources = {
+            [WEBHOOK_COMPONENT]: {
+                resolve: this.resolve.bind(this),
+            },
+        };
+
         this.appendFunctions();
+    }
+
+    resolve({ address }: { address: string }): { value: Record<string, unknown> } {
+        if (address === "busName" && this.bus) {
+            return {
+                value: Stack.of(this).resolve(this.bus.eventBusName) as Record<string, unknown>,
+            };
+        }
+        throw new Error("Only ${webhook:busName} is a valid variable");
     }
 
     appendFunctions(): void {
@@ -59,6 +75,7 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
         if (webhookConfigurations.length !== 0) {
             const api = new HttpApi(this, "HttpApi");
             const bus = new EventBus(this, "Bus");
+            this.bus = bus;
             const apiGatewayRole = new Role(this, "ApiGatewayRole", {
                 assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
                 inlinePolicies: {
