@@ -1,6 +1,6 @@
 # Static websites
 
-The `static-website` component lets us deploy:
+The `static-website` component deploys:
 
 - **single-page applications**, for example React or VueJS applications
 - **plain static websites** composed of HTML files and assets (CSS, JS…)
