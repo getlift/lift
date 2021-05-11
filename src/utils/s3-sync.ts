@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as util from "util";
 import * as path from "path";
 import * as crypto from "crypto";
+import { lookup } from "mime-types";
 import { chunk } from "lodash";
 import chalk from "chalk";
 import { Provider } from "../types/serverless";
@@ -115,10 +116,15 @@ function findObjectsToDelete(existing: string[], target: string[]): string[] {
 }
 
 async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
+    let contentType = lookup(key);
+    if (contentType === false) {
+        contentType = "application/octet-stream";
+    }
     await aws.request<PutObjectRequest, PutObjectOutput>("S3", "putObject", {
         Bucket: bucket,
         Key: key,
         Body: fileContent,
+        ContentType: contentType,
     });
 }
 
