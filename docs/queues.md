@@ -2,7 +2,7 @@
 
 Some tasks are too long to be processed synchronously. Instead, they can be processed in the background via a job queue and worker.
 
-The `queues` component lets us deploy a properly configured **SQS queue** with a **worker running on AWS Lambda**.
+The `queues` component deploys a properly configured **SQS queue** with a **worker running on AWS Lambda**.
 
 ## Quick start
 
