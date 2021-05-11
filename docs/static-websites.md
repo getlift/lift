@@ -30,8 +30,8 @@ The website is served over HTTPS and cached all over the world via the CloudFron
 
 On the first `serverless deploy`, Lift creates:
 
-- an S3 bucket with "_public website hosting_" enabled
-- a CloudFront CDN in front of S3 to provide HTTPS and caching at edge
+- an S3 bucket
+- a CloudFront CDN configured to serve the website from S3 over HTTPS, with caching at the edge
 
 Additionally, every time `serverless deploy` runs, Lift:
 
