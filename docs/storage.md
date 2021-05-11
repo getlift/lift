@@ -1,6 +1,6 @@
 # Storage
 
-The `storage` component lets us easily deploy S3 buckets to store files.
+The `storage` component deploys S3 buckets to store files.
 
 ## Quick start
 
