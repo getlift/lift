@@ -51,7 +51,7 @@ _Note: the Lambda "worker" function is configured in the `queues` component, ins
 
 The only required setting is the `handler`: this should point to the code that handles SQS messages. The handler [should be written to handle SQS events](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html), for example in JavaScript:
 
-```jsx
+```js
 exports.handler = async function(event, context) {
     event.Records.forEach(record => {
         // `record` contains the job that was pushed to SQS
