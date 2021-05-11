@@ -62,7 +62,7 @@ Deploy preconfigured S3 buckets to store files.
 
 [**Storage documentation**](docs/storage.md)
 
-### Queues
+### Queue
 
 Deploy queues and workers for asynchronous processing.
 
