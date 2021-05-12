@@ -1,9 +1,11 @@
-import { Construct, Fn } from "@aws-cdk/core";
+import { CfnOutput, Construct, Fn } from "@aws-cdk/core";
 import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "@aws-cdk/aws-apigatewayv2";
 import { Function } from "@aws-cdk/aws-lambda";
 import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
+import chalk from "chalk";
+import { isString } from "lodash";
 import type { Serverless } from "../types/serverless";
 import { Component, ComponentConstruct } from "../classes/Component";
 
@@ -37,6 +39,7 @@ const WEBHOOK_DEFINITIONS = {
 
 export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
     private bus?: EventBus;
+    private apiEndpoint?: CfnOutput;
     constructor(serverless: Serverless) {
         super({
             name: WEBHOOK_COMPONENT,
@@ -51,6 +54,8 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
         };
 
         this.appendFunctions();
+
+        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
     }
 
     resolve({ address }: { address: string }): { value: Record<string, unknown> } {
@@ -60,6 +65,31 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
             };
         }
         throw new Error("Only ${webhook:busName} is a valid variable");
+    }
+
+    async info(): Promise<void> {
+        if (!this.apiEndpoint) {
+            return;
+        }
+        const apiEndpoint = await this.getOutputValue(this.apiEndpoint);
+        const webhooks: { name: string; endpoint: string }[] = [];
+        for (const webhookComponent of this.getComponents()) {
+            const endpoint = await webhookComponent.getEndpointPath();
+            if (isString(endpoint)) {
+                webhooks.push({
+                    name: webhookComponent.id,
+                    endpoint,
+                });
+            }
+        }
+        if (!isString(apiEndpoint) || webhooks.length <= 0) {
+            return;
+        }
+        console.log(chalk.yellow("webhooks:"));
+        for (const { name, endpoint } of webhooks) {
+            const [httpMethod, path] = endpoint.split(" ");
+            console.log(`  ${name}: ${httpMethod} ${apiEndpoint}${path}`);
+        }
     }
 
     appendFunctions(): void {
@@ -74,6 +104,9 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
         const webhookConfigurations = Object.entries(this.getConfiguration());
         if (webhookConfigurations.length !== 0) {
             const api = new HttpApi(this, "HttpApi");
+            this.apiEndpoint = new CfnOutput(this, "HttpApiEndpoint", {
+                value: api.apiEndpoint,
+            });
             const bus = new EventBus(this, "Bus");
             this.bus = bus;
             const apiGatewayRole = new Role(this, "ApiGatewayRole", {
@@ -105,6 +138,7 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
 }
 
 class WebhookConstruct extends ComponentConstruct {
+    private endpointPathOutput: CfnOutput;
     constructor(
         scope: Construct,
         id: string,
@@ -153,12 +187,20 @@ class WebhookConstruct extends ComponentConstruct {
                 EventBusName: bus.eventBusName,
             },
         });
-        new CfnRoute(this, "Route", {
+        const route = new CfnRoute(this, "Route", {
             apiId: api.apiId,
             routeKey: `POST ${webhookConfiguration.path}`,
             target: Fn.join("/", ["integrations", eventBridgeIntegration.ref]),
             authorizerId: authorizer.ref,
             authorizationType: "CUSTOM",
         });
+
+        this.endpointPathOutput = new CfnOutput(this, "Endpoint", {
+            value: route.routeKey,
+        });
+    }
+
+    async getEndpointPath() {
+        return this.getOutputValue(this.endpointPathOutput);
     }
 }
