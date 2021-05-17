@@ -1,7 +1,7 @@
 import { App, Stack } from "@aws-cdk/core";
 import { merge } from "lodash";
 import type { CloudformationTemplate, Serverless } from "./types/serverless";
-import { default as components } from "./components";
+import { ComponentRegistry } from "./constructs/ComponentRegistry";
 
 /**
  * Serverless plugin
@@ -12,10 +12,11 @@ class LiftPlugin {
     private hooks: Record<string, () => void | Promise<void>>;
 
     constructor(serverless: Serverless) {
+        // This could go in an "awsProvider" plugin
         this.app = new App();
         serverless.stack = new Stack(this.app);
 
-        Object.values(components).map((component) => serverless.pluginManager.addPlugin(component));
+        serverless.pluginManager.addPlugin(ComponentRegistry);
 
         this.serverless = serverless;
 
