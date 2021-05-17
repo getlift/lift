@@ -22,10 +22,11 @@ const WEBHOOK_DEFINITION = {
             required: ["handler"],
             additionalProperties: true,
         },
+        insecure: { type: "boolean" },
         path: { type: "string" },
         type: { type: "string" },
     },
-    required: ["authorizer", "path"],
+    required: ["path"],
     additionalProperties: false,
 } as const;
 const WEBHOOK_DEFINITIONS = {
@@ -36,6 +37,9 @@ const WEBHOOK_DEFINITIONS = {
     },
     additionalProperties: false,
 } as const;
+const WEBHOOK_DEFAULTS = {
+    insecure: false,
+};
 
 export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
     private bus?: EventBus;
@@ -94,8 +98,12 @@ export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_
 
     appendFunctions(): void {
         Object.entries(this.getConfiguration()).map(([webhookName, webhookConfiguration]) => {
+            const resolvedWebhookConfiguration = Object.assign({}, WEBHOOK_DEFAULTS, webhookConfiguration);
+            if (resolvedWebhookConfiguration.insecure) {
+                return;
+            }
             Object.assign(this.serverless.service.functions, {
-                [`${webhookName}Authorizer`]: webhookConfiguration.authorizer,
+                [`${webhookName}Authorizer`]: resolvedWebhookConfiguration.authorizer,
             });
         });
     }
@@ -150,29 +158,22 @@ class WebhookConstruct extends ComponentConstruct {
     ) {
         super(scope, id, serverless);
 
-        const lambda = Function.fromFunctionArn(
-            this,
-            "LambdaAuthorizer",
-            (Fn.getAtt(
-                serverless.getProvider("aws").naming.getLambdaLogicalId(`${id}Authorizer`),
-                "Arn"
-            ) as unknown) as string
-        );
-        lambda.grantInvoke(apiGatewayRole);
-        const authorizer = new CfnAuthorizer(this, "Authorizer", {
-            apiId: api.apiId,
-            authorizerPayloadFormatVersion: "2.0",
-            authorizerType: "REQUEST",
-            name: `${id}-authorizer`,
-            identitySource: ["$request.header.Authorization"],
-            enableSimpleResponses: true,
-            authorizerUri: Fn.join("/", [
-                `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions`,
-                lambda.functionArn,
-                "invocations",
-            ]),
-            authorizerCredentialsArn: apiGatewayRole.roleArn,
-        });
+        const resolvedWebhookConfiguration = Object.assign({}, WEBHOOK_DEFAULTS, webhookConfiguration);
+        if (resolvedWebhookConfiguration.insecure && resolvedWebhookConfiguration.authorizer !== undefined) {
+            throw new Error(
+                `Webhook ${id} is specified as insecure, however an authorizer is configured for this webhook. ` +
+                    "Either declare this webhook as secure by removing `insecure: true` property (recommended), " +
+                    "or specify the webhook as insecure and remove the authorizer property altogether."
+            );
+        }
+        if (!resolvedWebhookConfiguration.insecure && resolvedWebhookConfiguration.authorizer === undefined) {
+            throw new Error(
+                `Webhook ${id} is specified as secure, however no authorizer is configured for this webhook. ` +
+                    "Please provide an authorizer property for this webhook (recommended), " +
+                    "or specify the webhook as insecure by adding `insecure: true` property."
+            );
+        }
+
         const eventBridgeIntegration = new CfnIntegration(this, "Integration", {
             apiId: api.apiId,
             connectionType: "INTERNET",
@@ -181,7 +182,7 @@ class WebhookConstruct extends ComponentConstruct {
             integrationType: "AWS_PROXY",
             payloadFormatVersion: "1.0",
             requestParameters: {
-                DetailType: webhookConfiguration.type ?? "Webhook",
+                DetailType: resolvedWebhookConfiguration.type ?? "Webhook",
                 Detail: "$request.body",
                 Source: id,
                 EventBusName: bus.eventBusName,
@@ -189,11 +190,38 @@ class WebhookConstruct extends ComponentConstruct {
         });
         const route = new CfnRoute(this, "Route", {
             apiId: api.apiId,
-            routeKey: `POST ${webhookConfiguration.path}`,
+            routeKey: `POST ${resolvedWebhookConfiguration.path}`,
             target: Fn.join("/", ["integrations", eventBridgeIntegration.ref]),
-            authorizerId: authorizer.ref,
-            authorizationType: "CUSTOM",
+            authorizationType: "NONE",
         });
+
+        if (!resolvedWebhookConfiguration.insecure) {
+            const lambda = Function.fromFunctionArn(
+                this,
+                "LambdaAuthorizer",
+                (Fn.getAtt(
+                    serverless.getProvider("aws").naming.getLambdaLogicalId(`${id}Authorizer`),
+                    "Arn"
+                ) as unknown) as string
+            );
+            lambda.grantInvoke(apiGatewayRole);
+            const authorizer = new CfnAuthorizer(this, "Authorizer", {
+                apiId: api.apiId,
+                authorizerPayloadFormatVersion: "2.0",
+                authorizerType: "REQUEST",
+                name: `${id}-authorizer`,
+                identitySource: ["$request.header.Authorization"],
+                enableSimpleResponses: true,
+                authorizerUri: Fn.join("/", [
+                    `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions`,
+                    lambda.functionArn,
+                    "invocations",
+                ]),
+                authorizerCredentialsArn: apiGatewayRole.roleArn,
+            });
+            route.authorizerId = authorizer.ref;
+            route.authorizationType = "CUSTOM";
+        }
 
         this.endpointPathOutput = new CfnOutput(this, "Endpoint", {
             value: route.routeKey,

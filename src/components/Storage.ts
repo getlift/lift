@@ -99,7 +99,7 @@ class StorageConstruct extends ComponentConstruct {
         storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
     ) {
         super(scope, id, serverless);
-        const resolvedStorageConfiguration = Object.assign(STORAGE_DEFAULTS, storageConfiguration);
+        const resolvedStorageConfiguration = Object.assign({}, STORAGE_DEFAULTS, storageConfiguration);
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
