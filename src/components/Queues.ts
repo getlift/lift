@@ -66,7 +66,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
 
     appendFunctions(): void {
         Object.entries(this.getConfiguration()).map(([name, queueConfiguration]) => {
-            const queue = this.node.tryFindChild(name) as QueueConstruct;
+            const queue = this.getComponent(name);
 
             // The default batch size is 1
             const batchSize = queueConfiguration.batchSize ?? 1;
@@ -119,16 +119,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
 
     resolveVariable({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
-
-        const configuration = this.getConfiguration();
-        if (!has(configuration, id)) {
-            throw new Error(
-                `No queue named ${id} configured in service file. Available components are: ${Object.keys(
-                    configuration
-                ).join(", ")}.`
-            );
-        }
-        const queue = this.node.tryFindChild(id) as QueueConstruct;
+        const queue = this.getComponent(id);
 
         const properties = queue.exposedVariables();
         if (!has(properties, id)) {
