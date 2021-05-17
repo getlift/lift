@@ -3,27 +3,27 @@ import { pluginConfigExt, runServerless } from "../utils/runServerless";
 describe("static website", () => {
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsite",
+            fixture: "staticWebsites",
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
-            "staticwebsitelandingBucket2D9A4B68",
-            "staticwebsitelandingBucketPolicy0949F05B",
-            "staticwebsitelandingOriginAccessIdentityF09189E5",
-            "staticwebsitelandingCDNCFDistributionE1B79734",
+            "staticwebsiteslandingBucket29022832",
+            "staticwebsiteslandingBucketPolicy8218BBAA",
+            "staticwebsiteslandingOriginAccessIdentity91A24008",
+            "staticwebsiteslandingCDNCFDistributionD7EC3A6C",
         ]);
-        expect(cfTemplate.Resources[computeLogicalId("static-website", "landing", "Bucket")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("static-websites", "landing", "Bucket")]).toMatchObject({
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
         });
-        expect(cfTemplate.Resources[computeLogicalId("static-website", "landing", "Bucket", "Policy")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("static-websites", "landing", "Bucket", "Policy")]).toMatchObject({
             Properties: {
                 Bucket: {
-                    Ref: "staticwebsitelandingBucket2D9A4B68",
+                    Ref: "staticwebsiteslandingBucket29022832",
                 },
                 PolicyDocument: {
                     Statement: [
@@ -33,7 +33,7 @@ describe("static website", () => {
                             Principal: {
                                 CanonicalUser: {
                                     "Fn::GetAtt": [
-                                        "staticwebsitelandingOriginAccessIdentityF09189E5",
+                                        "staticwebsiteslandingOriginAccessIdentity91A24008",
                                         "S3CanonicalUserId",
                                     ],
                                 },
@@ -43,7 +43,7 @@ describe("static website", () => {
                                     "",
                                     [
                                         {
-                                            "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "Arn"],
+                                            "Fn::GetAtt": ["staticwebsiteslandingBucket29022832", "Arn"],
                                         },
                                         "/*",
                                     ],
@@ -56,7 +56,7 @@ describe("static website", () => {
             },
         });
         expect(
-            cfTemplate.Resources[computeLogicalId("static-website", "landing", "OriginAccessIdentity")]
+            cfTemplate.Resources[computeLogicalId("static-websites", "landing", "OriginAccessIdentity")]
         ).toMatchObject({
             Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
             Properties: {
@@ -66,7 +66,7 @@ describe("static website", () => {
             },
         });
         expect(
-            cfTemplate.Resources[computeLogicalId("static-website", "landing", "CDN", "CFDistribution")]
+            cfTemplate.Resources[computeLogicalId("static-websites", "landing", "CDN", "CFDistribution")]
         ).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
@@ -102,7 +102,7 @@ describe("static website", () => {
                             ConnectionAttempts: 3,
                             ConnectionTimeout: 10,
                             DomainName: {
-                                "Fn::GetAtt": ["staticwebsitelandingBucket2D9A4B68", "RegionalDomainName"],
+                                "Fn::GetAtt": ["staticwebsiteslandingBucket29022832", "RegionalDomainName"],
                             },
                             Id: "origin1",
                             S3OriginConfig: {
@@ -112,7 +112,7 @@ describe("static website", () => {
                                         [
                                             "origin-access-identity/cloudfront/",
                                             {
-                                                Ref: "staticwebsitelandingOriginAccessIdentityF09189E5",
+                                                Ref: "staticwebsiteslandingOriginAccessIdentity91A24008",
                                             },
                                         ],
                                     ],
@@ -128,28 +128,28 @@ describe("static website", () => {
             },
         });
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-website", "landing", "BucketName")]: {
+            [computeLogicalId("static-websites", "landing", "BucketName")]: {
                 Description: "Name of the bucket that stores the static website.",
                 Value: {
-                    Ref: "staticwebsitelandingBucket2D9A4B68",
+                    Ref: "staticwebsiteslandingBucket29022832",
                 },
             },
-            [computeLogicalId("static-website", "landing", "Domain")]: {
+            [computeLogicalId("static-websites", "landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: {
-                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsiteslandingCDNCFDistributionD7EC3A6C", "DomainName"],
                 },
             },
-            [computeLogicalId("static-website", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsiteslandingCDNCFDistributionD7EC3A6C", "DomainName"],
                 },
             },
-            [computeLogicalId("static-website", "landing", "DistributionId")]: {
+            [computeLogicalId("static-websites", "landing", "DistributionId")]: {
                 Description: "ID of the CloudFront distribution.",
                 Value: {
-                    Ref: "staticwebsitelandingCDNCFDistributionE1B79734",
+                    Ref: "staticwebsiteslandingCDNCFDistributionD7EC3A6C",
                 },
             },
         });
@@ -157,13 +157,13 @@ describe("static website", () => {
 
     it("should support custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsiteDomain",
+            fixture: "staticWebsitesDomain",
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
         // Check that CloudFront uses the custom ACM certificate and custom domain
         expect(
-            cfTemplate.Resources[computeLogicalId("static-website", "landing", "CDN", "CFDistribution")]
+            cfTemplate.Resources[computeLogicalId("static-websites", "landing", "CDN", "CFDistribution")]
         ).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
@@ -180,14 +180,14 @@ describe("static website", () => {
         });
         // The domain should be the custom domain, not the CloudFront one
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-website", "landing", "Domain")]: {
+            [computeLogicalId("static-websites", "landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            [computeLogicalId("static-website", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsiteslandingCDNCFDistributionD7EC3A6C", "DomainName"],
                 },
             },
         });
@@ -195,13 +195,13 @@ describe("static website", () => {
 
     it("should support multiple custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "staticWebsiteDomains",
+            fixture: "staticWebsitesDomains",
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
         // Check that CloudFront uses all the custom domains
         expect(
-            cfTemplate.Resources[computeLogicalId("static-website", "landing", "CDN", "CFDistribution")]
+            cfTemplate.Resources[computeLogicalId("static-websites", "landing", "CDN", "CFDistribution")]
         ).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
@@ -212,14 +212,14 @@ describe("static website", () => {
         });
         // This should contain the first domain of the list
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-website", "landing", "Domain")]: {
+            [computeLogicalId("static-websites", "landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            [computeLogicalId("static-website", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
-                    "Fn::GetAtt": ["staticwebsitelandingCDNCFDistributionE1B79734", "DomainName"],
+                    "Fn::GetAtt": ["staticwebsiteslandingCDNCFDistributionD7EC3A6C", "DomainName"],
                 },
             },
         });

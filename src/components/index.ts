@@ -1,11 +1,11 @@
 import { Queues } from "./Queues";
-import { StaticWebsite } from "./StaticWebsite";
+import { StaticWebsites } from "./StaticWebsites";
 import { Storage } from "./Storage";
-import { Webhook } from "./Webhook";
+import { Webhooks } from "./Webhooks";
 
 export default {
     Queues,
-    StaticWebsite,
+    StaticWebsites,
     Storage,
-    Webhook,
+    Webhooks,
 };

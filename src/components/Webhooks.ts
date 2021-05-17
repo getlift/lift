@@ -10,7 +10,7 @@ import type { Serverless } from "../types/serverless";
 import { Component, ComponentConstruct } from "../classes/Component";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
-const WEBHOOK_COMPONENT = "webhook";
+const WEBHOOK_COMPONENT = "webhooks";
 const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
@@ -41,7 +41,7 @@ const WEBHOOK_DEFAULTS = {
     insecure: false,
 };
 
-export class Webhook extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
+export class Webhooks extends Component<typeof WEBHOOK_COMPONENT, typeof WEBHOOK_DEFINITIONS, WebhookConstruct> {
     private bus?: EventBus;
     private apiEndpoint?: CfnOutput;
     constructor(serverless: Serverless) {

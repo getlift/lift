@@ -50,7 +50,7 @@ functions:
     handler: src/stripeConsumer.handler
     events:
       - eventBridge:
-          eventBus: ${webhook:busName}
+          eventBus: ${webhooks:busName}
           pattern:
             source:
               - stripe # filter all events received on stripe webhook
@@ -58,7 +58,7 @@ functions:
               - invoice.paid
 ```
 
-_Note: the `${webhook:busName}` variable will automatically be replaced with a CloudFormation reference to the Eventbridge Bus._
+_Note: the `${webhooks:busName}` variable will automatically be replaced with a CloudFormation reference to the Eventbridge Bus._
 
 ## Configuration reference
 

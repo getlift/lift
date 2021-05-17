@@ -50,11 +50,11 @@ storage:
 
 ## Components
 
-### Static Website
+### Static Websites
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
-[**Static website documentation**](docs/static-websites.md)
+[**Static websites documentation**](docs/static-websites.md)
 
 ### Storage
 
@@ -62,7 +62,7 @@ Deploy preconfigured S3 buckets to store files.
 
 [**Storage documentation**](docs/storage.md)
 
-### Queue
+### Queues
 
 Deploy queues and workers for asynchronous processing.
 

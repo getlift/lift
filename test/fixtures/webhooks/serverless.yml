@@ -3,7 +3,7 @@ service: storage
 provider:
   name: aws
 
-webhook:
+webhooks:
   stripe:
     authorizer:
       handler: authorizer.main

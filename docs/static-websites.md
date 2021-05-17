@@ -1,6 +1,6 @@
 # Static websites
 
-The `static-website` component deploys:
+The `static-websites` component deploys:
 
 - **single-page applications**, for example React or VueJS applications
 - **plain static websites** composed of HTML files and assets (CSS, JS…)
@@ -12,7 +12,7 @@ service: my-app
 provider:
   name: aws
 
-static-website:
+static-websites:
   landing:
     path: 'public'
 
@@ -47,7 +47,7 @@ _Note: the S3 bucket is public and entirely managed by Lift. Do not store or upl
 It is possible to create multiple websites:
 
 ```yaml
-static-website:
+static-websites:
   landing:
     path: 'landing/dist'
   admin-panel:
@@ -57,7 +57,7 @@ static-website:
 ### Custom domain
 
 ```yaml
-static-website:
+static-websites:
   landing:
     ...
     domain: mywebsite.com
@@ -93,7 +93,7 @@ After the certificate is created and validated, you should see the ARN of the ce
 It is possible to register multiple domains:
 
 ```yaml
-static-website:
+static-websites:
   landing:
     ...
     domain:

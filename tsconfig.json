@@ -16,5 +16,5 @@
   "include": [
     "src",
     "test"
-  ]
+, "dist/Monitoring.ts"  ]
 }
