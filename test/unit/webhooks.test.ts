@@ -1,6 +1,6 @@
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
-describe("webhook", () => {
+describe("webhooks", () => {
     it("should implement custom authorizer by default", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "webhooks",

@@ -1,6 +1,6 @@
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
-describe("static website", () => {
+describe("static websites", () => {
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "staticWebsites",
