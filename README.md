@@ -70,6 +70,14 @@ Deploy queues and workers for asynchronous processing.
 
 Got ideas for new components? [Open and upvote component drafts](https://github.com/getlift/lift/discussions/categories/components).
 
+### Webhooks
+
+Deploy webhooks to receive notification from 3rd party applications.
+
+[**Webhooks documentation**](docs/webhooks.md)
+
+Got ideas for new components? [Open and upvote component drafts](https://github.com/getlift/lift/discussions/categories/components).
+
 ---
 
 ## Lift is built and maintained with love ❤️ by
