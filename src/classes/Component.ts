@@ -72,6 +72,23 @@ export abstract class Component<
         return [];
     }
 
+    protected getComponent(id: string): C {
+        const component = this.node.tryFindChild(id);
+        if (!component) {
+            throw new Error(
+                `No ${this.getName()} named ${id} configured in service file. Available components are: ${Object.keys(
+                    this.getConfiguration() as Record<string, unknown>
+                ).join(", ")}`
+            );
+        }
+        if (this.isChildAComponent(component)) {
+            return component;
+        }
+        throw new Error(
+            "Unexpected child component type. Please report this error with your service file as reference."
+        );
+    }
+
     protected getComponents(): C[] {
         return this.node.children.reduce<C[]>((components, child) => {
             if (this.isChildAComponent(child)) {
