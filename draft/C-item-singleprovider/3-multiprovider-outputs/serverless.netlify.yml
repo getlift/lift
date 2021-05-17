@@ -1,0 +1,12 @@
+service: shop-frontend
+
+provider:
+    name: netlify
+    # ...
+
+# shop-frontend-website-prod
+website:
+    type: @serverless/netlify-website
+    path: frontend/dist
+    environment:
+        VUE_APP_API_URL: ${output(shop-backend):api.url}

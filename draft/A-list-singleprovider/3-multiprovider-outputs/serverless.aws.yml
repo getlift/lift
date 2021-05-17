@@ -1,0 +1,13 @@
+service: shop-backend
+
+provider:
+    name: aws
+    region: us-east-1
+    # ...
+
+apis:
+    # shop-backend-api-prod
+    api:
+        routes:
+            'POST /booking':
+                handler: src/create-booking.handler

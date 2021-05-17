@@ -1,0 +1,10 @@
+service: shop
+
+provider:
+    name: aws
+    region: us-east-1
+    # ...
+
+'@serverless/cdk':
+    myconstruct:
+        path: 'cdk-construct.js'

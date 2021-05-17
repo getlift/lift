@@ -1,0 +1,37 @@
+service: shop
+
+providers:
+    aws:
+        region: us-east-1
+        # vpc:
+        #     securityGroupIds:
+        #         - sg-03f68e1100481622b
+        #     subnetIds:
+        #         - subnet-12f4130e
+        #         - subnet-12f4130e
+        vpc: ${reference:vpc.vpc}
+    netlify:
+        # ...
+
+vpc:
+    vpc:
+
+databases:
+    db:
+        vpc: ${reference:vpc.vpc}
+        engine: aurora-mysql
+        class: db.t3.micro
+
+apis:
+    backend:
+        routes:
+            'POST /booking':
+                handler: src/create-booking.handler
+                environment:
+                    DB_HOST: ${reference:databases.db.host}
+
+'@serverless/netlify-website':
+    frontend:
+        path: frontend/dist
+        environment:
+            VUE_APP_API_URL: ${output:api.backend.url}

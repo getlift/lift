@@ -1,0 +1,19 @@
+service: shop
+
+provider:
+    name: aws
+    region: us-east-1
+    # ...
+
+backend:
+    type: api
+    routes:
+        'POST /booking':
+            handler: src/create-booking.handler
+            environment:
+                QUEUE_URL: ${reference:orders.queueUrl}
+
+orders:
+    type: queue
+    worker:
+        handler: src/worker.handler

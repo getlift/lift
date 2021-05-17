@@ -1,0 +1,20 @@
+service: shop
+
+providers:
+    aws:
+        region: us-east-1
+        # ...
+    netlify:
+        # ...
+
+backend:
+    type: api
+    routes:
+        'POST /booking':
+            handler: src/create-booking.handler
+
+frontend:
+    type: @serverless/netlify-website
+    path: frontend/dist
+    environment:
+        VUE_APP_API_URL: ${output:backend.url}

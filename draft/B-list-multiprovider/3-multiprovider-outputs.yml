@@ -1,0 +1,28 @@
+service: shop
+
+providers:
+    aws:
+        region: us-east-1
+        # ...
+    netlify:
+        # ...
+
+apis:
+    backend:
+        routes:
+            'POST /booking':
+                handler: src/create-booking.handler
+                # /!\ Circular dependency
+                FRONTEND_URL: ${output:@serverless/netlify-website.frontend.url}
+
+# /!\ Deployment orders -> we need to deploy AWS then Netlify
+# => solved OK in Serverless Components
+# /!\ Version sync + rollbacks -> deploy across different providers = 2 different versions live at a point
+# => from experience, not a problem in Serverless Components
+
+'@serverless/netlify-website':
+    frontend:
+        path: frontend/dist
+        environment:
+            VUE_APP_API_URL: ${output:apis.backend.url}
+            VUE_APP_API_URL: ${apis:backend.url} # <-- doesn't work
