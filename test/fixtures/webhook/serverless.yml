@@ -1,0 +1,10 @@
+service: storage
+
+provider:
+  name: aws
+
+webhook:
+  stripe:
+    authorizer:
+      handler: authorizer.main
+    path: /webhook

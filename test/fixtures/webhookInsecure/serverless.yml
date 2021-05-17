@@ -1,0 +1,9 @@
+service: storage
+
+provider:
+  name: aws
+
+webhook:
+  github:
+    insecure: true
+    path: /webhook
