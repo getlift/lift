@@ -68,6 +68,8 @@ Deploy queues and workers for asynchronous processing.
 
 [**Queues documentation**](docs/queues.md)
 
+Got ideas for new components? [Open and upvote component drafts](https://github.com/getlift/lift/discussions/categories/components).
+
 ---
 
 ## Lift is built and maintained with love ❤️ by

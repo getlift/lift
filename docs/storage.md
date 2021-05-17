@@ -41,3 +41,7 @@ storage:
   avatars:
     encryption: kms
 ```
+
+### More options
+
+Looking for more options in the component configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).

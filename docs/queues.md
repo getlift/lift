@@ -135,3 +135,7 @@ When the SQS queue contains more than 1 job to process, it can invoke Lambda wit
 By default, Lambda will be invoked 1 messages at a time. The reason is to simplify error handling: in a batch, any failed message will fail the whole batch.
 
 It is possible to change the batch size between 1 and 10.
+
+### More options
+
+Looking for more options in the component configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).
