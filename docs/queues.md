@@ -35,6 +35,29 @@ To learn more about the architecture of this component, [read this article](http
 
 ![](queues.png)
 
+## Variables
+
+All queue components expose the following variables:
+
+- `queueUrl`: the URL of the deployed SQS queue
+- `queueArn`: the ARN of the deployed SQS queue
+
+This can be used to reference the queue from other Lambda functions, for example:
+
+```yaml
+queues:
+  my-queue:
+    # ...
+
+functions:
+  otherFunction:
+      handler: src/publisher.handler
+      environment:
+        QUEUE_URL: ${queues:my-queue.queueUrl}
+```
+
+_Note: the `${queues:my-queue.queueUrl}` variable will automatically be replaced with a CloudFormation reference to the SQS queue._
+
 ## Configuration reference
 
 ### Worker
