@@ -33,6 +33,8 @@ On the first `serverless deploy`, Lift creates:
 - an S3 bucket
 - a CloudFront CDN configured to serve the website from S3 over HTTPS, with caching at the edge
 
+![](static-websites.png)
+
 Additionally, every time `serverless deploy` runs, Lift:
 
 - uploads all files of the `public/` directory to the S3 bucket
