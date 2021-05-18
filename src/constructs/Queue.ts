@@ -2,8 +2,8 @@ import { CfnOutput, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
 import type { Serverless } from "../types/serverless";
-import { Component } from "./Component";
 import { PolicyStatement } from "../Stack";
+import { AwsComponent } from "./AwsComponent";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -30,7 +30,7 @@ export const QUEUE_DEFINITION = {
     required: ["worker"],
 } as const;
 
-export class Queue extends Component<typeof QUEUE_DEFINITION> {
+export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
     private readonly queue: AwsQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
@@ -43,14 +43,14 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
-        const dlq = new AwsQueue(this, "Dlq", {
-            queueName: this.stackName + "-" + id + "-dlq",
+        const dlq = new AwsQueue(this.stack, "Dlq", {
+            queueName: this.stack.stackName + "-" + id + "-dlq",
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
-        this.queue = new AwsQueue(this, "Queue", {
-            queueName: this.stackName + "-" + id,
+        this.queue = new AwsQueue(this.stack, "Queue", {
+            queueName: this.stack.stackName + "-" + id,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
             visibilityTimeout: Duration.seconds(functionTimeout * 6),
@@ -62,11 +62,11 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
         // ...
 
         // CloudFormation outputs
-        this.queueArnOutput = new CfnOutput(this, "QueueName", {
+        this.queueArnOutput = new CfnOutput(this.stack, "QueueName", {
             description: `Name of the "${id}" SQS queue.`,
             value: this.queue.queueName,
         });
-        this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
+        this.queueUrlOutput = new CfnOutput(this.stack, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });
@@ -74,6 +74,7 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
         this.appendFunctions();
     }
 
+    // TODO integrate in the stack
     appendFunctions(): void {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
@@ -103,10 +104,10 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
         return await this.getQueueUrl();
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    variables(): Record<string, () => Promise<string | undefined>> {
         return {
-            queueArn: () => this.referenceQueueArn(),
-            queueUrl: () => this.referenceQueueUrl(),
+            queueArn: this.getQueueArn.bind(this),
+            queueUrl: this.getQueueUrl.bind(this),
         };
     }
 
@@ -114,8 +115,8 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
         return this.getCloudFormationReference(this.queue.queueArn);
     }
 
-    referenceQueueUrl(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.queue.queueUrl);
+    async getQueueArn(): Promise<string | undefined> {
+        return this.getOutputValue(this.queueArnOutput);
     }
 
     async getQueueUrl(): Promise<string | undefined> {

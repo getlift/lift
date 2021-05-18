@@ -17,8 +17,8 @@ import {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import { log } from "../utils/logger";
-import { Component } from "./Component";
 import type { Serverless } from "../types/serverless";
+import { AwsComponent } from "./AwsComponent";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -42,7 +42,7 @@ export const STATIC_WEBSITE_DEFINITION = {
     required: ["path"],
 } as const;
 
-export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
+export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION> {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
@@ -57,16 +57,16 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
             );
         }
 
-        const bucket = new Bucket(this, "Bucket", {
+        const bucket = new Bucket(this.stack, "Bucket", {
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
+        const cloudFrontOAI = new OriginAccessIdentity(this.stack, "OriginAccessIdentity", {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
-        const distribution = new CloudFrontWebDistribution(this, "CDN", {
+        const distribution = new CloudFrontWebDistribution(this.stack, "CDN", {
             originConfigs: [
                 {
                     // The CDK will automatically allow CloudFront to access S3 via the "Origin Access Identity"
@@ -98,7 +98,7 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
         });
 
         // CloudFormation outputs
-        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
+        this.bucketNameOutput = new CfnOutput(this.stack, "BucketName", {
             description: "Name of the bucket that stores the static website.",
             value: bucket.bucketName,
         });
@@ -107,15 +107,15 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
             // In case of multiple domains, we take the first one
             websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
         }
-        this.domainOutput = new CfnOutput(this, "Domain", {
+        this.domainOutput = new CfnOutput(this.stack, "Domain", {
             description: "Website domain name.",
             value: websiteDomain,
         });
-        this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
+        this.cnameOutput = new CfnOutput(this.stack, "CloudFrontCName", {
             description: "CloudFront CNAME.",
             value: distribution.distributionDomainName,
         });
-        this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
+        this.distributionIdOutput = new CfnOutput(this.stack, "DistributionId", {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
@@ -123,11 +123,24 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
 
     commands(): Record<string, () => Promise<void>> {
         return {
-            upload: this.postDeploy.bind(this),
+            upload: this.uploadFiles.bind(this),
         };
     }
 
-    async postDeploy(): Promise<void> {
+    async deploy(): Promise<void> {
+        // Deploy the CloudFormation stack
+        await super.deploy();
+        // Deploy the files to S3
+        await this.uploadFiles();
+    }
+
+    async remove(): Promise<void> {
+        // Clear the bucket else the stack deletion will fail
+        await this.emptyBucket();
+        await super.remove();
+    }
+
+    private async uploadFiles(): Promise<void> {
         log(`Deploying the static website '${this.id}'`);
 
         const bucketName = await this.getBucketName();
@@ -170,7 +183,7 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
         });
     }
 
-    async emptyBucket(): Promise<void> {
+    private async emptyBucket(): Promise<void> {
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
             // No bucket found => nothing to delete!
@@ -212,8 +225,10 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
         return `https://${domain}`;
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
-        return {};
+    variables(): Record<string, () => Promise<string | undefined>> {
+        return {
+            domain: this.getDomain.bind(this),
+        };
     }
 
     async getBucketName(): Promise<string | undefined> {

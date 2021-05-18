@@ -2,7 +2,7 @@ import { Bucket } from "@aws-cdk/aws-s3";
 import { CfnOutput } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
-import { Component } from "./Component";
+import { AwsComponent } from "./AwsComponent";
 
 export const STORAGE_DEFINITION = {
     type: "object",
@@ -16,33 +16,33 @@ export const STORAGE_DEFINITION = {
     additionalProperties: false,
 } as const;
 
-export class Storage extends Component<typeof STORAGE_DEFINITION> {
+export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
     constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof STORAGE_DEFINITION>) {
         super(serverless, id, STORAGE_DEFINITION, configuration);
 
-        this.bucket = new Bucket(this, "Bucket", {
+        this.bucket = new Bucket(this.stack, "Bucket", {
             // ...
         });
-        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
+        this.bucketNameOutput = new CfnOutput(this.stack, "BucketName", {
             value: this.bucket.bucketName,
         });
     }
 
+    /**
+     * serverless info
+     *     storage: bucket-name
+     */
     async infoOutput(): Promise<string | undefined> {
         return await this.getBucketName();
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    variables(): Record<string, () => Promise<string | undefined>> {
         return {
-            bucketArn: () => this.referenceBucketArn(),
+            bucketName: this.getBucketName.bind(this),
         };
-    }
-
-    referenceBucketArn(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.bucket.bucketArn);
     }
 
     async getBucketName(): Promise<string | undefined> {

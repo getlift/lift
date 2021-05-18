@@ -1,4 +1,3 @@
-import { AwsIamPolicyStatements } from "@serverless/typescript";
 import { has } from "lodash";
 import { JSONSchema } from "json-schema-to-ts";
 import chalk from "chalk";
@@ -48,10 +47,9 @@ export class ComponentRegistry {
         }
 
         this.hooks = {
-            initialize: this.appendPermissions.bind(this),
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "after:deploy:deploy": this.postDeploy.bind(this),
-            "before:remove:remove": this.preRemove.bind(this),
+            "deploy:deploy": this.deploy.bind(this),
+            "remove:remove": this.remove.bind(this),
         };
 
         this.configurationVariablesSources = {
@@ -68,7 +66,7 @@ export class ComponentRegistry {
         this.components[id] = new type(this.serverless, id, configuration);
     }
 
-    resolveVariable({ address }: { address: string }): { value: Record<string, unknown> } {
+    async resolveVariable({ address }: { address: string }): Promise<{ value: string }> {
         const [id, property] = address.split(".", 2);
 
         if (!has(this.components, id)) {
@@ -76,7 +74,7 @@ export class ComponentRegistry {
         }
         const component = this.components[id];
 
-        const properties = component.exposedVariables();
+        const properties = component.variables();
         if (!has(properties, property)) {
             throw new Error(
                 `\${reference:${id}.${property}} does not exist. Properties available on \${reference:${id}} are: ${Object.keys(
@@ -86,20 +84,20 @@ export class ComponentRegistry {
         }
 
         return {
-            value: properties[property](),
+            value: (await properties[property]()) ?? "",
         };
     }
 
-    appendPermissions(): void {
-        const statements = Object.entries(this.components)
-            .map(([, component]) => (component.permissions() as unknown) as AwsIamPolicyStatements)
-            .flat(1);
-        if (statements.length === 0) {
-            return;
-        }
-        this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
-        this.serverless.service.provider.iamRoleStatements.push(...statements);
-    }
+    // appendPermissions(): void {
+    //     const statements = Object.entries(this.components)
+    //         .map(([, component]) => (component.permissions() as unknown) as AwsIamPolicyStatements)
+    //         .flat(1);
+    //     if (statements.length === 0) {
+    //         return;
+    //     }
+    //     this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
+    //     this.serverless.service.provider.iamRoleStatements.push(...statements);
+    // }
 
     async info(): Promise<void> {
         for (const [id, component] of Object.entries(this.components)) {
@@ -110,15 +108,17 @@ export class ComponentRegistry {
         }
     }
 
-    async postDeploy(): Promise<void> {
+    async deploy(): Promise<void> {
+        // TODO in correct order with object graph
         for (const [, component] of Object.entries(this.components)) {
-            await component.postDeploy();
+            await component.deploy();
         }
     }
 
-    async preRemove(): Promise<void> {
+    async remove(): Promise<void> {
+        // TODO in correct order with object graph
         for (const [, component] of Object.entries(this.components)) {
-            await component.preRemove();
+            await component.remove();
         }
     }
 
