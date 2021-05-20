@@ -47,7 +47,6 @@ This can be used to reference the queue from other Lambda functions, for example
 ```yaml
 queues:
   my-queue:
-    # ...
 
 functions:
   otherFunction:
@@ -57,6 +56,24 @@ functions:
 ```
 
 _Note: the `${queues:my-queue.queueUrl}` variable will automatically be replaced with a CloudFormation reference to the SQS queue._
+
+## Permissions
+
+By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to push messages into the queue**.
+
+In the example below, there are no IAM permissions to set up: `myFunction` will be allowed to send messages into `my-queue`.
+
+```yaml
+queues:
+  my-queue:
+    # ...
+
+functions:
+    myFunction:
+      handler: src/publisher.handler
+      environment:
+        QUEUE_URL: ${queues:my-queue.queueUrl}
+```
 
 ## Configuration reference
 

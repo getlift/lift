@@ -40,16 +40,32 @@ This can be used to reference the bucket from Lambda functions, for example:
 ```yaml
 storage:
   avatars:
-    # ...
 
 functions:
   myFunction:
-      handler: src/index.handler
-      environment:
-        BUCKET_NAME: ${storage:avatars.bucketName}
+    handler: src/index.handler
+    environment:
+      BUCKET_NAME: ${storage:avatars.bucketName}
 ```
 
 _Note: the `${storage:avatars.bucketName}` variable will automatically be replaced with a CloudFormation reference to the S3 bucket._
+
+## Permissions
+
+By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to read/write into the bucket**.
+
+In the example below, there are no IAM permissions to set up: `myFunction` will be allowed to read and write into the `avatars` bucket.
+
+```yaml
+storage:
+  avatars:
+
+functions:
+  myFunction:
+    handler: src/index.handler
+    environment:
+      BUCKET_NAME: ${storage:avatars.bucketName}
+```
 
 ## Configuration reference
 
