@@ -3,8 +3,8 @@ import { FromSchema, JSONSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
 import { PolicyStatement } from "../Stack";
 import { getStackOutput } from "../CloudFormation";
-import { CloudformationTemplate } from "../types/serverless";
 import { Component } from "./Component";
+import { deployCdk, removeCdk } from "../aws/CloudFormation";
 
 export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
     protected readonly app: App;
@@ -14,10 +14,15 @@ export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
     protected constructor(serverless: Serverless, id: string, schema: S, configuration: FromSchema<S>) {
         super(serverless, id, schema, configuration);
 
-        this.app = new App();
-        this.stack = new Stack(this.app, id);
-
         this.region = serverless.getProvider("aws").getRegion();
+        const baseStackName = serverless.getProvider("aws").naming.getStackName();
+
+        this.app = new App();
+        this.stack = new Stack(this.app, `${baseStackName}-${id}`, {
+            env: {
+                region: this.region,
+            },
+        });
     }
 
     async deploy(): Promise<void> {
@@ -36,19 +41,18 @@ export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
      * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
      */
     protected getCloudFormationReference(value: string): Record<string, unknown> {
-        return Stack.of(this).resolve(value) as Record<string, unknown>;
+        return this.stack.resolve(value) as Record<string, unknown>;
     }
 
     protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
-        return await getStackOutput(this.serverless, Stack.of(this).resolve(output.logicalId));
+        return await getStackOutput(this.serverless, this.stack, this.stack.resolve(output.logicalId));
     }
 
-    protected async deployCDK() {
-        const template = this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate;
-        // TODO deploy via CDK or CloudFormation
+    protected async deployCDK(): Promise<void> {
+        await deployCdk(this.serverless, this.app, this.stack);
     }
 
-    protected async removeCDK() {
-        throw new Error("Method not implemented.");
+    protected async removeCDK(): Promise<void> {
+        await removeCdk(this.serverless, this.stack);
     }
 }

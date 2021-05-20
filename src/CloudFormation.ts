@@ -1,5 +1,6 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
 import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
+import { Stack } from "@aws-cdk/core";
 import { availabilityZones } from "./Zones";
 import { Serverless } from "./types/serverless";
 
@@ -9,8 +10,12 @@ export function formatCloudFormationId(name: string): string {
     });
 }
 
-export async function getStackOutput(serverless: Serverless, output: string): Promise<string | undefined> {
-    const stackName = serverless.getProvider("aws").naming.getStackName();
+export async function getStackOutput(
+    serverless: Serverless,
+    stack: Stack,
+    output: string
+): Promise<string | undefined> {
+    const stackName = stack.stackName;
 
     let data: DescribeStacksOutput;
     try {

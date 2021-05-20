@@ -1,6 +1,7 @@
 import type { JSONSchema } from "json-schema-to-ts";
 import type { AWS } from "@serverless/typescript";
 import type { Stack } from "@aws-cdk/core";
+import { CredentialsOptions } from "aws-sdk/lib/credentials";
 
 export type Hook = () => void | Promise<void>;
 
@@ -26,6 +27,7 @@ export type Provider = {
         getLambdaLogicalId: (functionName: string) => string;
     };
     getRegion: () => string;
+    getCredentials: () => CredentialsOptions;
     /**
      * Send a request to the AWS API.
      */
