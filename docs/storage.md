@@ -28,6 +28,29 @@ The `storage` component creates and configures the S3 bucket for production:
 
 To learn more about the architecture of this component, [read this article](https://medium.com/serverless-transformation/file-storage-on-aws-designing-lift-1caf8c7b9bb0).
 
+## Variables
+
+All storage components expose the following variables:
+
+- `bucketName`: the name of the deployed S3 bucket
+- `bucketArn`: the ARN of the deployed S3 bucket
+
+This can be used to reference the bucket from Lambda functions, for example:
+
+```yaml
+storage:
+  avatars:
+    # ...
+
+functions:
+  myFunction:
+      handler: src/index.handler
+      environment:
+        BUCKET_NAME: ${storage:avatars.bucketName}
+```
+
+_Note: the `${storage:avatars.bucketName}` variable will automatically be replaced with a CloudFormation reference to the S3 bucket._
+
 ## Configuration reference
 
 ### Encryption
