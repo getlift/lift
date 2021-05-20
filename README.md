@@ -2,10 +2,6 @@
 
 *Shipping Serverless features made easy*
 
-> 🚧 The project is currently a **work in progress**, expect a first beta in May.
->
-> Stay updated by *Watching* the repository.
-
 ## Features
 
 Lift is a [Serverless](https://www.serverless.com/) plugin that simplifies deploying well-architected serverless applications.
