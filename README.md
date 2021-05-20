@@ -38,7 +38,7 @@ plugins:
 provider:
   name: aws
 
-static-website:
+static-websites:
   landing-page:
     path: 'landing/dist'
     domain: mywebsite.com
