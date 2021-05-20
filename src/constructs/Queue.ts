@@ -1,23 +1,16 @@
-import { CfnOutput, Duration } from "@aws-cdk/core";
+import { CfnOutput, Duration, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
-import type { Serverless } from "../types/serverless";
 import { PolicyStatement } from "../Stack";
 import { AwsComponent } from "./AwsComponent";
+import { Function, FUNCTION_DEFINITION } from "./Function";
+import type { Serverless } from "../types/serverless";
 
 export const QUEUE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "queue" },
-        worker: {
-            type: "object",
-            properties: {
-                handler: { type: "string" },
-                timeout: { type: "number" },
-            },
-            required: ["handler"],
-            additionalProperties: true,
-        },
+        worker: FUNCTION_DEFINITION,
         maxRetries: { type: "number" },
         alarm: { type: "string" },
         batchSize: {
@@ -34,9 +27,10 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
     private readonly queue: AwsQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
+    private readonly function: Function;
 
-    constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof QUEUE_DEFINITION>) {
-        super(serverless, id, QUEUE_DEFINITION, configuration);
+    constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof QUEUE_DEFINITION>, stack?: Stack) {
+        super(serverless, id, QUEUE_DEFINITION, configuration, stack);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
@@ -61,6 +55,8 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         });
         // ...
 
+        this.function = new Function(serverless, `${id}Worker`, configuration.worker, this.stack);
+
         // CloudFormation outputs
         this.queueArnOutput = new CfnOutput(this.stack, "QueueName", {
             description: `Name of the "${id}" SQS queue.`,
@@ -71,30 +67,30 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
             value: this.queue.queueUrl,
         });
 
-        this.appendFunctions();
+        // this.appendFunctions();
     }
 
     // TODO integrate in the stack
-    appendFunctions(): void {
-        // The default batch size is 1
-        const batchSize = this.configuration.batchSize ?? 1;
-
-        // Override events for the worker
-        this.configuration.worker.events = [
-            // Subscribe the worker to the SQS queue
-            {
-                sqs: {
-                    arn: this.referenceQueueArn(),
-                    batchSize: batchSize,
-                    // TODO add setting
-                    maximumBatchingWindow: 60,
-                },
-            },
-        ];
-        Object.assign(this.serverless.service.functions, {
-            [`${this.id}Worker`]: this.configuration.worker,
-        });
-    }
+    // appendFunctions(): void {
+    //     // The default batch size is 1
+    //     const batchSize = this.configuration.batchSize ?? 1;
+    //
+    //     // Override events for the worker
+    //     this.configuration.worker.events = [
+    //         // Subscribe the worker to the SQS queue
+    //         {
+    //             sqs: {
+    //                 arn: this.referenceQueueArn(),
+    //                 batchSize: batchSize,
+    //                 // TODO add setting
+    //                 maximumBatchingWindow: 60,
+    //             },
+    //         },
+    //     ];
+    //     Object.assign(this.serverless.service.functions, {
+    //         [`${this.id}Worker`]: this.configuration.worker,
+    //     });
+    // }
 
     permissions(): PolicyStatement[] {
         return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];

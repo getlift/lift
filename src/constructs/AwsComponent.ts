@@ -1,28 +1,44 @@
 import { App, CfnOutput, Stack } from "@aws-cdk/core";
 import { FromSchema, JSONSchema } from "json-schema-to-ts";
-import type { Serverless } from "../types/serverless";
 import { PolicyStatement } from "../Stack";
 import { getStackOutput } from "../CloudFormation";
 import { Component } from "./Component";
 import { deployCdk, removeCdk } from "../aws/CloudFormation";
+import type { Serverless } from "../types/serverless";
 
 export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
-    protected readonly app: App;
+    protected readonly app: App | undefined;
     protected readonly stack: Stack;
     protected readonly region: string;
 
-    protected constructor(serverless: Serverless, id: string, schema: S, configuration: FromSchema<S>) {
+    protected constructor(
+        serverless: Serverless,
+        id: string,
+        schema: S,
+        configuration: FromSchema<S>,
+        stack: Stack | undefined
+    ) {
         super(serverless, id, schema, configuration);
 
-        this.region = serverless.getProvider("aws").getRegion();
-        const baseStackName = serverless.getProvider("aws").naming.getStackName();
+        const aws = serverless.getProvider("aws");
+        this.region = aws.getRegion();
+        const baseStackName = aws.naming.getStackName();
 
-        this.app = new App();
-        this.stack = new Stack(this.app, `${baseStackName}-${id}`, {
-            env: {
-                region: this.region,
-            },
-        });
+        // Integrates in an existing stack
+        if (stack) {
+            this.stack = stack;
+        } else {
+            this.app = new App({
+                context: {
+                    "@aws-cdk/core:newStyleStackSynthesis": true,
+                },
+            });
+            this.stack = new Stack(this.app, `${baseStackName}-${id}`, {
+                env: {
+                    region: this.region,
+                },
+            });
+        }
     }
 
     async deploy(): Promise<void> {
@@ -49,10 +65,14 @@ export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
     }
 
     protected async deployCDK(): Promise<void> {
-        await deployCdk(this.serverless, this.app, this.stack);
+        if (this.app) {
+            await deployCdk(this.serverless, this.app, this.stack);
+        }
     }
 
     protected async removeCDK(): Promise<void> {
-        await removeCdk(this.serverless, this.stack);
+        if (this.app) {
+            await removeCdk(this.serverless, this.stack);
+        }
     }
 }

@@ -1,6 +1,10 @@
 import CloudFormation, { StackEvent } from "aws-sdk/clients/cloudformation";
 import ora from "ora";
 import { App, Stack } from "@aws-cdk/core";
+import { Bootstrapper, SdkProvider } from "aws-cdk";
+import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deployments";
+import { CredentialProviderChain, Credentials } from "aws-sdk";
+import { setLogLevel } from "aws-cdk/lib/logging";
 import { CloudformationTemplate, Serverless } from "../types/serverless";
 import { waitFor } from "../utils/wait";
 
@@ -10,6 +14,49 @@ class NeedToDeleteStack implements Error {
 }
 
 export async function deployCdk(serverless: Serverless, app: App, stack: Stack): Promise<void> {
+    const aws = serverless.getProvider("aws");
+
+    setLogLevel(1);
+
+    const credentials = new Credentials(aws.getCredentials());
+    const credentialProviderChain = new CredentialProviderChain();
+    credentialProviderChain.providers.push(credentials);
+    const sdkProvider = new SdkProvider(credentialProviderChain, stack.region, {
+        credentials,
+    });
+
+    // Setup the bootstrap stack
+    // Ideally we don't do that every time
+    console.log("Setting up the CDK");
+    const cdkBootstrapper = new Bootstrapper({
+        source: "default",
+    });
+    const bootstrapDeployResult = await cdkBootstrapper.bootstrapEnvironment(
+        {
+            account: await aws.getAccountId(),
+            name: "dev",
+            region: aws.getRegion(),
+        },
+        sdkProvider
+    );
+    if (bootstrapDeployResult.noOp) {
+        console.log("The CDK is already set up, moving on");
+    }
+
+    console.log(`Deploying ${stack.stackName}`);
+    const stackArtifact = app.synth().getStackByName(stack.stackName);
+    const cloudFormation = new CloudFormationDeployments({ sdkProvider });
+    const deployResult = await cloudFormation.deployStack({
+        stack: stackArtifact,
+    });
+    if (deployResult.noOp) {
+        console.log("Nothing to deploy, the stack is up to date 👌");
+    } else {
+        console.log("Deployment success 🎉");
+    }
+}
+
+export async function deployCdk2(serverless: Serverless, app: App, stack: Stack): Promise<void> {
     const template = app.synth().getStackByName(stack.stackName).template as CloudformationTemplate;
 
     const aws = serverless.getProvider("aws");

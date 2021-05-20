@@ -1,6 +1,6 @@
 import { FromSchema } from "json-schema-to-ts";
 import { Bucket } from "@aws-cdk/aws-s3";
-import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { CfnOutput, Duration, RemovalPolicy, Stack } from "@aws-cdk/core";
 import {
     CloudFrontAllowedCachedMethods,
     CloudFrontAllowedMethods,
@@ -48,8 +48,13 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>) {
-        super(serverless, id, STATIC_WEBSITE_DEFINITION, configuration);
+    constructor(
+        serverless: Serverless,
+        id: string,
+        configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>,
+        stack?: Stack
+    ) {
+        super(serverless, id, STATIC_WEBSITE_DEFINITION, configuration, stack);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
