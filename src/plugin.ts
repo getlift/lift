@@ -69,7 +69,8 @@ class LiftPlugin {
 
     protected loadComponent(id: string, type: any, configuration: any, schema: JSONSchema): void {
         this.serverless.configSchemaHandler.defineTopLevelProperty(id, schema);
-        const component = new type(this.serverless, this.awsProvider, id, configuration);
+        // TODO type that more strongly
+        const component = new type(this.serverless, this.awsProvider, id, configuration) as Component<any>;
         this.components[id] = component;
         if (component instanceof AwsComponent) {
             this.awsProvider.addComponent(id, component);

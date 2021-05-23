@@ -10,12 +10,10 @@ import { AwsComponent } from "./AwsComponent";
 
 export abstract class Provider<COMPONENT extends Component<any>> {
     protected readonly id: string;
-    protected readonly stackName: string;
     protected components: Record<string, COMPONENT> = {};
 
     protected constructor(serverless: Serverless, id: string) {
         this.id = id;
-        this.stackName = serverless.getProvider("aws").naming.getStackName();
     }
 
     addComponent(id: string, component: COMPONENT): void {
