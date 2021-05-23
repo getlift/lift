@@ -1,24 +1,17 @@
 import { CfnOutput, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
-import type { Serverless } from "../types/serverless";
+import { SqsEventSource } from "@aws-cdk/aws-lambda-event-sources";
 import { PolicyStatement } from "../Stack";
 import { AwsComponent } from "./AwsComponent";
 import { AwsProvider } from "./Provider";
+import { Function, FUNCTION_DEFINITION } from "./Function";
 
 export const QUEUE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "queue" },
-        worker: {
-            type: "object",
-            properties: {
-                handler: { type: "string" },
-                timeout: { type: "number" },
-            },
-            required: ["handler"],
-            additionalProperties: true,
-        },
+        worker: FUNCTION_DEFINITION,
         maxRetries: { type: "number" },
         alarm: { type: "string" },
         batchSize: {
@@ -33,6 +26,7 @@ export const QUEUE_DEFINITION = {
 
 export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
     private readonly queue: AwsQueue;
+    private readonly worker: Function;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
 
@@ -62,6 +56,17 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         });
         // ...
 
+        this.worker = new Function(this.provider, "Worker", configuration.worker);
+        this.queue.grantConsumeMessages(this.worker.function);
+        this.worker.function.addEventSource(
+            new SqsEventSource(this.queue, {
+                // The default batch size is 1
+                batchSize: this.configuration.batchSize ?? 1,
+                // TODO add setting
+                maxBatchingWindow: Duration.seconds(1),
+            })
+        );
+
         // CloudFormation outputs
         this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueName", {
             description: `Name of the "${id}" SQS queue.`,
@@ -70,29 +75,6 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         this.queueUrlOutput = new CfnOutput(this.cdkNode, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
-        });
-
-        this.appendFunctions();
-    }
-
-    appendFunctions(): void {
-        // The default batch size is 1
-        const batchSize = this.configuration.batchSize ?? 1;
-
-        // Override events for the worker
-        this.configuration.worker.events = [
-            // Subscribe the worker to the SQS queue
-            {
-                sqs: {
-                    arn: this.referenceQueueArn(),
-                    batchSize: batchSize,
-                    // TODO add setting
-                    maximumBatchingWindow: 60,
-                },
-            },
-        ];
-        Object.assign(this.serverless.service.functions, {
-            [`${this.id}Worker`]: this.configuration.worker,
         });
     }
 
