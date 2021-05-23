@@ -17,8 +17,9 @@ import {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import { log } from "../utils/logger";
-import { Component } from "./Component";
 import type { Serverless } from "../types/serverless";
+import { AwsComponent } from "./AwsComponent";
+import { AwsProvider } from "./Provider";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -42,14 +43,19 @@ export const STATIC_WEBSITE_DEFINITION = {
     required: ["path"],
 } as const;
 
-export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
+export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION> {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>) {
-        super(serverless, id, STATIC_WEBSITE_DEFINITION, configuration);
+    constructor(
+        serverless: Serverless,
+        provider: AwsProvider,
+        id: string,
+        configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>
+    ) {
+        super(serverless, provider, id, configuration);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
@@ -57,16 +63,16 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
             );
         }
 
-        const bucket = new Bucket(this, "Bucket", {
+        const bucket = new Bucket(this.cdkNode, "Bucket", {
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
+        const cloudFrontOAI = new OriginAccessIdentity(this.cdkNode, "OriginAccessIdentity", {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
-        const distribution = new CloudFrontWebDistribution(this, "CDN", {
+        const distribution = new CloudFrontWebDistribution(this.cdkNode, "CDN", {
             originConfigs: [
                 {
                     // The CDK will automatically allow CloudFront to access S3 via the "Origin Access Identity"
@@ -98,7 +104,7 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
         });
 
         // CloudFormation outputs
-        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
+        this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
             description: "Name of the bucket that stores the static website.",
             value: bucket.bucketName,
         });
@@ -107,15 +113,15 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
             // In case of multiple domains, we take the first one
             websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
         }
-        this.domainOutput = new CfnOutput(this, "Domain", {
+        this.domainOutput = new CfnOutput(this.cdkNode, "Domain", {
             description: "Website domain name.",
             value: websiteDomain,
         });
-        this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
+        this.cnameOutput = new CfnOutput(this.cdkNode, "CloudFrontCName", {
             description: "CloudFront CNAME.",
             value: distribution.distributionDomainName,
         });
-        this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
+        this.distributionIdOutput = new CfnOutput(this.cdkNode, "DistributionId", {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
@@ -170,7 +176,7 @@ export class StaticWebsite extends Component<typeof STATIC_WEBSITE_DEFINITION> {
         });
     }
 
-    async emptyBucket(): Promise<void> {
+    async preRemove(): Promise<void> {
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
             // No bucket found => nothing to delete!

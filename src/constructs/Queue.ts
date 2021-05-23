@@ -2,8 +2,9 @@ import { CfnOutput, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
 import type { Serverless } from "../types/serverless";
-import { Component } from "./Component";
 import { PolicyStatement } from "../Stack";
+import { AwsComponent } from "./AwsComponent";
+import { AwsProvider } from "./Provider";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -30,27 +31,32 @@ export const QUEUE_DEFINITION = {
     required: ["worker"],
 } as const;
 
-export class Queue extends Component<typeof QUEUE_DEFINITION> {
+export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
     private readonly queue: AwsQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
 
-    constructor(serverless: Serverless, id: string, configuration: FromSchema<typeof QUEUE_DEFINITION>) {
-        super(serverless, id, QUEUE_DEFINITION, configuration);
+    constructor(
+        serverless: Serverless,
+        provider: AwsProvider,
+        id: string,
+        configuration: FromSchema<typeof QUEUE_DEFINITION>
+    ) {
+        super(serverless, provider, id, configuration);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
 
         const maxRetries = configuration.maxRetries ?? 3;
 
-        const dlq = new AwsQueue(this, "Dlq", {
-            queueName: this.stackName + "-" + id + "-dlq",
+        const dlq = new AwsQueue(this.cdkNode, "Dlq", {
+            queueName: this.provider.stack.stackName + "-" + id + "-dlq",
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
-        this.queue = new AwsQueue(this, "Queue", {
-            queueName: this.stackName + "-" + id,
+        this.queue = new AwsQueue(this.cdkNode, "Queue", {
+            queueName: this.provider.stack.stackName + "-" + id,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
             visibilityTimeout: Duration.seconds(functionTimeout * 6),
@@ -62,11 +68,11 @@ export class Queue extends Component<typeof QUEUE_DEFINITION> {
         // ...
 
         // CloudFormation outputs
-        this.queueArnOutput = new CfnOutput(this, "QueueName", {
+        this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueName", {
             description: `Name of the "${id}" SQS queue.`,
             value: this.queue.queueName,
         });
-        this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
+        this.queueUrlOutput = new CfnOutput(this.cdkNode, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });

@@ -1,7 +1,7 @@
 import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
 import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
 import { availabilityZones } from "./Zones";
-import { Serverless } from "./types/serverless";
+import { AwsProvider } from "./constructs/Provider";
 
 export function formatCloudFormationId(name: string): string {
     return pascalCase(name, {
@@ -9,16 +9,14 @@ export function formatCloudFormationId(name: string): string {
     });
 }
 
-export async function getStackOutput(serverless: Serverless, output: string): Promise<string | undefined> {
-    const stackName = serverless.getProvider("aws").naming.getStackName();
+export async function getStackOutput(aws: AwsProvider, output: string): Promise<string | undefined> {
+    const stackName = aws.stack.stackName;
 
     let data: DescribeStacksOutput;
     try {
-        data = await serverless
-            .getProvider("aws")
-            .request<DescribeStacksInput, DescribeStacksOutput>("CloudFormation", "describeStacks", {
-                StackName: stackName,
-            });
+        data = await aws.request<DescribeStacksInput, DescribeStacksOutput>("CloudFormation", "describeStacks", {
+            StackName: stackName,
+        });
     } catch (e) {
         if (e instanceof Error && e.message === `Stack with id ${stackName} does not exist`) {
             return undefined;
