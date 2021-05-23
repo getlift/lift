@@ -13,7 +13,9 @@ export abstract class Component<S extends JSONSchema> {
         this.configuration = configuration;
     }
 
-    public abstract exposedVariables(): Record<string, () => Record<string, unknown>>;
+    public abstract variables(): Record<string, () => Promise<string | undefined>>;
+
+    public abstract references(): Record<string, () => Record<string, unknown>>;
 
     commands(): Record<string, () => Promise<void>> {
         return {};

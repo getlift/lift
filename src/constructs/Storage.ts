@@ -39,7 +39,13 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
         return await this.getBucketName();
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    public variables(): Record<string, () => Promise<string | undefined>> {
+        return {
+            bucketName: () => this.getBucketName(),
+        };
+    }
+
+    references(): Record<string, () => Record<string, unknown>> {
         return {
             bucketArn: () => this.referenceBucketArn(),
         };

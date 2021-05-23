@@ -58,9 +58,15 @@ class LiftPlugin {
             "after:remove:remove": async () => await this.awsProvider.remove(),
         };
 
+        // TODO variables should be resolved just before deploying each provider
+        // else we might get outdated values
         this.configurationVariablesSources = {
-            construct: {
+            // TODO these 2 variable sources should be merged eventually
+            constructs: {
                 resolve: this.resolveVariable.bind(this),
+            },
+            reference: {
+                resolve: this.resolveReference.bind(this),
             },
         };
 
@@ -85,7 +91,32 @@ class LiftPlugin {
         }
         const component = this.components[id];
 
-        const properties = component.exposedVariables();
+        const properties = component.variables();
+        if (!has(properties, property)) {
+            throw new Error(
+                `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
+                    properties
+                ).join(", ")}.`
+            );
+        }
+
+        // TODO: resolve value depending on the context:
+        // - if it's a reference in the same stack, it should resolve to a CloudFormation reference
+        // - if it's cross-stack, it should resolve to the real value
+        return {
+            value: (await properties[property]()) ?? "",
+        };
+    }
+
+    async resolveReference({ address }: { address: string }): Promise<{ value: Record<string, unknown> }> {
+        const [id, property] = address.split(".", 2);
+
+        if (!has(this.components, id)) {
+            throw new Error(`No component named '${id}' found in service file.`);
+        }
+        const component = this.components[id];
+
+        const properties = component.references();
         if (!has(properties, property)) {
             throw new Error(
                 `\${reference:${id}.${property}} does not exist. Properties available on \${reference:${id}} are: ${Object.keys(
@@ -98,7 +129,7 @@ class LiftPlugin {
         // - if it's a reference in the same stack, it should resolve to a CloudFormation reference
         // - if it's cross-stack, it should resolve to the real value
         return {
-            value: (await properties[property]()) ?? "",
+            value: properties[property](),
         };
     }
 

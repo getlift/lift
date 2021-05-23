@@ -42,7 +42,7 @@ export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
         return await this.getFunctionName();
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, () => Record<string, unknown>> {
         return {};
     }
 

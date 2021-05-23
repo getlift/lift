@@ -214,7 +214,11 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         return `https://${domain}`;
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    public variables(): Record<string, () => Promise<string | undefined>> {
+        return {};
+    }
+
+    references(): Record<string, () => Record<string, unknown>> {
         return {};
     }
 

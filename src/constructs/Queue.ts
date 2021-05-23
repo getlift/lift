@@ -68,9 +68,9 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         );
 
         // CloudFormation outputs
-        this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueName", {
-            description: `Name of the "${id}" SQS queue.`,
-            value: this.queue.queueName,
+        this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueArn", {
+            description: `ARN of the "${id}" SQS queue.`,
+            value: this.queue.queueArn,
         });
         this.queueUrlOutput = new CfnOutput(this.cdkNode, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
@@ -86,7 +86,14 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         return await this.getQueueUrl();
     }
 
-    exposedVariables(): Record<string, () => Record<string, unknown>> {
+    public variables(): Record<string, () => Promise<string | undefined>> {
+        return {
+            queueArn: () => this.getQueueArn(),
+            queueUrl: () => this.getQueueUrl(),
+        };
+    }
+
+    references(): Record<string, () => Record<string, unknown>> {
         return {
             queueArn: () => this.referenceQueueArn(),
             queueUrl: () => this.referenceQueueUrl(),
@@ -99,6 +106,10 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
 
     referenceQueueUrl(): Record<string, unknown> {
         return this.getCloudFormationReference(this.queue.queueUrl);
+    }
+
+    async getQueueArn(): Promise<string | undefined> {
+        return this.getOutputValue(this.queueArnOutput);
     }
 
     async getQueueUrl(): Promise<string | undefined> {
