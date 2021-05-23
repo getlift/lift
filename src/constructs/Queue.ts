@@ -36,13 +36,8 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
 
-    constructor(
-        serverless: Serverless,
-        provider: AwsProvider,
-        id: string,
-        configuration: FromSchema<typeof QUEUE_DEFINITION>
-    ) {
-        super(serverless, provider, id, configuration);
+    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof QUEUE_DEFINITION>) {
+        super(provider, id, configuration);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;

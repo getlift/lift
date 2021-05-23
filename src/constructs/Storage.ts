@@ -1,7 +1,6 @@
 import { Bucket } from "@aws-cdk/aws-s3";
 import { CfnOutput } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import type { Serverless } from "../types/serverless";
 import { AwsProvider } from "./Provider";
 import { AwsComponent } from "./AwsComponent";
 
@@ -21,13 +20,8 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
-    constructor(
-        serverless: Serverless,
-        provider: AwsProvider,
-        id: string,
-        configuration: FromSchema<typeof STORAGE_DEFINITION>
-    ) {
-        super(serverless, provider, id, configuration);
+    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof STORAGE_DEFINITION>) {
+        super(provider, id, configuration);
 
         this.bucket = new Bucket(this.cdkNode, "Bucket", {
             // ...

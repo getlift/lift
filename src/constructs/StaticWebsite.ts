@@ -17,7 +17,6 @@ import {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import { log } from "../utils/logger";
-import type { Serverless } from "../types/serverless";
 import { AwsComponent } from "./AwsComponent";
 import { AwsProvider } from "./Provider";
 
@@ -49,13 +48,8 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(
-        serverless: Serverless,
-        provider: AwsProvider,
-        id: string,
-        configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>
-    ) {
-        super(serverless, provider, id, configuration);
+    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>) {
+        super(provider, id, configuration);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
@@ -161,19 +155,22 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         if (distributionId === undefined) {
             return;
         }
-        const aws = this.serverless.getProvider("aws");
-        await aws.request<CreateInvalidationRequest, CreateInvalidationResult>("CloudFront", "createInvalidation", {
-            DistributionId: distributionId,
-            InvalidationBatch: {
-                // This should be a unique ID: we use a timestamp
-                CallerReference: Date.now().toString(),
-                Paths: {
-                    // Invalidate everything
-                    Items: ["/*"],
-                    Quantity: 1,
+        await this.provider.request<CreateInvalidationRequest, CreateInvalidationResult>(
+            "CloudFront",
+            "createInvalidation",
+            {
+                DistributionId: distributionId,
+                InvalidationBatch: {
+                    // This should be a unique ID: we use a timestamp
+                    CallerReference: Date.now().toString(),
+                    Paths: {
+                        // Invalidate everything
+                        Items: ["/*"],
+                        Quantity: 1,
+                    },
                 },
-            },
-        });
+            }
+        );
     }
 
     async preRemove(): Promise<void> {
@@ -186,15 +183,14 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         log(
             `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
-        const aws = this.serverless.getProvider("aws");
-        const data = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+        const data = await this.provider.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
             Bucket: bucketName,
         });
         if (data.Contents === undefined) {
             return;
         }
         const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
-        await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+        await this.provider.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
             Bucket: bucketName,
             Delete: {
                 Objects: keys.map((key) => ({ Key: key })),

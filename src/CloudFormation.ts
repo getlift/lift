@@ -1,13 +1,6 @@
-import { pascalCase, pascalCaseTransformMerge } from "pascal-case";
 import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
 import { availabilityZones } from "./Zones";
 import { AwsProvider } from "./constructs/Provider";
-
-export function formatCloudFormationId(name: string): string {
-    return pascalCase(name, {
-        transform: pascalCaseTransformMerge,
-    });
-}
 
 export async function getStackOutput(aws: AwsProvider, output: string): Promise<string | undefined> {
     const stackName = aws.stack.stackName;
