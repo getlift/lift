@@ -38,7 +38,11 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
         this.region = serverless.getProvider("aws").getRegion();
         this.app = new App();
         const stackName = this.legacyProvider.naming.getStackName();
-        this.stack = new Stack(this.app, stackName);
+        this.stack = new Stack(this.app, `${stackName}-constructs`, {
+            env: {
+                region: this.region,
+            },
+        });
     }
 
     async deploy(): Promise<void> {
