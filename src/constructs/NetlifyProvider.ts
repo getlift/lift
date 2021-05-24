@@ -1,43 +1,42 @@
 import NetlifyAPI from "netlify";
 import * as fs from "fs";
 import * as path from "path";
-import ora from "ora";
 import { NetlifyWebsite } from "./NetlifyWebsite";
 import { Provider } from "./Provider";
 
 export class NetlifyProvider extends Provider<NetlifyWebsite> {
-    async deploy(): Promise<void> {
-        if (Object.values(this.components).length === 0) {
-            return;
+    private _netlify?: NetlifyAPI;
+
+    get netlify(): NetlifyAPI {
+        if (this._netlify === undefined) {
+            const apiToken = this.readApiToken();
+            this._netlify = new NetlifyAPI(apiToken);
         }
 
-        const apiToken = this.readApiToken();
-        const client = new NetlifyAPI(apiToken);
-        const existingSites = await client.listSites();
+        return this._netlify;
+    }
 
-        for (const [id, component] of Object.entries(this.components)) {
-            const siteName = component.siteName;
-            const site = existingSites.find((netlifySite) => netlifySite.name === siteName);
-            if (site === undefined) {
-                throw new Error(
-                    `Couldn't find a site named '${siteName}' in the Netlify account. Automatically creating a Netlify website is not supported yet.`
-                );
-            }
-
-            const progress = ora(`Deploying website '${id}' to Netlify`).start();
-            try {
-                const deployDir = path.resolve(component.deployDir);
-                await client.deploy(site.id, deployDir);
-            } catch (e) {
-                progress.fail(`Failed deploying website '${id}' to Netlify`);
-                throw e;
-            }
-            progress.succeed(`Website '${id}' deployed to Netlify`);
+    async deploy(): Promise<void> {
+        for (const component of Object.values(this.components)) {
+            // TODO auto-create websites
+            await component.upload();
         }
     }
 
     async remove(): Promise<void> {
         // TODO
+    }
+
+    async getSiteIdFromName(name: string): Promise<string> {
+        const existingSites = await this.netlify.listSites();
+        const site = existingSites.find((netlifySite) => netlifySite.name === name);
+        if (site === undefined) {
+            throw new Error(
+                `Couldn't find a site named '${name}' in the Netlify account. Automatically creating a Netlify website is not supported yet.`
+            );
+        }
+
+        return site.id;
     }
 
     private readApiToken(): string {

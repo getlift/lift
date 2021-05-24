@@ -90,13 +90,14 @@ class LiftPlugin {
     protected loadComponent(id: string, type: any, configuration: any, schema: JSONSchema): void {
         this.serverless.configSchemaHandler.defineTopLevelProperty(id, schema);
         // TODO type that more strongly
-        const component = new type(this.awsProvider, id, configuration) as Component<any>;
-        this.components[id] = component;
-        if (component instanceof AwsComponent) {
-            this.awsProvider.addComponent(id, component);
-        }
-        if (component instanceof NetlifyWebsite) {
+        if (type === NetlifyWebsite) {
+            const component = new type(this.netlifyProvider, id, configuration) as NetlifyWebsite;
+            this.components[id] = component;
             this.netlifyProvider.addComponent(id, component);
+        } else {
+            const component = new type(this.awsProvider, id, configuration) as AwsComponent<any>;
+            this.components[id] = component;
+            this.awsProvider.addComponent(id, component);
         }
     }
 
@@ -162,17 +163,11 @@ class LiftPlugin {
     private registerCommands() {
         for (const [id, component] of Object.entries(this.components)) {
             const commands = component.commands();
-            if (Object.keys(commands).length > 0) {
-                const allCommands: CommandsDefinition = {};
-                for (const [command, handler] of Object.entries(commands)) {
-                    allCommands[command] = {
-                        lifecycleEvents: [command],
-                    };
-                    this.hooks[`${id}:${command}:${command}`] = handler;
-                }
-                this.commands[id] = {
-                    commands: allCommands,
+            for (const [command, handler] of Object.entries(commands)) {
+                this.commands[`${id}:${command}`] = {
+                    lifecycleEvents: [command],
                 };
+                this.hooks[`${id}:${command}:${command}`] = handler;
             }
         }
     }
