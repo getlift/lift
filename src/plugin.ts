@@ -8,6 +8,8 @@ import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/StaticWeb
 import { Component } from "./constructs/Component";
 import { AwsProvider } from "./constructs/Provider";
 import { AwsComponent } from "./constructs/AwsComponent";
+import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/NetlifyWebsite";
+import { NetlifyProvider } from "./constructs/NetlifyProvider";
 
 // TODO of course this should be dynamic in the real implementation
 const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
@@ -23,6 +25,10 @@ const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
         class: StaticWebsite,
         schema: STATIC_WEBSITE_DEFINITION,
     },
+    "netlify/website": {
+        class: NetlifyWebsite,
+        schema: NETLIFY_WEBSITE_DEFINITION,
+    },
 };
 
 /**
@@ -30,6 +36,7 @@ const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
  */
 class LiftPlugin {
     private readonly awsProvider: AwsProvider;
+    private readonly netlifyProvider: NetlifyProvider;
     private readonly components: Record<string, Component<any>> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
@@ -39,6 +46,7 @@ class LiftPlugin {
     constructor(serverless: Serverless) {
         this.serverless = serverless;
         this.awsProvider = new AwsProvider(this.serverless, "aws");
+        this.netlifyProvider = new NetlifyProvider(this.serverless, "netlify");
 
         for (const [id, configuration] of Object.entries(serverless.configurationInput)) {
             if (
@@ -54,8 +62,14 @@ class LiftPlugin {
 
         this.hooks = {
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "before:deploy:deploy": async () => await this.awsProvider.deploy(),
-            "after:remove:remove": async () => await this.awsProvider.remove(),
+            "before:deploy:deploy": async () => {
+                await this.netlifyProvider.deploy();
+                await this.awsProvider.deploy();
+            },
+            "after:remove:remove": async () => {
+                await this.awsProvider.remove();
+                await this.netlifyProvider.remove();
+            },
         };
 
         // TODO variables should be resolved just before deploying each provider
@@ -80,6 +94,9 @@ class LiftPlugin {
         this.components[id] = component;
         if (component instanceof AwsComponent) {
             this.awsProvider.addComponent(id, component);
+        }
+        if (component instanceof NetlifyWebsite) {
+            this.netlifyProvider.addComponent(id, component);
         }
     }
 

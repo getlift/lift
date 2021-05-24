@@ -25,6 +25,7 @@
     "js-yaml": "^3.14.0",
     "lodash": "^4.17.21",
     "log-symbols": "^4.0.0",
+    "netlify": "^6.1.29",
     "node-notifier": "^8.0.0",
     "ora": "^5.0.0",
     "pascal-case": "^3.1.2",

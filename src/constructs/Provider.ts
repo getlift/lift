@@ -12,7 +12,7 @@ export abstract class Provider<COMPONENT extends Component<any>> {
     protected readonly id: string;
     protected components: Record<string, COMPONENT> = {};
 
-    protected constructor(serverless: Serverless, id: string) {
+    constructor(serverless: Serverless, id: string) {
         this.id = id;
     }
 
@@ -46,7 +46,12 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     }
 
     async deploy(): Promise<void> {
-        setLogLevel(1);
+        // No CDK component
+        if (Object.values(this.components).length === 0) {
+            return;
+        }
+
+        // setLogLevel(1);
 
         const credentials = new Credentials(this.legacyProvider.getCredentials());
         const credentialProviderChain = new CredentialProviderChain();
