@@ -1,8 +1,8 @@
 import NetlifyAPI from "netlify";
 import * as fs from "fs";
 import * as path from "path";
+import ora from "ora";
 import { NetlifyWebsite } from "./NetlifyWebsite";
-import { log } from "../utils/logger";
 import { Provider } from "./Provider";
 
 export class NetlifyProvider extends Provider<NetlifyWebsite> {
@@ -13,12 +13,26 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
 
         const apiToken = this.readApiToken();
         const client = new NetlifyAPI(apiToken);
+        const existingSites = await client.listSites();
 
         for (const [id, component] of Object.entries(this.components)) {
-            log(`Deploying website '${id}' to Netlify`);
-            const deployDir = path.resolve(component.deployDir);
-            await client.deploy(component.siteId, deployDir);
-            log("Website deployed");
+            const siteName = component.siteName;
+            const site = existingSites.find((netlifySite) => netlifySite.name === siteName);
+            if (site === undefined) {
+                throw new Error(
+                    `Couldn't find a site named '${siteName}' in the Netlify account. Automatically creating a Netlify website is not supported yet.`
+                );
+            }
+
+            const progress = ora(`Deploying website '${id}' to Netlify`).start();
+            try {
+                const deployDir = path.resolve(component.deployDir);
+                await client.deploy(site.id, deployDir);
+            } catch (e) {
+                progress.fail(`Failed deploying website '${id}' to Netlify`);
+                throw e;
+            }
+            progress.succeed(`Website '${id}' deployed to Netlify`);
         }
     }
 

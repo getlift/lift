@@ -6,11 +6,11 @@ export const NETLIFY_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "netlify/website" },
-        siteId: { type: "string" },
+        name: { type: "string" },
         path: { type: "string" },
     },
     additionalProperties: false,
-    required: ["siteId", "path"],
+    required: ["name", "path"],
 } as const;
 
 export class NetlifyWebsite extends Component<typeof NETLIFY_WEBSITE_DEFINITION> {
@@ -26,8 +26,8 @@ export class NetlifyWebsite extends Component<typeof NETLIFY_WEBSITE_DEFINITION>
         this.provider = provider;
     }
 
-    get siteId(): string {
-        return this.configuration.siteId;
+    get siteName(): string {
+        return this.configuration.name;
     }
 
     get deployDir(): string {

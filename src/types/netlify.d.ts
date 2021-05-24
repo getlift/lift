@@ -162,6 +162,7 @@ declare module "netlify" {
         createSite: (site: { body: CreateSiteRequest }) => Promise<CreateSiteResponse>;
         deleteSite: (site: DeleteSite) => Promise<void>;
         getSite: (site: { id: string }) => Promise<NetlifySite>;
+        listSites: () => Promise<NetlifySite[]>;
         deploy: (siteId: string, buildDir: string) => Promise<NetlifySite>;
     }
 }
