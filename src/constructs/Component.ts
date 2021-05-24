@@ -21,10 +21,6 @@ export abstract class Component<S extends JSONSchema> {
         return {};
     }
 
-    permissions(): PolicyStatement[] {
-        return [];
-    }
-
     /**
      * Output for `serverless info`
      */
