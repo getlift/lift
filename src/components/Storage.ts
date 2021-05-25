@@ -71,6 +71,19 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
         });
     }
 
+    permissions(): PolicyStatement[] {
+        return this.getComponents().map((storage) => {
+            return new PolicyStatement(
+                ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                [
+                    storage.referenceBucketArn(),
+                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
+                    Stack.of(this).resolve(Fn.join("/", [storage.referenceBucketArn(), "*"])),
+                ]
+            );
+        });
+    }
+
     async info(): Promise<void> {
         const getAllStorageBucketNames = await Promise.all(
             this.getComponents().map(async (storage) => {

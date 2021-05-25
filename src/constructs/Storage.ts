@@ -1,8 +1,9 @@
 import { Bucket } from "@aws-cdk/aws-s3";
-import { CfnOutput } from "@aws-cdk/core";
+import { CfnOutput, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsProvider } from "./Provider";
 import { AwsComponent } from "./AwsComponent";
+import { PolicyStatement } from "../Stack";
 
 export const STORAGE_DEFINITION = {
     type: "object",
@@ -29,6 +30,19 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
         this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
             value: this.bucket.bucketName,
         });
+    }
+
+    permissions(): PolicyStatement[] {
+        return [
+            new PolicyStatement(
+                ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                [
+                    this.referenceBucketArn(),
+                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
+                    Stack.of(this.cdkNode).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
+                ]
+            ),
+        ];
     }
 
     /**
