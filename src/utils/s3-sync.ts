@@ -16,7 +16,6 @@ import { chunk } from "lodash";
 import chalk from "chalk";
 import { Provider } from "../types/serverless";
 
-const readFile = util.promisify(fs.readFile);
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
 
@@ -36,7 +35,7 @@ export async function s3Sync(aws: Provider, localPath: string, bucketName: strin
     for (const batch of chunk(filesToUpload, 2)) {
         await Promise.all(
             batch.map(async (file) => {
-                const fileContent = await readFile(path.join(localPath, file));
+                const fileContent = fs.readFileSync(path.join(localPath, file));
 
                 // Check that the file isn't already uploaded
                 if (file in existingS3Objects) {
@@ -141,6 +140,6 @@ async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<
     });
 }
 
-function computeS3ETag(fileContent: Buffer) {
+export function computeS3ETag(fileContent: Buffer): string {
     return '"' + crypto.createHash("md5").update(fileContent).digest("hex") + '"';
 }
