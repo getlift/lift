@@ -2,10 +2,6 @@
 
 *Shipping Serverless features made easy*
 
-> 🚧 The project is currently a **work in progress**, expect a first beta in May.
->
-> Stay updated by *Watching* the repository.
-
 ## Features
 
 Lift is a [Serverless](https://www.serverless.com/) plugin that simplifies deploying well-architected serverless applications.
@@ -38,7 +34,7 @@ plugins:
 provider:
   name: aws
 
-static-website:
+static-websites:
   landing-page:
     path: 'landing/dist'
     domain: mywebsite.com
@@ -50,11 +46,11 @@ storage:
 
 ## Components
 
-### Static Website
+### Static Websites
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
-[**Static website documentation**](docs/static-websites.md)
+[**Static websites documentation**](docs/static-websites.md)
 
 ### Storage
 
@@ -62,11 +58,17 @@ Deploy preconfigured S3 buckets to store files.
 
 [**Storage documentation**](docs/storage.md)
 
-### Queue
+### Queues
 
 Deploy queues and workers for asynchronous processing.
 
 [**Queues documentation**](docs/queues.md)
+
+### Webhooks
+
+Deploy webhooks to receive notification from 3rd party applications.
+
+[**Webhooks documentation**](docs/webhooks.md)
 
 Got ideas for new components? [Open and upvote component drafts](https://github.com/getlift/lift/discussions/categories/components).
 

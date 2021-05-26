@@ -25,7 +25,7 @@ import { Serverless } from "../types/serverless";
 import { log } from "../utils/logger";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
-const COMPONENT_NAME = "static-website";
+const COMPONENT_NAME = "static-websites";
 const COMPONENT_DEFINITION = {
     type: "object",
     properties: {
@@ -57,7 +57,7 @@ const COMPONENT_DEFINITIONS = {
 
 type ComponentConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
 
-export class StaticWebsite extends Component<
+export class StaticWebsites extends Component<
     typeof COMPONENT_NAME,
     typeof COMPONENT_DEFINITIONS,
     StaticWebsiteConstruct
@@ -70,7 +70,7 @@ export class StaticWebsite extends Component<
         });
 
         this.commands = {
-            "static-website": {
+            "static-websites": {
                 commands: {
                     // Sub-command: `serverless static-website deploy`
                     deploy: {
@@ -81,7 +81,7 @@ export class StaticWebsite extends Component<
         };
 
         this.hooks["after:deploy:deploy"] = this.deploy.bind(this);
-        this.hooks["static-website:deploy:deploy"] = this.deploy.bind(this);
+        this.hooks["static-websites:deploy:deploy"] = this.deploy.bind(this);
 
         this.hooks["before:remove:remove"] = this.remove.bind(this);
 

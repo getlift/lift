@@ -1,10 +1,11 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
-import { CfnOutput, Construct, Duration } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { has, isString } from "lodash";
+import { isString } from "lodash";
 import chalk from "chalk";
 import type { Serverless } from "../types/serverless";
 import { Component, ComponentConstruct } from "../classes/Component";
+import { PolicyStatement } from "../Stack";
 
 const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
 const STORAGE_COMPONENT = "storage";
@@ -26,11 +27,14 @@ const STORAGE_DEFINITIONS = {
     },
     additionalProperties: false,
 } as const;
-
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     archive: 45,
     encryption: "s3",
 };
+enum STORAGE_VARIABLES {
+    name = "bucketName",
+    arn = "bucketArn",
+}
 
 export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS, StorageConstruct> {
     constructor(serverless: Serverless) {
@@ -50,19 +54,24 @@ export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_
     }
 
     resolve({ address }: { address: string }): { value: Record<string, unknown> } {
-        const configuration = this.getConfiguration();
-        if (!has(configuration, address)) {
-            throw new Error(
-                `No storage named ${address} configured in service file. Available components are: ${Object.keys(
-                    configuration
-                ).join(", ")}`
-            );
-        }
-        const child = this.node.tryFindChild(address) as StorageConstruct;
+        const [id, property] = address.split(".", 2);
+        const storage = this.getComponent(id);
 
-        return {
-            value: child.referenceBucketArn(),
-        };
+        switch (property) {
+            case STORAGE_VARIABLES.arn:
+                return {
+                    value: storage.referenceBucketArn(),
+                };
+            case STORAGE_VARIABLES.name:
+                return {
+                    value: storage.referenceBucketName(),
+                };
+            default:
+                throw new Error(
+                    `Unexepected property ${property} accessed on storage componened ${id}. ` +
+                        `Allowed values are ${Object.values(STORAGE_VARIABLES).join(", ")}`
+                );
+        }
     }
 
     compile(): void {
@@ -142,6 +151,10 @@ class StorageConstruct extends ComponentConstruct {
         this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             value: this.bucket.bucketName,
         });
+    }
+
+    referenceBucketName(): Record<string, unknown> {
+        return this.getCloudFormationReference(this.bucket.bucketName);
     }
 
     referenceBucketArn(): Record<string, unknown> {

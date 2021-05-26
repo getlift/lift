@@ -3,7 +3,7 @@ service: storage
 provider:
   name: aws
 
-static-website:
+static-websites:
   landing:
     path: .
     domain:
