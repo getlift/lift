@@ -1,0 +1,31 @@
+service: lift-demo-queues
+
+provider:
+    name: aws
+    region: us-east-1
+    lambdaHashingVersion: 20201221
+    environment:
+        QUEUE_URL: ${constructs:import.queueUrl}
+    iam:
+        role:
+            statements:
+                # Allow to send messages to SQS
+                -   Effect: Allow
+                    Action: sqs:SendMessage
+                    Resource: ${constructs:import.queueArn}
+
+functions:
+    publisher:
+        handler: publisher.handler
+        runtime: nodejs14.x
+        events:
+            -   httpApi: 'GET /'
+
+import:
+    type: queue
+    worker:
+        handler: worker.handler
+    alarm: matthieu@mnapoli.fr
+
+plugins:
+    - ../../dist/src/plugin.js

@@ -1,0 +1,14 @@
+service: lift-demo-netlify
+
+provider:
+    name: aws
+    region: us-east-1
+    lambdaHashingVersion: 20201221
+
+landing:
+    type: netlify/website
+    name: construct-demo
+    path: .
+
+plugins:
+    - ../../dist/src/plugin.js

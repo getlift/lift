@@ -1,0 +1,19 @@
+service: lift-demo-storage
+
+provider:
+    name: aws
+    region: us-east-1
+    lambdaHashingVersion: 20201221
+
+functions:
+    test:
+        handler: function.handler
+        runtime: nodejs14.x
+        environment:
+            BUCKET_NAME: ${construct:avatars.bucketName}
+
+avatars:
+    type: storage
+
+plugins:
+    - ../../dist/src/plugin.js
