@@ -37,6 +37,7 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         super(provider, id, configuration);
 
         // The default function timeout is 6 seconds in the Serverless Framework
+        // TODO use the Function's construct timeout
         const functionTimeout = configuration.worker.timeout ?? 6;
 
         const maxRetries = configuration.maxRetries ?? 3;

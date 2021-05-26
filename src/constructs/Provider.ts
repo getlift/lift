@@ -1,12 +1,14 @@
 import { App, Stack } from "@aws-cdk/core";
 import { CredentialProviderChain, Credentials } from "aws-sdk";
 import { Bootstrapper, SdkProvider } from "aws-cdk";
-import { setLogLevel } from "aws-cdk/lib/logging";
 import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deployments";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
+import * as fs from "fs";
+import * as path from "path";
 import type { Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { Component } from "./Component";
 import { AwsComponent } from "./AwsComponent";
+import { log } from "../utils/logger";
 
 export abstract class Provider<COMPONENT extends Component<any>> {
     protected readonly id: string;
@@ -96,6 +98,17 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     async remove(): Promise<void> {
         await this.preRemove();
         // TODO CDK remove
+    }
+
+    async package(): Promise<void> {
+        // No CDK component
+        if (Object.values(this.components).length === 0) {
+            return;
+        }
+        log(`Packaging ${this.stack.stackName}`);
+        const stackArtifact = this.app.synth().getStackByName(this.stack.stackName);
+        const templatePath = path.join(process.cwd(), ".serverless/cdk-template.json");
+        fs.writeFileSync(templatePath, JSON.stringify(stackArtifact.template, undefined, 2));
     }
 
     private async postDeploy(): Promise<void> {

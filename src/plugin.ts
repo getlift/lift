@@ -10,6 +10,7 @@ import { AwsProvider } from "./constructs/Provider";
 import { AwsComponent } from "./constructs/AwsComponent";
 import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/NetlifyWebsite";
 import { NetlifyProvider } from "./constructs/NetlifyProvider";
+import { HTTP_API_DEFINITION, HttpApi } from "./constructs/HttpApi";
 
 // TODO of course this should be dynamic in the real implementation
 const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
@@ -24,6 +25,10 @@ const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
     "static-website": {
         class: StaticWebsite,
         schema: STATIC_WEBSITE_DEFINITION,
+    },
+    "http-api": {
+        class: HttpApi,
+        schema: HTTP_API_DEFINITION,
     },
     "netlify/website": {
         class: NetlifyWebsite,
@@ -62,6 +67,9 @@ class LiftPlugin {
 
         this.hooks = {
             "before:aws:info:displayStackOutputs": this.info.bind(this),
+            "before:package:finalize": async () => {
+                await this.awsProvider.package();
+            },
             "before:deploy:deploy": async () => {
                 await this.netlifyProvider.deploy();
                 await this.awsProvider.deploy();
