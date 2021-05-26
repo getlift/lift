@@ -5,7 +5,11 @@ import {
     CloudFrontAllowedCachedMethods,
     CloudFrontAllowedMethods,
     CloudFrontWebDistribution,
+    HttpVersion,
     OriginAccessIdentity,
+    PriceClass,
+    ViewerCertificate,
+    ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import { spawnSync } from "child_process";
 import chalk from "chalk";
@@ -42,13 +46,15 @@ export const STATIC_WEBSITE_DEFINITION = {
     required: ["path"],
 } as const;
 
+type StaticWebsiteConfiguration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
+
 export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION> {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof STATIC_WEBSITE_DEFINITION>) {
+    constructor(provider: AwsProvider, id: string, configuration: StaticWebsiteConfiguration) {
         super(provider, id, configuration);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
@@ -67,6 +73,14 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         });
 
         const distribution = new CloudFrontWebDistribution(this.cdkNode, "CDN", {
+            // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
+            priceClass: PriceClass.PRICE_CLASS_100,
+            // Enable http2 transfer for better performances
+            httpVersion: HttpVersion.HTTP2,
+            viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            // Send all page requests to index.html
+            defaultRootObject: "index.html",
+            // Origins are where CloudFront fetches content
             originConfigs: [
                 {
                     // The CDK will automatically allow CloudFront to access S3 via the "Origin Access Identity"
@@ -94,7 +108,16 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
                     ],
                 },
             ],
-            // ...
+            // For SPA we need dynamic pages to be served by index.html
+            errorConfigurations: [
+                {
+                    errorCode: 404,
+                    errorCachingMinTtl: 0,
+                    responseCode: 200,
+                    responsePagePath: "/index.html",
+                },
+            ],
+            viewerCertificate: this.compileViewerCertificate(configuration),
         });
 
         // CloudFormation outputs
@@ -119,6 +142,27 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
+    }
+
+    private compileViewerCertificate(config: StaticWebsiteConfiguration) {
+        if (config.certificate === undefined) {
+            return undefined;
+        }
+
+        let aliases: string[] = [];
+        if (config.domain !== undefined) {
+            aliases = typeof config.domain === "string" ? [config.domain] : config.domain;
+        }
+
+        return {
+            aliases: aliases,
+            props: {
+                acmCertificateArn: config.certificate,
+                // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
+                sslSupportMethod: "sni-only",
+                minimumProtocolVersion: "TLSv1.1_2016",
+            },
+        } as ViewerCertificate;
     }
 
     commands(): Record<string, () => Promise<void>> {

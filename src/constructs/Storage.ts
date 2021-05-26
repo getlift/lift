@@ -1,5 +1,5 @@
-import { Bucket } from "@aws-cdk/aws-s3";
-import { CfnOutput, Fn, Stack } from "@aws-cdk/core";
+import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
+import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsProvider } from "./Provider";
 import { AwsComponent } from "./AwsComponent";
@@ -16,17 +16,45 @@ export const STORAGE_DEFINITION = {
     },
     additionalProperties: false,
 } as const;
+const STORAGE_DEFAULTS = {
+    archive: 45,
+    encryption: "s3",
+};
 
 export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
     constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof STORAGE_DEFINITION>) {
-        super(provider, id, configuration);
+        const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
+
+        super(provider, id, resolvedConfiguration);
+
+        const encryptionOptions = {
+            s3: BucketEncryption.S3_MANAGED,
+            kms: BucketEncryption.KMS_MANAGED,
+        };
 
         this.bucket = new Bucket(this.cdkNode, "Bucket", {
-            // ...
+            encryption: encryptionOptions[resolvedConfiguration.encryption],
+            versioned: true,
+            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            enforceSSL: true,
+            lifecycleRules: [
+                {
+                    transitions: [
+                        {
+                            storageClass: StorageClass.INTELLIGENT_TIERING,
+                            transitionAfter: Duration.days(0),
+                        },
+                    ],
+                },
+                {
+                    noncurrentVersionExpiration: Duration.days(30),
+                },
+            ],
         });
+
         this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
             value: this.bucket.bucketName,
         });

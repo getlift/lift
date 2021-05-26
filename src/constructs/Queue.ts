@@ -2,6 +2,9 @@ import { CfnOutput, Duration } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
 import { SqsEventSource } from "@aws-cdk/aws-lambda-event-sources";
+import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
+import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
+import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { PolicyStatement } from "../Stack";
 import { AwsComponent } from "./AwsComponent";
 import { AwsProvider } from "./Provider";
@@ -54,7 +57,42 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
                 queue: dlq,
             },
         });
-        // ...
+
+        const alarmEmail = configuration.alarm;
+        if (alarmEmail !== undefined) {
+            const alarmTopic = new Topic(this.cdkNode, "AlarmTopic", {
+                topicName: this.provider.stack.stackName + "-" + id + "-dlq-alarm-topic",
+                displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
+            });
+            new Subscription(this.cdkNode, "AlarmTopicSubscription", {
+                topic: alarmTopic,
+                protocol: SubscriptionProtocol.EMAIL,
+                endpoint: alarmEmail,
+            });
+
+            const alarm = new Alarm(this.cdkNode, "Alarm", {
+                alarmName: this.provider.stack.stackName + "-" + id + "-dlq-alarm",
+                alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
+                metric: new Metric({
+                    namespace: "AWS/SQS",
+                    metricName: "ApproximateNumberOfMessagesVisible",
+                    dimensions: {
+                        QueueName: dlq.queueName,
+                    },
+                    statistic: "Sum",
+                    period: Duration.minutes(1),
+                }),
+                evaluationPeriods: 1,
+                // Alert as soon as we have 1 message in the DLQ
+                threshold: 0,
+                comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+            });
+            alarm.addAlarmAction({
+                bind(): AlarmActionConfig {
+                    return { alarmActionArn: alarmTopic.topicArn };
+                },
+            });
+        }
 
         this.worker = new Function(this.provider, "Worker", configuration.worker);
         this.queue.grantConsumeMessages(this.worker.function);
