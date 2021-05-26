@@ -5,14 +5,14 @@ provider:
     region: us-east-1
     lambdaHashingVersion: 20201221
     environment:
-        QUEUE_URL: ${constructs:import.queueUrl}
+        QUEUE_URL: ${construct:import.queueUrl}
     iam:
         role:
             statements:
                 # Allow to send messages to SQS
                 -   Effect: Allow
                     Action: sqs:SendMessage
-                    Resource: ${constructs:import.queueArn}
+                    Resource: ${construct:import.queueArn}
 
 functions:
     publisher:

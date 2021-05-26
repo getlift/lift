@@ -76,7 +76,7 @@ class LiftPlugin {
         // else we might get outdated values
         this.configurationVariablesSources = {
             // TODO these 2 variable sources should be merged eventually
-            constructs: {
+            construct: {
                 resolve: this.resolveVariable.bind(this),
             },
             reference: {
@@ -126,7 +126,7 @@ class LiftPlugin {
         };
     }
 
-    async resolveReference({ address }: { address: string }): Promise<{ value: Record<string, unknown> }> {
+    resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
 
         if (!has(this.components, id)) {
