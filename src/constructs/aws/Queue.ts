@@ -105,6 +105,8 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
                 maxBatchingWindow: Duration.seconds(1),
             })
         );
+        // Allow all Lambda functions of the stack to send messages into the queue
+        this.queue.grantSendMessages(this.provider.lambdaRole);
 
         // CloudFormation outputs
         this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueArn", {

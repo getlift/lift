@@ -33,7 +33,9 @@ export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
             code: lambda.Code.fromAsset(process.cwd()),
             handler: configuration.handler,
             environment: configuration.environment,
+            role: provider.lambdaRole,
         });
+
         this.functionNameOutput = new CfnOutput(this.cdkNode, "FunctionName", {
             description: `Name of the "${id}" function.`,
             value: this.function.functionName,

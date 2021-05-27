@@ -5,6 +5,7 @@ import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deploy
 import path from "path";
 import fs from "fs";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
+import { ManagedPolicy, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import { log } from "../../utils/logger";
 import { Provider as LegacyAwsProvider, Serverless } from "../../types/serverless";
 import { AwsComponent } from "./AwsComponent";
@@ -15,6 +16,10 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     public readonly app: App;
     public readonly stack: Stack;
     private readonly legacyProvider: LegacyAwsProvider;
+    /**
+     * IAM role used by all Lambda functions of the stack.
+     */
+    public readonly lambdaRole: Role;
 
     constructor(serverless: Serverless, id: string) {
         super(serverless, id);
@@ -27,6 +32,14 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
             env: {
                 region: this.region,
             },
+        });
+
+        this.lambdaRole = new Role(this.stack, "LambdaRole", {
+            assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+            managedPolicies: [
+                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
+                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+            ],
         });
     }
 

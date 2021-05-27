@@ -36,7 +36,9 @@ constructs:
                 handler: publisher.handler
                 runtime: nodejs14.x
                 environment:
-                    QUEUE_URL: ${construct:import.queueUrl}
+                    # TODO: make the reference work
+                    QUEUE_URL: https://sqs.us-east-1.amazonaws.com/416566615250/lift-demo-queues-dev-constructs-import
+#                    QUEUE_URL: ${reference:import.queueUrl}
 
     import:
         provider: aws

@@ -55,6 +55,8 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
                 },
             ],
         });
+        // Allow all Lambda functions of the stack to read/write the bucket
+        this.bucket.grantReadWrite(this.provider.lambdaRole);
 
         this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
             value: this.bucket.bucketName,
