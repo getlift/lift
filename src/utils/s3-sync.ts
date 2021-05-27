@@ -36,11 +36,11 @@ export async function s3Sync({
     bucketName: string;
 }): Promise<{ hasChanges: boolean }> {
     let hasChanges = false;
-    const filesToUpload: string[] = await listFilesRecursively(localPath);
+    const filesToUpload: Set<string> = await listFilesRecursively(localPath);
     const existingS3Objects = await s3ListAll(aws, bucketName);
 
     // Upload files by chunks
-    for (const batch of chunk(filesToUpload, 2)) {
+    for (const batch of chunk([...filesToUpload], 2)) {
         await Promise.all(
             batch.map(async (file) => {
                 const fileContent = fs.readFileSync(path.join(localPath, file));
@@ -73,7 +73,7 @@ export async function s3Sync({
     return { hasChanges };
 }
 
-async function listFilesRecursively(directory: string): Promise<string[]> {
+async function listFilesRecursively(directory: string): Promise<Set<string>> {
     const items = await readdir(directory);
 
     const files = await Promise.all(
@@ -85,14 +85,14 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
             } else if (fileStat.isDirectory()) {
                 const subFiles = await listFilesRecursively(fullPath);
 
-                return subFiles.map((subFileName) => path.join(fileName, subFileName));
+                return [...subFiles].map((subFileName) => path.join(fileName, subFileName));
             }
 
             return [];
         })
     );
 
-    return files.flat(1);
+    return new Set(files.flat(1));
 }
 
 async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> {
@@ -117,9 +117,9 @@ async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> 
     return objects;
 }
 
-function findObjectsToDelete(existing: string[], target: string[]): string[] {
+function findObjectsToDelete(existing: string[], target: Set<string>): string[] {
     // Returns every key that shouldn't exist anymore
-    return existing.filter((key) => target.indexOf(key) === -1);
+    return existing.filter((key) => target.has(key));
 }
 
 async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
