@@ -3,7 +3,7 @@ import { FromSchema } from "json-schema-to-ts";
 import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
 import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "./Provider";
+import { AwsProvider } from "../Provider";
 import { Function, FUNCTION_DEFINITION } from "./Function";
 
 export const HTTP_API_DEFINITION = {

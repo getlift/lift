@@ -2,7 +2,7 @@ import { FromSchema } from "json-schema-to-ts";
 import * as child_process from "child_process";
 import ora from "ora";
 import path from "path";
-import { Component } from "./Component";
+import { Component } from "../Component";
 import { NetlifyProvider } from "./NetlifyProvider";
 
 export const NETLIFY_WEBSITE_DEFINITION = {

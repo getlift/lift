@@ -20,9 +20,9 @@ import {
     ListObjectsV2Output,
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
-import { log } from "../utils/logger";
+import { log } from "../../utils/logger";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "./Provider";
+import { AwsProvider } from "../Provider";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: "object",

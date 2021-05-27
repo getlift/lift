@@ -5,9 +5,9 @@ import { SqsEventSource } from "@aws-cdk/aws-lambda-event-sources";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
-import { PolicyStatement } from "../Stack";
+import { PolicyStatement } from "../../Stack";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "./Provider";
+import { AwsProvider } from "../Provider";
 import { Function, FUNCTION_DEFINITION } from "./Function";
 
 export const QUEUE_DEFINITION = {

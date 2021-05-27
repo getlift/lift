@@ -3,14 +3,15 @@ import type { JSONSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { JSONSchema6 } from "json-schema";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
-import { Storage, STORAGE_DEFINITION } from "./constructs/Storage";
-import { Queue, QUEUE_DEFINITION } from "./constructs/Queue";
-import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/StaticWebsite";
+import { Storage, STORAGE_DEFINITION } from "./constructs/aws/Storage";
+import { Queue, QUEUE_DEFINITION } from "./constructs/aws/Queue";
+import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/aws/StaticWebsite";
 import { Component } from "./constructs/Component";
-import { AwsProvider, Provider } from "./constructs/Provider";
-import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/NetlifyWebsite";
-import { NetlifyProvider } from "./constructs/NetlifyProvider";
-import { HTTP_API_DEFINITION, HttpApi } from "./constructs/HttpApi";
+import { Provider } from "./constructs/Provider";
+import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/netlify/NetlifyWebsite";
+import { NetlifyProvider } from "./constructs/netlify/NetlifyProvider";
+import { HTTP_API_DEFINITION, HttpApi } from "./constructs/aws/HttpApi";
+import { AwsProvider } from "./constructs/aws/AwsProvider";
 
 // TODO of course this should be dynamic in the real implementation
 const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {

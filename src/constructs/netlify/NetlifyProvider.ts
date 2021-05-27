@@ -2,7 +2,7 @@ import NetlifyAPI from "netlify";
 import * as fs from "fs";
 import * as path from "path";
 import { NetlifyWebsite } from "./NetlifyWebsite";
-import { Provider } from "./Provider";
+import { Provider } from "../Provider";
 
 export class NetlifyProvider extends Provider<NetlifyWebsite> {
     private _netlify?: NetlifyAPI;

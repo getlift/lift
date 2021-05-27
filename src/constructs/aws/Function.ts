@@ -2,7 +2,7 @@ import * as lambda from "@aws-cdk/aws-lambda";
 import { CfnOutput } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "./Provider";
+import { AwsProvider } from "../Provider";
 
 export const FUNCTION_DEFINITION = {
     type: "object",
