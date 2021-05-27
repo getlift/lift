@@ -7,8 +7,8 @@ import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { PolicyStatement } from "../../Stack";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "../Provider";
 import { Function, FUNCTION_DEFINITION } from "./Function";
+import { AwsProvider } from "./AwsProvider";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -121,21 +121,17 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];
     }
 
-    async infoOutput(): Promise<string | undefined> {
-        return await this.getQueueUrl();
-    }
-
-    public variables(): Record<string, () => Promise<string | undefined>> {
+    public outputs(): Record<string, () => Promise<string | undefined>> {
         return {
-            queueArn: () => this.getQueueArn(),
             queueUrl: () => this.getQueueUrl(),
+            queueArn: () => this.getQueueArn(),
         };
     }
 
     references(): Record<string, () => Record<string, unknown>> {
         return {
-            queueArn: () => this.referenceQueueArn(),
             queueUrl: () => this.referenceQueueUrl(),
+            queueArn: () => this.referenceQueueArn(),
         };
     }
 

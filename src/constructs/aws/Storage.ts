@@ -1,9 +1,9 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsProvider } from "../Provider";
 import { AwsComponent } from "./AwsComponent";
 import { PolicyStatement } from "../../Stack";
+import { AwsProvider } from "./AwsProvider";
 
 export const STORAGE_DEFINITION = {
     type: "object",
@@ -74,15 +74,7 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
         ];
     }
 
-    /**
-     * serverless info
-     *     storage: bucket-name
-     */
-    async infoOutput(): Promise<string | undefined> {
-        return await this.getBucketName();
-    }
-
-    public variables(): Record<string, () => Promise<string | undefined>> {
+    public outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             bucketName: () => this.getBucketName(),
         };

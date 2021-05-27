@@ -3,8 +3,8 @@ import { FromSchema } from "json-schema-to-ts";
 import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
 import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "../Provider";
 import { Function, FUNCTION_DEFINITION } from "./Function";
+import { AwsProvider } from "./AwsProvider";
 
 export const HTTP_API_DEFINITION = {
     type: "object",
@@ -66,11 +66,7 @@ export class HttpApi extends AwsComponent<typeof HTTP_API_DEFINITION> {
         });
     }
 
-    async infoOutput(): Promise<string | undefined> {
-        return await this.getUrl();
-    }
-
-    public variables(): Record<string, () => Promise<string | undefined>> {
+    public outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             url: () => this.getUrl(),
         };

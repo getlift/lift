@@ -22,7 +22,7 @@ import {
 } from "aws-sdk/clients/s3";
 import { log } from "../../utils/logger";
 import { AwsComponent } from "./AwsComponent";
-import { AwsProvider } from "../Provider";
+import { AwsProvider } from "./AwsProvider";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -242,28 +242,25 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         });
     }
 
-    async infoOutput(): Promise<string | undefined> {
-        const domain = await this.getDomain();
-        if (domain === undefined) {
-            return;
-        }
-        const cname = await this.getCName();
-        if (cname === undefined) {
-            return;
-        }
-        if (domain !== cname) {
-            return `https://${domain} (CNAME: ${cname})`;
-        }
-
-        return `https://${domain}`;
-    }
-
-    public variables(): Record<string, () => Promise<string | undefined>> {
-        return {};
+    public outputs(): Record<string, () => Promise<string | undefined>> {
+        return {
+            url: this.getUrl.bind(this),
+            domain: this.getDomain.bind(this),
+            cname: this.getCName.bind(this),
+        };
     }
 
     references(): Record<string, () => Record<string, unknown>> {
         return {};
+    }
+
+    async getUrl(): Promise<string | undefined> {
+        const domain = await this.getDomain();
+        if (domain === undefined) {
+            return;
+        }
+
+        return `https://${domain}`;
     }
 
     async getBucketName(): Promise<string | undefined> {

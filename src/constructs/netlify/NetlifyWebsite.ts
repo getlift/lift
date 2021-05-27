@@ -64,11 +64,19 @@ export class NetlifyWebsite extends Component<typeof NETLIFY_WEBSITE_DEFINITION>
         return Promise.resolve(undefined);
     }
 
+    outputs(): Record<string, () => Promise<string | undefined>> {
+        return {
+            url: this.getUrl.bind(this),
+        };
+    }
+
     references(): Record<string, () => Record<string, unknown>> {
         return {};
     }
 
-    variables(): Record<string, () => Promise<string | undefined>> {
-        return {};
+    async getUrl(): Promise<string | undefined> {
+        const site = await this.provider.getSiteByName(this.configuration.name);
+
+        return site ? site.url : undefined;
     }
 }

@@ -12,16 +12,14 @@ export abstract class Component<S extends JSONSchema> {
         this.configuration = configuration;
     }
 
-    public abstract variables(): Record<string, () => Promise<string | undefined>>;
-
-    public abstract references(): Record<string, () => Record<string, unknown>>;
+    public abstract outputs(): Record<string, () => Promise<string | undefined>>;
 
     commands(): Record<string, () => Promise<void>> {
         return {};
     }
 
     /**
-     * Output for `serverless info`
+     * TODO will eventually be removed
      */
-    abstract infoOutput(): Promise<string | undefined>;
+    public abstract references(): Record<string, () => Record<string, unknown>>;
 }

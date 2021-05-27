@@ -1,4 +1,4 @@
-import NetlifyAPI from "netlify";
+import NetlifyAPI, { NetlifySite } from "netlify";
 import * as fs from "fs";
 import * as path from "path";
 import { NetlifyWebsite } from "./NetlifyWebsite";
@@ -32,8 +32,7 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
     }
 
     async getSiteIdFromName(name: string): Promise<string> {
-        const existingSites = await this.netlify.listSites();
-        const site = existingSites.find((netlifySite) => netlifySite.name === name);
+        const site = await this.getSiteByName(name);
         if (site === undefined) {
             throw new Error(
                 `Couldn't find a site named '${name}' in the Netlify account. Automatically creating a Netlify website is not supported yet.`
@@ -41,6 +40,12 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
         }
 
         return site.id;
+    }
+
+    async getSiteByName(name: string): Promise<NetlifySite | undefined> {
+        const existingSites = await this.netlify.listSites();
+
+        return existingSites.find((netlifySite) => netlifySite.name === name);
     }
 
     private readApiToken(): string {

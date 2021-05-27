@@ -77,7 +77,7 @@ class LiftPlugin {
         this.configurationVariablesSources = {
             // TODO these 2 variable sources should be merged eventually
             construct: {
-                resolve: this.resolveVariable.bind(this),
+                resolve: this.resolveOutput.bind(this),
             },
             reference: {
                 resolve: this.resolveReference.bind(this),
@@ -158,19 +158,19 @@ class LiftPlugin {
         }
     }
 
-    async resolveVariable({ address }: { address: string }): Promise<{ value: string }> {
+    async resolveOutput({ address }: { address: string }): Promise<{ value: string }> {
         const [id, property] = address.split(".", 2);
 
         if (!has(this.components, id)) {
-            throw new Error(`No component named '${id}' found in service file.`);
+            throw new Error(`No construct named '${id}' found in service file.`);
         }
         const component = this.components[id];
 
-        const properties = component.variables();
-        if (!has(properties, property)) {
+        const outputs = component.outputs();
+        if (!has(outputs, property)) {
             throw new Error(
-                `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
-                    properties
+                `\${construct:${id}.${property}} does not exist. Outputs available on \${construct:${id}} are: ${Object.keys(
+                    outputs
                 ).join(", ")}.`
             );
         }
@@ -179,7 +179,7 @@ class LiftPlugin {
         // - if it's a reference in the same stack, it should resolve to a CloudFormation reference
         // - if it's cross-stack, it should resolve to the real value
         return {
-            value: (await properties[property]()) ?? "",
+            value: (await outputs[property]()) ?? "",
         };
     }
 
@@ -207,9 +207,15 @@ class LiftPlugin {
 
     async info(): Promise<void> {
         for (const [id, component] of Object.entries(this.components)) {
-            const output = await component.infoOutput();
-            if (output !== undefined) {
-                console.log(chalk.yellow(`${id}:`) + ` ${output}`);
+            const outputs = component.outputs();
+            if (Object.keys(outputs).length > 0) {
+                console.log(chalk.yellow(`${id}:`));
+                for (const [name, resolver] of Object.entries(outputs)) {
+                    const output = await resolver();
+                    if (output !== undefined) {
+                        console.log(`  ${name}: ${output}`);
+                    }
+                }
             }
         }
     }
