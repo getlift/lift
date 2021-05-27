@@ -26,12 +26,20 @@ type S3Objects = Record<string, S3Object>;
  *
  * @return True if some changes were uploaded.
  */
-export async function s3Sync(aws: Provider, localPath: string, bucketName: string): Promise<boolean> {
+export async function s3Sync({
+    aws,
+    localPath,
+    bucketName,
+}: {
+    aws: Provider;
+    localPath: string;
+    bucketName: string;
+}): Promise<{ hasChanges: boolean }> {
     let hasChanges = false;
     const filesToUpload: string[] = await listFilesRecursively(localPath);
     const existingS3Objects = await s3ListAll(aws, bucketName);
 
-    // Upload files 5 by 5
+    // Upload files by chunks
     for (const batch of chunk(filesToUpload, 2)) {
         await Promise.all(
             batch.map(async (file) => {
@@ -62,7 +70,7 @@ export async function s3Sync(aws: Provider, localPath: string, bucketName: strin
         hasChanges = true;
     }
 
-    return hasChanges;
+    return { hasChanges };
 }
 
 async function listFilesRecursively(directory: string): Promise<string[]> {
@@ -141,5 +149,5 @@ async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<
 }
 
 export function computeS3ETag(fileContent: Buffer): string {
-    return '"' + crypto.createHash("md5").update(fileContent).digest("hex") + '"';
+    return `"${crypto.createHash("md5").update(fileContent).digest("hex")}"`;
 }

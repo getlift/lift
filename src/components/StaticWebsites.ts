@@ -280,8 +280,12 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         }
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
-        const changes = await s3Sync(this.serverless.getProvider("aws"), this.configuration.path, bucketName);
-        if (changes) {
+        const { hasChanges } = await s3Sync({
+            aws: this.serverless.getProvider("aws"),
+            localPath: this.configuration.path,
+            bucketName,
+        });
+        if (hasChanges) {
             await this.clearCDNCache();
         }
 
