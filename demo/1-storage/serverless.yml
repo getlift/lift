@@ -12,8 +12,9 @@ functions:
         environment:
             BUCKET_NAME: ${construct:avatars.bucketName}
 
-avatars:
-    type: storage
+constructs:
+    avatars:
+        type: storage
 
 plugins:
     - ../../dist/src/plugin.js

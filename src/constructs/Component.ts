@@ -1,5 +1,4 @@
 import { FromSchema, JSONSchema } from "json-schema-to-ts";
-import { PolicyStatement } from "../Stack";
 import { Provider } from "./Provider";
 
 export abstract class Component<S extends JSONSchema> {

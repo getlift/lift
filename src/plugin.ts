@@ -1,6 +1,7 @@
 import { has } from "lodash";
 import type { JSONSchema } from "json-schema-to-ts";
 import chalk from "chalk";
+import { JSONSchema6Definition } from "json-schema";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
 import { Storage, STORAGE_DEFINITION } from "./constructs/Storage";
 import { Queue, QUEUE_DEFINITION } from "./constructs/Queue";
@@ -53,23 +54,9 @@ class LiftPlugin {
         this.awsProvider = new AwsProvider(this.serverless, "aws");
         this.netlifyProvider = new NetlifyProvider(this.serverless, "netlify");
 
-        for (const [id, configuration] of Object.entries(serverless.configurationInput)) {
-            if (
-                configuration instanceof Object &&
-                typeof configuration.type === "string" &&
-                configuration.type in componentsMap
-            ) {
-                const type = componentsMap[configuration.type].class;
-                const schema = componentsMap[configuration.type].schema;
-                this.loadComponent(id, type, configuration, schema);
-            }
-        }
-
         this.hooks = {
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "before:package:finalize": async () => {
-                await this.awsProvider.package();
-            },
+            "before:package:finalize": async () => await this.awsProvider.package(),
             "before:deploy:deploy": async () => {
                 await this.netlifyProvider.deploy();
                 await this.awsProvider.deploy();
@@ -92,11 +79,30 @@ class LiftPlugin {
             },
         };
 
+        this.registerConfigSchema();
+        this.loadComponents();
         this.registerCommands();
     }
 
-    protected loadComponent(id: string, type: any, configuration: any, schema: JSONSchema): void {
-        this.serverless.configSchemaHandler.defineTopLevelProperty(id, schema);
+    private registerConfigSchema() {
+        const properties: { [k: string]: JSONSchema6Definition } = {};
+        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
+            properties[id] = componentsMap[configuration.type].schema as JSONSchema6Definition;
+        }
+        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", {
+            type: "object",
+            properties: properties,
+            additionalProperties: false,
+        });
+    }
+
+    private loadComponents() {
+        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
+            this.loadComponent(id, componentsMap[configuration.type].class, configuration);
+        }
+    }
+
+    protected loadComponent(id: string, type: any, configuration: unknown): void {
         // TODO type that more strongly
         if (type === NetlifyWebsite) {
             const component = new type(this.netlifyProvider, id, configuration) as NetlifyWebsite;
@@ -178,6 +184,29 @@ class LiftPlugin {
                 this.hooks[`${id}:${command}:${command}`] = handler;
             }
         }
+    }
+
+    /**
+     * This method is mostly a helper to validate types.
+     * It's a TypeScript mess right now, but it does the job.
+     */
+    private normalizeConstructsConfig(): Record<string, { type: string; [k: string]: any }> {
+        const serverlessConfig = (this.serverless.configurationInput as unknown) as Record<string, any>;
+        const constructConfig: Record<string, { type: string; [k: string]: any }> = {};
+        for (const [id, configuration] of Object.entries(serverlessConfig.constructs ?? {})) {
+            if (!(configuration instanceof Object)) {
+                continue;
+            }
+            if (!Object.prototype.hasOwnProperty.call(configuration, "type")) {
+                continue;
+            }
+            const validConfig = configuration as { type: unknown };
+            if (typeof validConfig.type === "string" && validConfig.type in componentsMap) {
+                constructConfig[id] = validConfig as { type: string; [k: string]: any };
+            }
+        }
+
+        return constructConfig;
     }
 }
 

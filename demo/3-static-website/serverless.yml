@@ -4,11 +4,13 @@ provider:
     name: aws
     region: us-east-1
 
-landing:
-    type: static-website
-    path: 'public'
-    domain: lift-demo.mnapoli.fr
-    certificate: arn:aws:acm:us-east-1:416566615250:certificate/05f5f9e1-b896-4725-96e3-6f143d06ac0b
+constructs:
+
+    landing:
+        type: static-website
+        path: 'public'
+        domain: lift-demo.mnapoli.fr
+        certificate: arn:aws:acm:us-east-1:416566615250:certificate/05f5f9e1-b896-4725-96e3-6f143d06ac0b
 
 plugins:
     - ../../dist/src/plugin.js

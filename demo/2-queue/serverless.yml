@@ -21,20 +21,22 @@ functions:
         events:
             -   httpApi: 'GET /'
 
-api:
-    type: http-api
-    routes:
-        '*':
-            handler: publisher.handler
-            runtime: nodejs14.x
-            environment:
-                QUEUE_URL: ${construct:import.queueUrl}
+constructs:
 
-import:
-    type: queue
-    worker:
-        handler: worker.handler
-    alarm: matthieu@mnapoli.fr
+    api:
+        type: http-api
+        routes:
+            '*':
+                handler: publisher.handler
+                runtime: nodejs14.x
+                environment:
+                    QUEUE_URL: ${construct:import.queueUrl}
+
+    import:
+        type: queue
+        worker:
+            handler: worker.handler
+        alarm: matthieu@mnapoli.fr
 
 plugins:
     - ../../dist/src/plugin.js
