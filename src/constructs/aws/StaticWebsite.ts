@@ -21,7 +21,7 @@ import {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import { log } from "../../utils/logger";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { AwsProvider } from "./AwsProvider";
 
 export const STATIC_WEBSITE_DEFINITION = {
@@ -48,7 +48,7 @@ export const STATIC_WEBSITE_DEFINITION = {
 
 type StaticWebsiteConfiguration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
 
-export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION> {
+export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION> {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;

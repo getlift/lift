@@ -2,7 +2,7 @@ import { CfnOutput } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import * as apigatewayv2 from "@aws-cdk/aws-apigatewayv2";
 import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { Function, FUNCTION_DEFINITION } from "./Function";
 import { AwsProvider } from "./AwsProvider";
 
@@ -19,7 +19,7 @@ export const HTTP_API_DEFINITION = {
     required: ["type", "routes"],
 } as const;
 
-export class HttpApi extends AwsComponent<typeof HTTP_API_DEFINITION> {
+export class HttpApi extends AwsConstruct<typeof HTTP_API_DEFINITION> {
     private readonly api: apigatewayv2.HttpApi;
     private readonly apiUrlOutput: CfnOutput;
 

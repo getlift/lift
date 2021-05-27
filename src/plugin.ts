@@ -6,7 +6,7 @@ import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./t
 import { Storage, STORAGE_DEFINITION } from "./constructs/aws/Storage";
 import { Queue, QUEUE_DEFINITION } from "./constructs/aws/Queue";
 import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/aws/StaticWebsite";
-import { Component } from "./constructs/Component";
+import { Construct } from "./constructs/Construct";
 import { Provider } from "./constructs/Provider";
 import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/netlify/NetlifyWebsite";
 import { NetlifyProvider } from "./constructs/netlify/NetlifyProvider";
@@ -14,7 +14,7 @@ import { HTTP_API_DEFINITION, HttpApi } from "./constructs/aws/HttpApi";
 import { AwsProvider } from "./constructs/aws/AwsProvider";
 
 // TODO of course this should be dynamic in the real implementation
-const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
+const constructRegistry: Record<string, { class: any; schema: JSONSchema }> = {
     storage: {
         class: Storage,
         schema: STORAGE_DEFINITION,
@@ -44,7 +44,7 @@ type MinimallyValidConstructConfig = { type: string; provider: string; [k: strin
  */
 class LiftPlugin {
     private readonly providers: Record<string, Provider<any>> = {};
-    private readonly components: Record<string, Component> = {};
+    private readonly constructs: Record<string, Construct> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
@@ -86,7 +86,7 @@ class LiftPlugin {
 
         this.registerConfigSchema();
         this.loadProviders();
-        this.loadComponents();
+        this.loadConstructs();
         this.registerCommands();
     }
 
@@ -110,7 +110,7 @@ class LiftPlugin {
         // Constructs
         const constructProperties: { [k: string]: JSONSchema6 } = {};
         for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig(false))) {
-            const constructSchema = componentsMap[configuration.type].schema as JSONSchema6;
+            const constructSchema = constructRegistry[configuration.type].schema as JSONSchema6;
             // Require the `provider` property in root constructs
             if (constructSchema.properties !== undefined) {
                 constructSchema.properties["provider"] = { type: "string" };
@@ -147,26 +147,26 @@ class LiftPlugin {
         }
     }
 
-    private loadComponents() {
+    private loadConstructs() {
         for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig(true))) {
             const provider = this.providers[configuration.provider];
-            const type = componentsMap[configuration.type].class;
+            const type = constructRegistry[configuration.type].class;
             // TODO type that more strongly
-            const component = new type(provider, id, configuration);
-            this.components[id] = component;
-            provider.addComponent(id, component);
+            const construct = new type(provider, id, configuration);
+            this.constructs[id] = construct;
+            provider.addConstruct(id, construct);
         }
     }
 
     async resolveOutput({ address }: { address: string }): Promise<{ value: string }> {
         const [id, property] = address.split(".", 2);
 
-        if (!has(this.components, id)) {
+        if (!has(this.constructs, id)) {
             throw new Error(`No construct named '${id}' found in service file.`);
         }
-        const component = this.components[id];
+        const construct = this.constructs[id];
 
-        const outputs = component.outputs();
+        const outputs = construct.outputs();
         if (!has(outputs, property)) {
             throw new Error(
                 `\${construct:${id}.${property}} does not exist. Outputs available on \${construct:${id}} are: ${Object.keys(
@@ -186,12 +186,12 @@ class LiftPlugin {
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
 
-        if (!has(this.components, id)) {
-            throw new Error(`No component named '${id}' found in service file.`);
+        if (!has(this.constructs, id)) {
+            throw new Error(`No construct named '${id}' found in service file.`);
         }
-        const component = this.components[id];
+        const construct = this.constructs[id];
 
-        const properties = component.references();
+        const properties = construct.references();
         if (!has(properties, property)) {
             throw new Error(
                 `\${reference:${id}.${property}} does not exist. Properties available on \${reference:${id}} are: ${Object.keys(
@@ -206,8 +206,8 @@ class LiftPlugin {
     }
 
     async info(): Promise<void> {
-        for (const [id, component] of Object.entries(this.components)) {
-            const outputs = component.outputs();
+        for (const [id, construct] of Object.entries(this.constructs)) {
+            const outputs = construct.outputs();
             if (Object.keys(outputs).length > 0) {
                 console.log(chalk.yellow(`${id}:`));
                 for (const [name, resolver] of Object.entries(outputs)) {
@@ -221,8 +221,8 @@ class LiftPlugin {
     }
 
     private registerCommands() {
-        for (const [id, component] of Object.entries(this.components)) {
-            const commands = component.commands();
+        for (const [id, construct] of Object.entries(this.constructs)) {
+            const commands = construct.commands();
             for (const [command, handler] of Object.entries(commands)) {
                 this.commands[`${id}:${command}`] = {
                     lifecycleEvents: [command],
@@ -250,7 +250,7 @@ class LiftPlugin {
                 throw new Error(`Construct '${id}' must have a 'provider'`);
             }
             const validConfig = configuration as { type: unknown; provider: unknown };
-            if (typeof validConfig.type !== "string" || !(validConfig.type in componentsMap)) {
+            if (typeof validConfig.type !== "string" || !(validConfig.type in constructRegistry)) {
                 throw new Error(`Construct '${id}' has an unknown type '${validConfig.type as string}'`);
             }
             if (typeof validConfig.provider !== "string") {

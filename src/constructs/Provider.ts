@@ -1,16 +1,16 @@
 import type { Serverless } from "../types/serverless";
-import { Component } from "./Component";
+import { Construct } from "./Construct";
 
-export abstract class Provider<COMPONENT extends Component<any>> {
+export abstract class Provider<C extends Construct> {
     protected readonly id: string;
-    protected components: Record<string, COMPONENT> = {};
+    protected constructs: Record<string, C> = {};
 
     constructor(serverless: Serverless, id: string) {
         this.id = id;
     }
 
-    addComponent(id: string, component: COMPONENT): void {
-        this.components[id] = component;
+    addConstruct(id: string, construct: C): void {
+        this.constructs[id] = construct;
     }
 
     abstract package(): Promise<void>;

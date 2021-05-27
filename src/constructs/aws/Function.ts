@@ -1,7 +1,7 @@
 import * as lambda from "@aws-cdk/aws-lambda";
 import { CfnOutput } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { AwsProvider } from "./AwsProvider";
 
 export const FUNCTION_DEFINITION = {
@@ -20,7 +20,7 @@ export const FUNCTION_DEFINITION = {
     required: ["type", "handler"],
 } as const;
 
-export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
+export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
     public readonly function: lambda.Function;
     private readonly functionNameOutput: CfnOutput;
 

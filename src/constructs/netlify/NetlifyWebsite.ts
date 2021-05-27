@@ -2,7 +2,7 @@ import { FromSchema } from "json-schema-to-ts";
 import * as child_process from "child_process";
 import ora from "ora";
 import path from "path";
-import { Component } from "../Component";
+import { Construct } from "../Construct";
 import { NetlifyProvider } from "./NetlifyProvider";
 
 export const NETLIFY_WEBSITE_DEFINITION = {
@@ -18,7 +18,7 @@ export const NETLIFY_WEBSITE_DEFINITION = {
 
 type Configuration = FromSchema<typeof NETLIFY_WEBSITE_DEFINITION>;
 
-export class NetlifyWebsite implements Component {
+export class NetlifyWebsite implements Construct {
     protected readonly provider: NetlifyProvider;
     protected readonly id: string;
     protected readonly configuration: Configuration;

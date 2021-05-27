@@ -6,7 +6,7 @@ import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { PolicyStatement } from "../../Stack";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { Function, FUNCTION_DEFINITION } from "./Function";
 import { AwsProvider } from "./AwsProvider";
 
@@ -27,7 +27,7 @@ export const QUEUE_DEFINITION = {
     required: ["type", "worker"],
 } as const;
 
-export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
+export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
     private readonly queue: AwsQueue;
     private readonly worker: Function;
     private readonly queueArnOutput: CfnOutput;

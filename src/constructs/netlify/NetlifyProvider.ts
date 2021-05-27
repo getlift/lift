@@ -21,9 +21,9 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
     }
 
     async deploy(): Promise<void> {
-        for (const component of Object.values(this.components)) {
+        for (const construct of Object.values(this.constructs)) {
             // TODO auto-create websites
-            await component.upload();
+            await construct.upload();
         }
     }
 

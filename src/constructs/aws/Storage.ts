@@ -1,7 +1,7 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { PolicyStatement } from "../../Stack";
 import { AwsProvider } from "./AwsProvider";
 
@@ -22,7 +22,7 @@ const STORAGE_DEFAULTS = {
     encryption: "s3",
 };
 
-export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
+export class Storage extends AwsConstruct<typeof STORAGE_DEFINITION> {
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 

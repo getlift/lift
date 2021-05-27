@@ -1,11 +1,11 @@
-import { CfnOutput, Construct, Stack } from "@aws-cdk/core";
+import { Construct as CdkConstruct, CfnOutput, Stack } from "@aws-cdk/core";
 import { FromSchema, JSONSchema } from "json-schema-to-ts";
 import { PolicyStatement } from "../../Stack";
 import { getStackOutput } from "../../CloudFormation";
-import { Component } from "../Component";
+import { Construct } from "../Construct";
 import { AwsProvider } from "./AwsProvider";
 
-export abstract class AwsComponent<S extends JSONSchema> extends Construct implements Component {
+export abstract class AwsConstruct<S extends JSONSchema> extends CdkConstruct implements Construct {
     protected readonly provider: AwsProvider;
     protected readonly id: string;
     protected readonly configuration: FromSchema<S>;

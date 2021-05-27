@@ -8,10 +8,10 @@ import { AwsIamPolicyStatements } from "@serverless/typescript";
 import { ManagedPolicy, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import { log } from "../../utils/logger";
 import { Provider as LegacyAwsProvider, Serverless } from "../../types/serverless";
-import { AwsComponent } from "./AwsComponent";
+import { AwsConstruct } from "./AwsConstruct";
 import { Provider } from "../Provider";
 
-export class AwsProvider extends Provider<AwsComponent<any>> {
+export class AwsProvider extends Provider<AwsConstruct<any>> {
     public readonly region: string;
     public readonly app: App;
     public readonly stack: Stack;
@@ -44,8 +44,8 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     }
 
     async deploy(): Promise<void> {
-        // No CDK component
-        if (Object.values(this.components).length === 0) {
+        // No CDK construct
+        if (Object.values(this.constructs).length === 0) {
             return;
         }
 
@@ -97,8 +97,8 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     }
 
     async package(): Promise<void> {
-        // No CDK component
-        if (Object.values(this.components).length === 0) {
+        // No CDK construct
+        if (Object.values(this.constructs).length === 0) {
             return;
         }
         log(`Packaging ${this.stack.stackName}`);
@@ -108,14 +108,14 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     }
 
     private async postDeploy(): Promise<void> {
-        for (const [, component] of Object.entries(this.components)) {
-            await component.postDeploy();
+        for (const [, construct] of Object.entries(this.constructs)) {
+            await construct.postDeploy();
         }
     }
 
     private async preRemove(): Promise<void> {
-        for (const [, component] of Object.entries(this.components)) {
-            await component.preRemove();
+        for (const [, construct] of Object.entries(this.constructs)) {
+            await construct.preRemove();
         }
     }
 
@@ -127,12 +127,12 @@ export class AwsProvider extends Provider<AwsComponent<any>> {
     }
 
     private appendPermissions(): void {
-        const statements = Object.entries(this.components)
-            .map(([, component]) => (component.permissions() as unknown) as AwsIamPolicyStatements)
+        const statements = Object.entries(this.constructs)
+            .map(([, construct]) => (construct.permissions() as unknown) as AwsIamPolicyStatements)
             .flat(1);
         if (statements.length === 0) {
             return;
         }
-        // TODO push permissions in all components of the provider
+        // TODO push permissions in all functions
     }
 }
