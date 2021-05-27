@@ -24,7 +24,7 @@ export const QUEUE_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["worker"],
+    required: ["type", "worker"],
 } as const;
 
 export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {

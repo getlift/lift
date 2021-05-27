@@ -16,6 +16,10 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
         return this._netlify;
     }
 
+    async package(): Promise<void> {
+        // Nothing to do
+    }
+
     async deploy(): Promise<void> {
         for (const component of Object.values(this.components)) {
             // TODO auto-create websites

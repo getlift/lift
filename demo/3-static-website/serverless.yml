@@ -1,12 +1,17 @@
 service: lift-app
+configValidationMode: error
 
 provider:
     name: aws
     region: us-east-1
 
+providers:
+    aws:
+
 constructs:
 
     landing:
+        provider: aws
         type: static-website
         path: 'public'
         domain: lift-demo.mnapoli.fr

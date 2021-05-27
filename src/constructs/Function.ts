@@ -17,7 +17,7 @@ export const FUNCTION_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["handler"],
+    required: ["type", "handler"],
 } as const;
 
 export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {

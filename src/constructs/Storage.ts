@@ -15,6 +15,7 @@ export const STORAGE_DEFINITION = {
         },
     },
     additionalProperties: false,
+    required: ["type"],
 } as const;
 const STORAGE_DEFAULTS = {
     archive: 45,

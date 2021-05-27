@@ -5,9 +5,13 @@ provider:
     region: us-east-1
     lambdaHashingVersion: 20201221
 
+providers:
+    netlify:
+
 constructs:
 
     landing:
+        provider: netlify
         type: netlify/website
         name: construct-demo
         path: .

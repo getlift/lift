@@ -22,6 +22,8 @@ export abstract class Provider<COMPONENT extends Component<any>> {
         this.components[id] = component;
     }
 
+    abstract package(): Promise<void>;
+
     abstract deploy(): Promise<void>;
 
     abstract remove(): Promise<void>;

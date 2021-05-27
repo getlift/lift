@@ -16,7 +16,7 @@ export const HTTP_API_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["routes"],
+    required: ["type", "routes"],
 } as const;
 
 export class HttpApi extends AwsComponent<typeof HTTP_API_DEFINITION> {

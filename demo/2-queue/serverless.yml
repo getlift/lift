@@ -1,4 +1,5 @@
 service: lift-demo-queues
+configValidationMode: error
 
 provider:
     name: aws
@@ -14,6 +15,9 @@ provider:
                     Action: sqs:SendMessage
                     Resource: ${construct:import.queueArn}
 
+providers:
+    aws:
+
 functions:
     publisher:
         handler: publisher.handler
@@ -24,17 +28,21 @@ functions:
 constructs:
 
     api:
+        provider: aws
         type: http-api
         routes:
             '*':
+                type: function
                 handler: publisher.handler
                 runtime: nodejs14.x
                 environment:
                     QUEUE_URL: ${construct:import.queueUrl}
 
     import:
+        provider: aws
         type: queue
         worker:
+            type: function
             handler: worker.handler
         alarm: matthieu@mnapoli.fr
 

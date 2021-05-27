@@ -1,14 +1,13 @@
 import { has } from "lodash";
 import type { JSONSchema } from "json-schema-to-ts";
 import chalk from "chalk";
-import { JSONSchema6Definition } from "json-schema";
+import { JSONSchema6 } from "json-schema";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
 import { Storage, STORAGE_DEFINITION } from "./constructs/Storage";
 import { Queue, QUEUE_DEFINITION } from "./constructs/Queue";
 import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/StaticWebsite";
 import { Component } from "./constructs/Component";
-import { AwsProvider } from "./constructs/Provider";
-import { AwsComponent } from "./constructs/AwsComponent";
+import { AwsProvider, Provider } from "./constructs/Provider";
 import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/NetlifyWebsite";
 import { NetlifyProvider } from "./constructs/NetlifyProvider";
 import { HTTP_API_DEFINITION, HttpApi } from "./constructs/HttpApi";
@@ -37,12 +36,13 @@ const componentsMap: Record<string, { class: any; schema: JSONSchema }> = {
     },
 };
 
+type MinimallyValidConstructConfig = { type: string; provider: string; [k: string]: unknown };
+
 /**
  * Serverless plugin
  */
 class LiftPlugin {
-    private readonly awsProvider: AwsProvider;
-    private readonly netlifyProvider: NetlifyProvider;
+    private readonly providers: Record<string, Provider<any>> = {};
     private readonly components: Record<string, Component<any>> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
@@ -51,19 +51,23 @@ class LiftPlugin {
 
     constructor(serverless: Serverless) {
         this.serverless = serverless;
-        this.awsProvider = new AwsProvider(this.serverless, "aws");
-        this.netlifyProvider = new NetlifyProvider(this.serverless, "netlify");
 
         this.hooks = {
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "before:package:finalize": async () => await this.awsProvider.package(),
+            "before:package:finalize": async () => {
+                for (const provider of Object.values(this.providers)) {
+                    await provider.package();
+                }
+            },
             "before:deploy:deploy": async () => {
-                await this.netlifyProvider.deploy();
-                await this.awsProvider.deploy();
+                for (const provider of Object.values(this.providers)) {
+                    await provider.deploy();
+                }
             },
             "after:remove:remove": async () => {
-                await this.awsProvider.remove();
-                await this.netlifyProvider.remove();
+                for (const provider of Object.values(this.providers)) {
+                    await provider.remove();
+                }
             },
         };
 
@@ -80,38 +84,76 @@ class LiftPlugin {
         };
 
         this.registerConfigSchema();
+        this.loadProviders();
         this.loadComponents();
         this.registerCommands();
     }
 
     private registerConfigSchema() {
-        const properties: { [k: string]: JSONSchema6Definition } = {};
-        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
-            properties[id] = componentsMap[configuration.type].schema as JSONSchema6Definition;
+        // Providers
+        // TODO For now providers are hardcoded: `aws` and `netlify`
+        this.serverless.configSchemaHandler.defineTopLevelProperty("providers", {
+            type: "object",
+            properties: {
+                aws: {
+                    type: "object",
+                    additionalProperties: false,
+                },
+                netlify: {
+                    type: "object",
+                    additionalProperties: false,
+                },
+            },
+            additionalProperties: false,
+        });
+        // Constructs
+        const constructProperties: { [k: string]: JSONSchema6 } = {};
+        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig(false))) {
+            const constructSchema = componentsMap[configuration.type].schema as JSONSchema6;
+            // Require the `provider` property in root constructs
+            if (constructSchema.properties !== undefined) {
+                constructSchema.properties["provider"] = { type: "string" };
+            }
+            if (constructSchema.required !== undefined) {
+                constructSchema.required.push("provider");
+            }
+            constructProperties[id] = constructSchema;
         }
         this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", {
             type: "object",
-            properties: properties,
+            properties: constructProperties,
             additionalProperties: false,
         });
     }
 
-    private loadComponents() {
-        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
-            this.loadComponent(id, componentsMap[configuration.type].class, configuration);
+    private loadProviders() {
+        const providersConfig = ((this.serverless.configurationInput as any).providers ?? {}) as Record<
+            string,
+            unknown
+        >;
+        for (const id of Object.keys(providersConfig)) {
+            // TODO For now providers are hardcoded
+            switch (id) {
+                case "aws":
+                    this.providers[id] = new AwsProvider(this.serverless, id);
+                    break;
+                case "netlify":
+                    this.providers[id] = new NetlifyProvider(this.serverless, id);
+                    break;
+                default:
+                    throw new Error(`Unknown provider '${id}'`);
+            }
         }
     }
 
-    protected loadComponent(id: string, type: any, configuration: unknown): void {
-        // TODO type that more strongly
-        if (type === NetlifyWebsite) {
-            const component = new type(this.netlifyProvider, id, configuration) as NetlifyWebsite;
+    private loadComponents() {
+        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig(true))) {
+            const provider = this.providers[configuration.provider];
+            const type = componentsMap[configuration.type].class;
+            // TODO type that more strongly
+            const component = new type(provider, id, configuration);
             this.components[id] = component;
-            this.netlifyProvider.addComponent(id, component);
-        } else {
-            const component = new type(this.awsProvider, id, configuration) as AwsComponent<any>;
-            this.components[id] = component;
-            this.awsProvider.addComponent(id, component);
+            provider.addComponent(id, component);
         }
     }
 
@@ -157,9 +199,6 @@ class LiftPlugin {
             );
         }
 
-        // TODO: resolve value depending on the context:
-        // - if it's a reference in the same stack, it should resolve to a CloudFormation reference
-        // - if it's cross-stack, it should resolve to the real value
         return {
             value: properties[property](),
         };
@@ -169,7 +208,7 @@ class LiftPlugin {
         for (const [id, component] of Object.entries(this.components)) {
             const output = await component.infoOutput();
             if (output !== undefined) {
-                console.log(chalk.yellow(`${id}: ${output}`));
+                console.log(chalk.yellow(`${id}:`) + ` ${output}`);
             }
         }
     }
@@ -190,20 +229,31 @@ class LiftPlugin {
      * This method is mostly a helper to validate types.
      * It's a TypeScript mess right now, but it does the job.
      */
-    private normalizeConstructsConfig(): Record<string, { type: string; [k: string]: any }> {
+    private normalizeConstructsConfig(checkProvider: boolean): Record<string, MinimallyValidConstructConfig> {
         const serverlessConfig = (this.serverless.configurationInput as unknown) as Record<string, any>;
-        const constructConfig: Record<string, { type: string; [k: string]: any }> = {};
+        const constructConfig: Record<string, MinimallyValidConstructConfig> = {};
         for (const [id, configuration] of Object.entries(serverlessConfig.constructs ?? {})) {
             if (!(configuration instanceof Object)) {
-                continue;
+                throw new Error(`Construct '${id}' must be an object`);
             }
             if (!Object.prototype.hasOwnProperty.call(configuration, "type")) {
-                continue;
+                throw new Error(`Construct '${id}' must have a 'type'`);
             }
-            const validConfig = configuration as { type: unknown };
-            if (typeof validConfig.type === "string" && validConfig.type in componentsMap) {
-                constructConfig[id] = validConfig as { type: string; [k: string]: any };
+            if (!Object.prototype.hasOwnProperty.call(configuration, "provider")) {
+                throw new Error(`Construct '${id}' must have a 'provider'`);
             }
+            const validConfig = configuration as { type: unknown; provider: unknown };
+            if (typeof validConfig.type !== "string" || !(validConfig.type in componentsMap)) {
+                throw new Error(`Construct '${id}' has an unknown type '${validConfig.type as string}'`);
+            }
+            if (typeof validConfig.provider !== "string") {
+                throw new Error(`Construct '${id}' uses an unknown provider '${JSON.stringify(validConfig.provider)}'`);
+            }
+            const isValidProvider = validConfig.provider in this.providers;
+            if (checkProvider && !isValidProvider) {
+                throw new Error(`Construct '${id}' uses an unknown provider '${validConfig.provider}'`);
+            }
+            constructConfig[id] = validConfig as MinimallyValidConstructConfig;
         }
 
         return constructConfig;

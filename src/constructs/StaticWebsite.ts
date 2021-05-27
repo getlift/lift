@@ -43,7 +43,7 @@ export const STATIC_WEBSITE_DEFINITION = {
         certificate: { type: "string" },
     },
     additionalProperties: false,
-    required: ["path"],
+    required: ["type", "path"],
 } as const;
 
 type StaticWebsiteConfiguration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
