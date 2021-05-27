@@ -19,22 +19,12 @@ export const NETLIFY_WEBSITE_DEFINITION = {
 type Configuration = FromSchema<typeof NETLIFY_WEBSITE_DEFINITION>;
 
 export class NetlifyWebsite implements Construct {
-    protected readonly provider: NetlifyProvider;
-    protected readonly id: string;
-    protected readonly configuration: Configuration;
+    constructor(private provider: NetlifyProvider, private id: string, private configuration: Configuration) {}
 
-    protected constructor(provider: NetlifyProvider, id: string, configuration: Configuration) {
-        this.provider = provider;
-        this.id = id;
-        this.configuration = configuration;
-    }
-
-    get siteName(): string {
-        return this.configuration.name;
-    }
-
-    get deployDir(): string {
-        return this.configuration.path;
+    outputs(): Record<string, () => Promise<string | undefined>> {
+        return {
+            url: this.getUrl.bind(this),
+        };
     }
 
     commands(): Record<string, () => Promise<void>> {
@@ -58,16 +48,6 @@ export class NetlifyWebsite implements Construct {
             throw e;
         }
         progress.succeed(`Website '${this.id}' deployed to Netlify`);
-    }
-
-    infoOutput(): Promise<string | undefined> {
-        return Promise.resolve(undefined);
-    }
-
-    outputs(): Record<string, () => Promise<string | undefined>> {
-        return {
-            url: this.getUrl.bind(this),
-        };
     }
 
     references(): Record<string, () => Record<string, unknown>> {
