@@ -28,7 +28,7 @@ export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
         super(provider, id, configuration);
 
         // TODO set options based on configuration
-        this.function = new lambda.Function(this.cdkNode, "Function", {
+        this.function = new lambda.Function(this, "Function", {
             runtime: lambda.Runtime.NODEJS_14_X,
             code: lambda.Code.fromAsset(process.cwd()),
             handler: configuration.handler,
@@ -36,7 +36,7 @@ export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
             role: provider.lambdaRole,
         });
 
-        this.functionNameOutput = new CfnOutput(this.cdkNode, "FunctionName", {
+        this.functionNameOutput = new CfnOutput(this, "FunctionName", {
             description: `Name of the "${id}" function.`,
             value: this.function.functionName,
         });
@@ -46,6 +46,10 @@ export class Function extends AwsComponent<typeof FUNCTION_DEFINITION> {
         return {
             name: this.getFunctionName.bind(this),
         };
+    }
+
+    commands(): Record<string, () => Promise<void>> {
+        return {};
     }
 
     references(): Record<string, () => Record<string, unknown>> {

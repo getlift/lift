@@ -36,7 +36,7 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
             kms: BucketEncryption.KMS_MANAGED,
         };
 
-        this.bucket = new Bucket(this.cdkNode, "Bucket", {
+        this.bucket = new Bucket(this, "Bucket", {
             encryption: encryptionOptions[resolvedConfiguration.encryption],
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -58,7 +58,7 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
         // Allow all Lambda functions of the stack to read/write the bucket
         this.bucket.grantReadWrite(this.provider.lambdaRole);
 
-        this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
+        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             value: this.bucket.bucketName,
         });
     }
@@ -70,16 +70,20 @@ export class Storage extends AwsComponent<typeof STORAGE_DEFINITION> {
                 [
                     this.referenceBucketArn(),
                     // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
-                    Stack.of(this.cdkNode).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
+                    Stack.of(this).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
                 ]
             ),
         ];
     }
 
-    public outputs(): Record<string, () => Promise<string | undefined>> {
+    outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             bucketName: () => this.getBucketName(),
         };
+    }
+
+    commands(): Record<string, () => Promise<void>> {
+        return {};
     }
 
     references(): Record<string, () => Record<string, unknown>> {

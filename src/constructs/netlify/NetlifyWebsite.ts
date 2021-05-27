@@ -16,17 +16,17 @@ export const NETLIFY_WEBSITE_DEFINITION = {
     required: ["name", "path"],
 } as const;
 
-export class NetlifyWebsite extends Component<typeof NETLIFY_WEBSITE_DEFINITION> {
+type Configuration = FromSchema<typeof NETLIFY_WEBSITE_DEFINITION>;
+
+export class NetlifyWebsite implements Component {
     protected readonly provider: NetlifyProvider;
+    protected readonly id: string;
+    protected readonly configuration: Configuration;
 
-    protected constructor(
-        provider: NetlifyProvider,
-        id: string,
-        configuration: FromSchema<typeof NETLIFY_WEBSITE_DEFINITION>
-    ) {
-        super(provider, id, configuration);
-
+    protected constructor(provider: NetlifyProvider, id: string, configuration: Configuration) {
         this.provider = provider;
+        this.id = id;
+        this.configuration = configuration;
     }
 
     get siteName(): string {

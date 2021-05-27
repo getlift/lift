@@ -5,16 +5,23 @@ import { getStackOutput } from "../../CloudFormation";
 import { Component } from "../Component";
 import { AwsProvider } from "./AwsProvider";
 
-export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
+export abstract class AwsComponent<S extends JSONSchema> extends Construct implements Component {
     protected readonly provider: AwsProvider;
-    protected readonly cdkNode: Construct;
+    protected readonly id: string;
+    protected readonly configuration: FromSchema<S>;
 
     protected constructor(provider: AwsProvider, id: string, configuration: FromSchema<S>) {
-        super(provider, id, configuration);
-
+        super(provider.stack, id);
         this.provider = provider;
-        this.cdkNode = new Construct(provider.stack, id);
+        this.id = id;
+        this.configuration = configuration;
     }
+
+    abstract outputs(): Record<string, () => Promise<string | undefined>>;
+
+    abstract commands(): Record<string, () => Promise<void>>;
+
+    abstract references(): Record<string, () => Record<string, unknown>>;
 
     async postDeploy(): Promise<void> {
         // Can be overridden by constructs
@@ -32,10 +39,10 @@ export abstract class AwsComponent<S extends JSONSchema> extends Component<S> {
      * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
      */
     protected getCloudFormationReference(value: string): Record<string, unknown> {
-        return Stack.of(this.cdkNode).resolve(value) as Record<string, unknown>;
+        return Stack.of(this).resolve(value) as Record<string, unknown>;
     }
 
     protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
-        return await getStackOutput(this.provider, Stack.of(this.cdkNode).resolve(output.logicalId));
+        return await getStackOutput(this.provider, Stack.of(this).resolve(output.logicalId));
     }
 }

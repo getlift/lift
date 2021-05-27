@@ -34,7 +34,7 @@ export class HttpApi extends AwsComponent<typeof HTTP_API_DEFINITION> {
             });
         }
 
-        this.api = new apigatewayv2.HttpApi(this.cdkNode, "Api", {
+        this.api = new apigatewayv2.HttpApi(this, "Api", {
             apiName: this.provider.stack.stackName + "-" + id,
             createDefaultStage: true,
             defaultIntegration: defaultRoute,
@@ -60,16 +60,20 @@ export class HttpApi extends AwsComponent<typeof HTTP_API_DEFINITION> {
         }
 
         // CloudFormation outputs
-        this.apiUrlOutput = new CfnOutput(this.cdkNode, "ApiUrl", {
+        this.apiUrlOutput = new CfnOutput(this, "ApiUrl", {
             description: `URL of the "${id}" API.`,
             value: this.api.url ?? "",
         });
     }
 
-    public outputs(): Record<string, () => Promise<string | undefined>> {
+    outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             url: () => this.getUrl(),
         };
+    }
+
+    commands(): Record<string, () => Promise<void>> {
+        return {};
     }
 
     references(): Record<string, () => Record<string, unknown>> {

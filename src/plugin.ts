@@ -44,7 +44,7 @@ type MinimallyValidConstructConfig = { type: string; provider: string; [k: strin
  */
 class LiftPlugin {
     private readonly providers: Record<string, Provider<any>> = {};
-    private readonly components: Record<string, Component<any>> = {};
+    private readonly components: Record<string, Component> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};

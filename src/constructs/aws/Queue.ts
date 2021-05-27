@@ -42,13 +42,13 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
-        const dlq = new AwsQueue(this.cdkNode, "Dlq", {
+        const dlq = new AwsQueue(this, "Dlq", {
             queueName: this.provider.stack.stackName + "-" + id + "-dlq",
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
-        this.queue = new AwsQueue(this.cdkNode, "Queue", {
+        this.queue = new AwsQueue(this, "Queue", {
             queueName: this.provider.stack.stackName + "-" + id,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
@@ -61,17 +61,17 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
 
         const alarmEmail = configuration.alarm;
         if (alarmEmail !== undefined) {
-            const alarmTopic = new Topic(this.cdkNode, "AlarmTopic", {
+            const alarmTopic = new Topic(this, "AlarmTopic", {
                 topicName: this.provider.stack.stackName + "-" + id + "-dlq-alarm-topic",
                 displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
             });
-            new Subscription(this.cdkNode, "AlarmTopicSubscription", {
+            new Subscription(this, "AlarmTopicSubscription", {
                 topic: alarmTopic,
                 protocol: SubscriptionProtocol.EMAIL,
                 endpoint: alarmEmail,
             });
 
-            const alarm = new Alarm(this.cdkNode, "Alarm", {
+            const alarm = new Alarm(this, "Alarm", {
                 alarmName: this.provider.stack.stackName + "-" + id + "-dlq-alarm",
                 alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
                 metric: new Metric({
@@ -109,11 +109,11 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         this.queue.grantSendMessages(this.provider.lambdaRole);
 
         // CloudFormation outputs
-        this.queueArnOutput = new CfnOutput(this.cdkNode, "QueueArn", {
+        this.queueArnOutput = new CfnOutput(this, "QueueArn", {
             description: `ARN of the "${id}" SQS queue.`,
             value: this.queue.queueArn,
         });
-        this.queueUrlOutput = new CfnOutput(this.cdkNode, "QueueUrl", {
+        this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });
@@ -123,11 +123,15 @@ export class Queue extends AwsComponent<typeof QUEUE_DEFINITION> {
         return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];
     }
 
-    public outputs(): Record<string, () => Promise<string | undefined>> {
+    outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             queueUrl: () => this.getQueueUrl(),
             queueArn: () => this.getQueueArn(),
         };
+    }
+
+    commands(): Record<string, () => Promise<void>> {
+        return {};
     }
 
     references(): Record<string, () => Record<string, unknown>> {

@@ -63,16 +63,16 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
             );
         }
 
-        const bucket = new Bucket(this.cdkNode, "Bucket", {
+        const bucket = new Bucket(this, "Bucket", {
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        const cloudFrontOAI = new OriginAccessIdentity(this.cdkNode, "OriginAccessIdentity", {
+        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
-        const distribution = new CloudFrontWebDistribution(this.cdkNode, "CDN", {
+        const distribution = new CloudFrontWebDistribution(this, "CDN", {
             // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
             priceClass: PriceClass.PRICE_CLASS_100,
             // Enable http2 transfer for better performances
@@ -121,7 +121,7 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         });
 
         // CloudFormation outputs
-        this.bucketNameOutput = new CfnOutput(this.cdkNode, "BucketName", {
+        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             description: "Name of the bucket that stores the static website.",
             value: bucket.bucketName,
         });
@@ -130,15 +130,15 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
             // In case of multiple domains, we take the first one
             websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
         }
-        this.domainOutput = new CfnOutput(this.cdkNode, "Domain", {
+        this.domainOutput = new CfnOutput(this, "Domain", {
             description: "Website domain name.",
             value: websiteDomain,
         });
-        this.cnameOutput = new CfnOutput(this.cdkNode, "CloudFrontCName", {
+        this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
             description: "CloudFront CNAME.",
             value: distribution.distributionDomainName,
         });
-        this.distributionIdOutput = new CfnOutput(this.cdkNode, "DistributionId", {
+        this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
@@ -242,7 +242,7 @@ export class StaticWebsite extends AwsComponent<typeof STATIC_WEBSITE_DEFINITION
         });
     }
 
-    public outputs(): Record<string, () => Promise<string | undefined>> {
+    outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             url: this.getUrl.bind(this),
             domain: this.getDomain.bind(this),
