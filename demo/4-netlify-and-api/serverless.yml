@@ -1,0 +1,33 @@
+service: lift-demo-netlify
+
+provider:
+    name: aws
+    lambdaHashingVersion: 20201221
+
+providers:
+    aws:
+    netlify:
+
+constructs:
+
+    landing:
+        provider: netlify
+        type: netlify/website
+        siteName: construct-demo
+        path: landing/dist
+        build:
+            script: npm run build
+            path: landing
+            environment:
+                VUE_APP_API_URL: ${construct:api.url}
+
+    api:
+        provider: aws
+        type: http-api
+        routes:
+            'GET /':
+                type: function
+                handler: api/index.handler
+
+plugins:
+    - ../../dist/src/plugin.js

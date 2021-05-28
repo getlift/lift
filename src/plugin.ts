@@ -66,6 +66,7 @@ class LiftPlugin {
                 }
             },
             'after:remove:remove': async () => {
+                // TODO We should probably "remove" in the inverse order of deployment?
                 for (const provider of Object.values(this.providers)) {
                     await provider.remove();
                 }

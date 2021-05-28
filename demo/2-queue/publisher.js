@@ -1,5 +1,3 @@
-// The JS SDK is installed by default in Lambda,
-// but it can also be installed explicitly (https://github.com/aws/aws-sdk-js)
 const AWS = require('aws-sdk');
 
 exports.handler = async function() {

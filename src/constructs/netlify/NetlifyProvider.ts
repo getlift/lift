@@ -23,6 +23,7 @@ export default class NetlifyProvider extends Provider<NetlifyWebsite> {
     async deploy(): Promise<void> {
         for (const construct of Object.values(this.constructs)) {
             // TODO auto-create websites
+            construct.build();
             await construct.upload();
         }
     }

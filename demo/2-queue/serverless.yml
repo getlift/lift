@@ -1,29 +1,12 @@
 service: lift-demo-queues
 configValidationMode: error
 
+# Can we get rid of this?
 provider:
     name: aws
-    region: us-east-1
-    lambdaHashingVersion: 20201221
-    environment:
-        QUEUE_URL: ${construct:import.queueUrl}
-    iam:
-        role:
-            statements:
-                # Allow to send messages to SQS
-                -   Effect: Allow
-                    Action: sqs:SendMessage
-                    Resource: ${construct:import.queueArn}
 
 providers:
     aws:
-
-functions:
-    publisher:
-        handler: publisher.handler
-        runtime: nodejs14.x
-        events:
-            -   httpApi: 'GET /'
 
 constructs:
 
