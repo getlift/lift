@@ -1,37 +1,37 @@
-import { has } from "lodash";
-import type { JSONSchema } from "json-schema-to-ts";
-import chalk from "chalk";
-import { JSONSchema6 } from "json-schema";
-import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
-import { Storage, STORAGE_DEFINITION } from "./constructs/aws/Storage";
-import { Queue, QUEUE_DEFINITION } from "./constructs/aws/Queue";
-import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./constructs/aws/StaticWebsite";
-import { Construct } from "./constructs/Construct";
-import { Provider } from "./constructs/Provider";
-import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from "./constructs/netlify/NetlifyWebsite";
-import { NetlifyProvider } from "./constructs/netlify/NetlifyProvider";
-import { HTTP_API_DEFINITION, HttpApi } from "./constructs/aws/HttpApi";
-import { AwsProvider } from "./constructs/aws/AwsProvider";
+import { has } from 'lodash';
+import type { JSONSchema } from 'json-schema-to-ts';
+import chalk from 'chalk';
+import { JSONSchema6 } from 'json-schema';
+import type { CommandsDefinition, Hook, Serverless, VariableResolver } from './types/serverless';
+import { Storage, STORAGE_DEFINITION } from './constructs/aws/Storage';
+import { Queue, QUEUE_DEFINITION } from './constructs/aws/Queue';
+import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from './constructs/aws/StaticWebsite';
+import Construct from './constructs/Construct';
+import Provider from './constructs/Provider';
+import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from './constructs/netlify/NetlifyWebsite';
+import NetlifyProvider from './constructs/netlify/NetlifyProvider';
+import { HTTP_API_DEFINITION, HttpApi } from './constructs/aws/HttpApi';
+import AwsProvider from './constructs/aws/AwsProvider';
 
 // TODO of course this should be dynamic in the real implementation
 const constructRegistry: Record<string, { class: any; schema: JSONSchema }> = {
-    storage: {
+    'storage': {
         class: Storage,
         schema: STORAGE_DEFINITION,
     },
-    queue: {
+    'queue': {
         class: Queue,
         schema: QUEUE_DEFINITION,
     },
-    "static-website": {
+    'static-website': {
         class: StaticWebsite,
         schema: STATIC_WEBSITE_DEFINITION,
     },
-    "http-api": {
+    'http-api': {
         class: HttpApi,
         schema: HTTP_API_DEFINITION,
     },
-    "netlify/website": {
+    'netlify/website': {
         class: NetlifyWebsite,
         schema: NETLIFY_WEBSITE_DEFINITION,
     },
@@ -43,7 +43,7 @@ type MinimallyValidConstructConfig = { type: string; provider: string; [k: strin
  * Serverless plugin
  */
 class LiftPlugin {
-    private readonly providers: Record<string, Provider<any>> = {};
+    private readonly providers: Record<string, Provider<Construct>> = {};
     private readonly constructs: Record<string, Construct> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
@@ -54,18 +54,18 @@ class LiftPlugin {
         this.serverless = serverless;
 
         this.hooks = {
-            "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "before:package:finalize": async () => {
+            'before:aws:info:displayStackOutputs': this.info.bind(this),
+            'before:package:finalize': async () => {
                 for (const provider of Object.values(this.providers)) {
                     await provider.package();
                 }
             },
-            "before:deploy:deploy": async () => {
+            'before:deploy:deploy': async () => {
                 for (const provider of Object.values(this.providers)) {
                     await provider.deploy();
                 }
             },
-            "after:remove:remove": async () => {
+            'after:remove:remove': async () => {
                 for (const provider of Object.values(this.providers)) {
                     await provider.remove();
                 }
@@ -93,15 +93,15 @@ class LiftPlugin {
     private registerConfigSchema() {
         // Providers
         // TODO For now providers are hardcoded: `aws` and `netlify`
-        this.serverless.configSchemaHandler.defineTopLevelProperty("providers", {
-            type: "object",
+        this.serverless.configSchemaHandler.defineTopLevelProperty('providers', {
+            type: 'object',
             properties: {
                 aws: {
-                    type: "object",
+                    type: 'object',
                     additionalProperties: false,
                 },
                 netlify: {
-                    type: "object",
+                    type: 'object',
                     additionalProperties: false,
                 },
             },
@@ -113,15 +113,15 @@ class LiftPlugin {
             const constructSchema = constructRegistry[configuration.type].schema as JSONSchema6;
             // Require the `provider` property in root constructs
             if (constructSchema.properties !== undefined) {
-                constructSchema.properties["provider"] = { type: "string" };
+                constructSchema.properties.provider = { type: 'string' };
             }
             if (constructSchema.required !== undefined) {
-                constructSchema.required.push("provider");
+                constructSchema.required.push('provider');
             }
             constructProperties[id] = constructSchema;
         }
-        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", {
-            type: "object",
+        this.serverless.configSchemaHandler.defineTopLevelProperty('constructs', {
+            type: 'object',
             properties: constructProperties,
             additionalProperties: false,
         });
@@ -135,10 +135,10 @@ class LiftPlugin {
         for (const id of Object.keys(providersConfig)) {
             // TODO For now providers are hardcoded
             switch (id) {
-                case "aws":
+                case 'aws':
                     this.providers[id] = new AwsProvider(this.serverless, id);
                     break;
-                case "netlify":
+                case 'netlify':
                     this.providers[id] = new NetlifyProvider(this.serverless, id);
                     break;
                 default:
@@ -159,7 +159,7 @@ class LiftPlugin {
     }
 
     async resolveOutput({ address }: { address: string }): Promise<{ value: string }> {
-        const [id, property] = address.split(".", 2);
+        const [id, property] = address.split('.', 2);
 
         if (!has(this.constructs, id)) {
             throw new Error(`No construct named '${id}' found in service file.`);
@@ -171,7 +171,7 @@ class LiftPlugin {
             throw new Error(
                 `\${construct:${id}.${property}} does not exist. Outputs available on \${construct:${id}} are: ${Object.keys(
                     outputs
-                ).join(", ")}.`
+                ).join(', ')}.`
             );
         }
 
@@ -179,12 +179,12 @@ class LiftPlugin {
         // - if it's a reference in the same stack, it should resolve to a CloudFormation reference
         // - if it's cross-stack, it should resolve to the real value
         return {
-            value: (await outputs[property]()) ?? "",
+            value: (await outputs[property]()) ?? '',
         };
     }
 
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
-        const [id, property] = address.split(".", 2);
+        const [id, property] = address.split('.', 2);
 
         if (!has(this.constructs, id)) {
             throw new Error(`No construct named '${id}' found in service file.`);
@@ -196,7 +196,7 @@ class LiftPlugin {
             throw new Error(
                 `\${reference:${id}.${property}} does not exist. Properties available on \${reference:${id}} are: ${Object.keys(
                     properties
-                ).join(", ")}.`
+                ).join(', ')}.`
             );
         }
 
@@ -243,17 +243,17 @@ class LiftPlugin {
             if (!(configuration instanceof Object)) {
                 throw new Error(`Construct '${id}' must be an object`);
             }
-            if (!Object.prototype.hasOwnProperty.call(configuration, "type")) {
+            if (!Object.prototype.hasOwnProperty.call(configuration, 'type')) {
                 throw new Error(`Construct '${id}' must have a 'type'`);
             }
-            if (!Object.prototype.hasOwnProperty.call(configuration, "provider")) {
+            if (!Object.prototype.hasOwnProperty.call(configuration, 'provider')) {
                 throw new Error(`Construct '${id}' must have a 'provider'`);
             }
             const validConfig = configuration as { type: unknown; provider: unknown };
-            if (typeof validConfig.type !== "string" || !(validConfig.type in constructRegistry)) {
+            if (typeof validConfig.type !== 'string' || !(validConfig.type in constructRegistry)) {
                 throw new Error(`Construct '${id}' has an unknown type '${validConfig.type as string}'`);
             }
-            if (typeof validConfig.provider !== "string") {
+            if (typeof validConfig.provider !== 'string') {
                 throw new Error(`Construct '${id}' uses an unknown provider '${JSON.stringify(validConfig.provider)}'`);
             }
             const isValidProvider = validConfig.provider in this.providers;

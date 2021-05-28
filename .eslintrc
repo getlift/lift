@@ -1,16 +1,14 @@
 {
   "extends": [
     "eslint:recommended",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "@serverless/eslint-config/node"
   ],
   "rules": {
-    "curly": [
+    "quotes": [
       "error",
-      "all"
-    ],
-    "eqeqeq": [
-      "error",
-      "smart"
+      "single",
+      { "avoidEscape": true }
     ],
     "import/no-extraneous-dependencies": [
       "error",
@@ -20,13 +18,6 @@
         "peerDependencies": false
       }
     ],
-    "no-shadow": [
-      "error",
-      {
-        "hoist": "all"
-      }
-    ],
-    "prefer-const": "error",
     "import/order": [
       "error",
       {
@@ -102,5 +93,13 @@
         "@typescript-eslint/switch-exhaustiveness-check": "error"
       }
     }
-  ]
+  ],
+  "settings": {
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts", ".tsx"]
+    },
+    "import/resolver": {
+      "typescript": {}
+    }
+  }
 }

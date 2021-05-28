@@ -1,3 +1,7 @@
 {
-  "printWidth": 120
+  "endOfLine": "lf",
+  "printWidth": 120,
+  "quoteProps": "consistent",
+  "singleQuote": true,
+  "trailingComma": "es5"
 }

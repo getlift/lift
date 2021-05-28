@@ -1,24 +1,26 @@
-import { FromSchema } from "json-schema-to-ts";
-import * as child_process from "child_process";
-import ora from "ora";
-import path from "path";
-import { Construct } from "../Construct";
-import { NetlifyProvider } from "./NetlifyProvider";
+import { FromSchema } from 'json-schema-to-ts';
+import ora from 'ora';
+import path from 'path';
+import { execSync } from 'child_process';
+import Construct from '../Construct';
+import NetlifyProvider from './NetlifyProvider';
 
 export const NETLIFY_WEBSITE_DEFINITION = {
-    type: "object",
+    type: 'object',
     properties: {
-        type: { const: "netlify/website" },
-        name: { type: "string" },
-        path: { type: "string" },
+        type: { const: 'netlify/website' },
+        name: { type: 'string' },
+        path: { type: 'string' },
     },
     additionalProperties: false,
-    required: ["name", "path"],
+    required: ['name', 'path'],
 } as const;
 
 type Configuration = FromSchema<typeof NETLIFY_WEBSITE_DEFINITION>;
 
 export class NetlifyWebsite implements Construct {
+    // The constructor has promoted properties it is not useless
+    // eslint-disable-next-line no-useless-constructor
     constructor(private provider: NetlifyProvider, private id: string, private configuration: Configuration) {}
 
     outputs(): Record<string, () => Promise<string | undefined>> {
@@ -31,7 +33,7 @@ export class NetlifyWebsite implements Construct {
         return {
             upload: async () => await this.upload(),
             dev: async () => {
-                child_process.execSync("netlify dev", { stdio: "inherit" });
+                execSync('netlify dev', { stdio: 'inherit' });
             },
         };
     }

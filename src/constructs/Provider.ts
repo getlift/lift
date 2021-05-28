@@ -1,7 +1,7 @@
-import type { Serverless } from "../types/serverless";
-import { Construct } from "./Construct";
+import type { Serverless } from '../types/serverless';
+import Construct from './Construct';
 
-export abstract class Provider<C extends Construct> {
+export default abstract class Provider<C extends Construct> {
     protected readonly id: string;
     protected constructs: Record<string, C> = {};
 

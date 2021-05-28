@@ -1,4 +1,5 @@
-declare module "netlify" {
+/* eslint-disable camelcase */
+declare module 'netlify' {
     export interface NetlifyApiOptions {
         userAgent?: string;
         scheme?: string;
@@ -48,7 +49,7 @@ declare module "netlify" {
 
     export interface ListSites {
         name?: string;
-        filter?: "all" | "owner" | "guest";
+        filter?: 'all' | 'owner' | 'guest';
     }
 
     export interface DeleteSite {

@@ -1,10 +1,10 @@
-import NetlifyAPI, { NetlifySite } from "netlify";
-import * as fs from "fs";
-import * as path from "path";
-import { NetlifyWebsite } from "./NetlifyWebsite";
-import { Provider } from "../Provider";
+import NetlifyAPI, { NetlifySite } from 'netlify';
+import * as fs from 'fs';
+import * as path from 'path';
+import { NetlifyWebsite } from './NetlifyWebsite';
+import Provider from '../Provider';
 
-export class NetlifyProvider extends Provider<NetlifyWebsite> {
+export default class NetlifyProvider extends Provider<NetlifyWebsite> {
     private _netlify?: NetlifyAPI;
 
     get netlify(): NetlifyAPI {
@@ -50,7 +50,7 @@ export class NetlifyProvider extends Provider<NetlifyWebsite> {
 
     private readApiToken(): string {
         // TODO don't do this in real life
-        const netlifyConfigFile = path.join(process.env.HOME ?? "~", "/.netlify/config.json");
+        const netlifyConfigFile = path.join(process.env.HOME ?? '~', '/.netlify/config.json');
         const json = fs.readFileSync(netlifyConfigFile);
         const config = JSON.parse(json.toString()) as {
             users: {

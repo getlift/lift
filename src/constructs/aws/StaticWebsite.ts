@@ -1,6 +1,6 @@
-import { FromSchema } from "json-schema-to-ts";
-import { Bucket } from "@aws-cdk/aws-s3";
-import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { FromSchema } from 'json-schema-to-ts';
+import { Bucket } from '@aws-cdk/aws-s3';
+import { CfnOutput, Duration, RemovalPolicy } from '@aws-cdk/core';
 import {
     CloudFrontAllowedCachedMethods,
     CloudFrontAllowedMethods,
@@ -10,40 +10,40 @@ import {
     PriceClass,
     ViewerCertificate,
     ViewerProtocolPolicy,
-} from "@aws-cdk/aws-cloudfront";
-import { spawnSync } from "child_process";
-import chalk from "chalk";
-import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
+} from '@aws-cdk/aws-cloudfront';
+import { spawnSync } from 'child_process';
+import chalk from 'chalk';
+import { CreateInvalidationRequest, CreateInvalidationResult } from 'aws-sdk/clients/cloudfront';
 import {
     DeleteObjectsOutput,
     DeleteObjectsRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
-} from "aws-sdk/clients/s3";
-import { log } from "../../utils/logger";
-import { AwsConstruct } from "./AwsConstruct";
-import { AwsProvider } from "./AwsProvider";
+} from 'aws-sdk/clients/s3';
+import { log } from '../../utils/logger';
+import AwsConstruct from './AwsConstruct';
+import AwsProvider from './AwsProvider';
 
 export const STATIC_WEBSITE_DEFINITION = {
-    type: "object",
+    type: 'object',
     properties: {
-        type: { const: "static-website" },
-        path: { type: "string" },
+        type: { const: 'static-website' },
+        path: { type: 'string' },
         domain: {
             anyOf: [
-                { type: "string" },
+                { type: 'string' },
                 {
-                    type: "array",
+                    type: 'array',
                     items: {
-                        type: "string",
+                        type: 'string',
                     },
                 },
             ],
         },
-        certificate: { type: "string" },
+        certificate: { type: 'string' },
     },
     additionalProperties: false,
-    required: ["type", "path"],
+    required: ['type', 'path'],
 } as const;
 
 type StaticWebsiteConfiguration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
@@ -63,23 +63,23 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
             );
         }
 
-        const bucket = new Bucket(this, "Bucket", {
+        const bucket = new Bucket(this, 'Bucket', {
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
+        const cloudFrontOAI = new OriginAccessIdentity(this, 'OriginAccessIdentity', {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
-        const distribution = new CloudFrontWebDistribution(this, "CDN", {
+        const distribution = new CloudFrontWebDistribution(this, 'CDN', {
             // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
             priceClass: PriceClass.PRICE_CLASS_100,
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             // Send all page requests to index.html
-            defaultRootObject: "index.html",
+            defaultRootObject: 'index.html',
             // Origins are where CloudFront fetches content
             originConfigs: [
                 {
@@ -97,7 +97,7 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
                                 // Do not forward the query string or cookies
                                 queryString: false,
                                 cookies: {
-                                    forward: "none",
+                                    forward: 'none',
                                 },
                             },
                             // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
@@ -114,32 +114,32 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
                     errorCode: 404,
                     errorCachingMinTtl: 0,
                     responseCode: 200,
-                    responsePagePath: "/index.html",
+                    responsePagePath: '/index.html',
                 },
             ],
             viewerCertificate: this.compileViewerCertificate(configuration),
         });
 
         // CloudFormation outputs
-        this.bucketNameOutput = new CfnOutput(this, "BucketName", {
-            description: "Name of the bucket that stores the static website.",
+        this.bucketNameOutput = new CfnOutput(this, 'BucketName', {
+            description: 'Name of the bucket that stores the static website.',
             value: bucket.bucketName,
         });
         let websiteDomain: string = distribution.distributionDomainName;
         if (configuration.domain !== undefined) {
             // In case of multiple domains, we take the first one
-            websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
+            websiteDomain = typeof configuration.domain === 'string' ? configuration.domain : configuration.domain[0];
         }
-        this.domainOutput = new CfnOutput(this, "Domain", {
-            description: "Website domain name.",
+        this.domainOutput = new CfnOutput(this, 'Domain', {
+            description: 'Website domain name.',
             value: websiteDomain,
         });
-        this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
-            description: "CloudFront CNAME.",
+        this.cnameOutput = new CfnOutput(this, 'CloudFrontCName', {
+            description: 'CloudFront CNAME.',
             value: distribution.distributionDomainName,
         });
-        this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
-            description: "ID of the CloudFront distribution.",
+        this.distributionIdOutput = new CfnOutput(this, 'DistributionId', {
+            description: 'ID of the CloudFront distribution.',
             value: distribution.distributionId,
         });
     }
@@ -151,16 +151,16 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
 
         let aliases: string[] = [];
         if (config.domain !== undefined) {
-            aliases = typeof config.domain === "string" ? [config.domain] : config.domain;
+            aliases = typeof config.domain === 'string' ? [config.domain] : config.domain;
         }
 
         return {
-            aliases: aliases,
+            aliases,
             props: {
                 acmCertificateArn: config.certificate,
                 // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
-                sslSupportMethod: "sni-only",
-                minimumProtocolVersion: "TLSv1.1_2016",
+                sslSupportMethod: 'sni-only',
+                minimumProtocolVersion: 'TLSv1.1_2016',
             },
         } as ViewerCertificate;
     }
@@ -183,14 +183,14 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
         // TODO proper upload, without going through a subcommand
-        spawnSync("aws", ["s3", "sync", "--delete", this.configuration.path, `s3://${bucketName}`], {
-            stdio: "inherit",
+        spawnSync('aws', ['s3', 'sync', '--delete', this.configuration.path, `s3://${bucketName}`], {
+            stdio: 'inherit',
         });
         await this.clearCDNCache();
 
         const domain = await this.getDomain();
         if (domain !== undefined) {
-            log("Deployed " + chalk.green(`https://${domain}`));
+            log(`Deployed ${chalk.green(`https://${domain}`)}`);
         }
     }
 
@@ -200,8 +200,8 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
             return;
         }
         await this.provider.request<CreateInvalidationRequest, CreateInvalidationResult>(
-            "CloudFront",
-            "createInvalidation",
+            'CloudFront',
+            'createInvalidation',
             {
                 DistributionId: distributionId,
                 InvalidationBatch: {
@@ -209,7 +209,7 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
                     CallerReference: Date.now().toString(),
                     Paths: {
                         // Invalidate everything
-                        Items: ["/*"],
+                        Items: ['/*'],
                         Quantity: 1,
                     },
                 },
@@ -227,14 +227,14 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
         log(
             `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
-        const data = await this.provider.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+        const data = await this.provider.request<ListObjectsV2Request, ListObjectsV2Output>('S3', 'listObjectsV2', {
             Bucket: bucketName,
         });
         if (data.Contents === undefined) {
             return;
         }
         const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
-        await this.provider.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+        await this.provider.request<DeleteObjectsRequest, DeleteObjectsOutput>('S3', 'deleteObjects', {
             Bucket: bucketName,
             Delete: {
                 Objects: keys.map((key) => ({ Key: key })),
@@ -257,7 +257,7 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
     async getUrl(): Promise<string | undefined> {
         const domain = await this.getDomain();
         if (domain === undefined) {
-            return;
+            return undefined;
         }
 
         return `https://${domain}`;

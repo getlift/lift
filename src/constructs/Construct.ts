@@ -1,4 +1,4 @@
-export interface Construct {
+export default interface Construct {
     outputs(): Record<string, () => Promise<string | undefined>>;
 
     commands(): Record<string, () => Promise<void>>;

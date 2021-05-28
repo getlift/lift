@@ -1,30 +1,30 @@
-import { CfnOutput, Duration } from "@aws-cdk/core";
-import { FromSchema } from "json-schema-to-ts";
-import { Queue as AwsQueue } from "@aws-cdk/aws-sqs";
-import { SqsEventSource } from "@aws-cdk/aws-lambda-event-sources";
-import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
-import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
-import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
-import { PolicyStatement } from "../../Stack";
-import { AwsConstruct } from "./AwsConstruct";
-import { Function, FUNCTION_DEFINITION } from "./Function";
-import { AwsProvider } from "./AwsProvider";
+import { CfnOutput, Duration } from '@aws-cdk/core';
+import { FromSchema } from 'json-schema-to-ts';
+import { Queue as AwsQueue } from '@aws-cdk/aws-sqs';
+import { SqsEventSource } from '@aws-cdk/aws-lambda-event-sources';
+import { Subscription, SubscriptionProtocol, Topic } from '@aws-cdk/aws-sns';
+import { Alarm, ComparisonOperator, Metric } from '@aws-cdk/aws-cloudwatch';
+import { AlarmActionConfig } from '@aws-cdk/aws-cloudwatch/lib/alarm-action';
+import { PolicyStatement } from '../../Stack';
+import AwsConstruct from './AwsConstruct';
+import { Function, FUNCTION_DEFINITION } from './Function';
+import AwsProvider from './AwsProvider';
 
 export const QUEUE_DEFINITION = {
-    type: "object",
+    type: 'object',
     properties: {
-        type: { const: "queue" },
+        type: { const: 'queue' },
         worker: FUNCTION_DEFINITION,
-        maxRetries: { type: "number" },
-        alarm: { type: "string" },
+        maxRetries: { type: 'number' },
+        alarm: { type: 'string' },
         batchSize: {
-            type: "number",
+            type: 'number',
             minimum: 1,
             maximum: 10,
         },
     },
     additionalProperties: false,
-    required: ["type", "worker"],
+    required: ['type', 'worker'],
 } as const;
 
 export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
@@ -42,14 +42,14 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
-        const dlq = new AwsQueue(this, "Dlq", {
-            queueName: this.provider.stack.stackName + "-" + id + "-dlq",
+        const dlq = new AwsQueue(this, 'Dlq', {
+            queueName: `${this.provider.stack.stackName}-${id}-dlq`,
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
-        this.queue = new AwsQueue(this, "Queue", {
-            queueName: this.provider.stack.stackName + "-" + id,
+        this.queue = new AwsQueue(this, 'Queue', {
+            queueName: `${this.provider.stack.stackName}-${id}`,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
             visibilityTimeout: Duration.seconds(functionTimeout * 6),
@@ -61,26 +61,26 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
 
         const alarmEmail = configuration.alarm;
         if (alarmEmail !== undefined) {
-            const alarmTopic = new Topic(this, "AlarmTopic", {
-                topicName: this.provider.stack.stackName + "-" + id + "-dlq-alarm-topic",
+            const alarmTopic = new Topic(this, 'AlarmTopic', {
+                topicName: `${this.provider.stack.stackName}-${id}-dlq-alarm-topic`,
                 displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
             });
-            new Subscription(this, "AlarmTopicSubscription", {
+            new Subscription(this, 'AlarmTopicSubscription', {
                 topic: alarmTopic,
                 protocol: SubscriptionProtocol.EMAIL,
                 endpoint: alarmEmail,
             });
 
-            const alarm = new Alarm(this, "Alarm", {
-                alarmName: this.provider.stack.stackName + "-" + id + "-dlq-alarm",
-                alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
+            const alarm = new Alarm(this, 'Alarm', {
+                alarmName: `${this.provider.stack.stackName}-${id}-dlq-alarm`,
+                alarmDescription: 'Alert triggered when there are failed jobs in the dead letter queue.',
                 metric: new Metric({
-                    namespace: "AWS/SQS",
-                    metricName: "ApproximateNumberOfMessagesVisible",
+                    namespace: 'AWS/SQS',
+                    metricName: 'ApproximateNumberOfMessagesVisible',
                     dimensions: {
                         QueueName: dlq.queueName,
                     },
-                    statistic: "Sum",
+                    statistic: 'Sum',
                     period: Duration.minutes(1),
                 }),
                 evaluationPeriods: 1,
@@ -95,7 +95,7 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
             });
         }
 
-        this.worker = new Function(this.provider, "Worker", configuration.worker);
+        this.worker = new Function(this.provider, 'Worker', configuration.worker);
         this.queue.grantConsumeMessages(this.worker.function);
         this.worker.function.addEventSource(
             new SqsEventSource(this.queue, {
@@ -109,18 +109,18 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
         this.queue.grantSendMessages(this.provider.lambdaRole);
 
         // CloudFormation outputs
-        this.queueArnOutput = new CfnOutput(this, "QueueArn", {
+        this.queueArnOutput = new CfnOutput(this, 'QueueArn', {
             description: `ARN of the "${id}" SQS queue.`,
             value: this.queue.queueArn,
         });
-        this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
+        this.queueUrlOutput = new CfnOutput(this, 'QueueUrl', {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });
     }
 
     permissions(): PolicyStatement[] {
-        return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];
+        return [new PolicyStatement('sqs:SendMessage', [this.referenceQueueArn()])];
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {

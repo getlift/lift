@@ -1,5 +1,5 @@
-import chalk from "chalk";
+import chalk from 'chalk';
 
 export function log(message: string): void {
-    console.log("Lift: " + chalk.yellow(message));
+    console.log(`Lift: ${chalk.yellow(message)}`);
 }

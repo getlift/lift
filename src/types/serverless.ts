@@ -1,7 +1,7 @@
-import type { JSONSchema } from "json-schema-to-ts";
-import type { AWS } from "@serverless/typescript";
-import type { Stack } from "@aws-cdk/core";
-import { CredentialsOptions } from "aws-sdk/lib/credentials";
+import type { JSONSchema } from 'json-schema-to-ts';
+import type { AWS } from '@serverless/typescript';
+import type { Stack } from '@aws-cdk/core';
+import { CredentialsOptions } from 'aws-sdk/lib/credentials';
 
 export type Hook = () => void | Promise<void>;
 
@@ -45,9 +45,9 @@ export type Serverless = {
     };
     configurationInput: AWS;
     service: AWS;
-    getProvider: (provider: "aws") => Provider;
+    getProvider: (provider: 'aws') => Provider;
 };
 
-export type CloudformationTemplate = AWS["resources"];
+export type CloudformationTemplate = AWS['resources'];
 
 export type CommandsDefinition = Record<string, { lifecycleEvents?: string[]; commands?: CommandsDefinition }>;

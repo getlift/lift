@@ -1,17 +1,17 @@
-import { App, Stack } from "@aws-cdk/core";
-import { CredentialProviderChain, Credentials } from "aws-sdk";
-import { Bootstrapper, SdkProvider } from "aws-cdk";
-import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deployments";
-import path from "path";
-import fs from "fs";
-import { AwsIamPolicyStatements } from "@serverless/typescript";
-import { ManagedPolicy, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
-import { log } from "../../utils/logger";
-import { Provider as LegacyAwsProvider, Serverless } from "../../types/serverless";
-import { AwsConstruct } from "./AwsConstruct";
-import { Provider } from "../Provider";
+import { App, Stack } from '@aws-cdk/core';
+import { CredentialProviderChain, Credentials } from 'aws-sdk';
+import { Bootstrapper, SdkProvider } from 'aws-cdk';
+import { CloudFormationDeployments } from 'aws-cdk/lib/api/cloudformation-deployments';
+import path from 'path';
+import fs from 'fs';
+import { AwsIamPolicyStatements } from '@serverless/typescript';
+import { ManagedPolicy, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
+import { log } from '../../utils/logger';
+import { Provider as LegacyAwsProvider, Serverless } from '../../types/serverless';
+import AwsConstruct from './AwsConstruct';
+import Provider from '../Provider';
 
-export class AwsProvider extends Provider<AwsConstruct<any>> {
+export default class AwsProvider extends Provider<AwsConstruct<any>> {
     public readonly region: string;
     public readonly app: App;
     public readonly stack: Stack;
@@ -24,8 +24,8 @@ export class AwsProvider extends Provider<AwsConstruct<any>> {
     constructor(serverless: Serverless, id: string) {
         super(serverless, id);
 
-        this.legacyProvider = serverless.getProvider("aws");
-        this.region = serverless.getProvider("aws").getRegion();
+        this.legacyProvider = serverless.getProvider('aws');
+        this.region = serverless.getProvider('aws').getRegion();
         this.app = new App();
         const stackName = this.legacyProvider.naming.getStackName();
         this.stack = new Stack(this.app, `${stackName}-constructs`, {
@@ -34,11 +34,11 @@ export class AwsProvider extends Provider<AwsConstruct<any>> {
             },
         });
 
-        this.lambdaRole = new Role(this.stack, "LambdaRole", {
-            assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+        this.lambdaRole = new Role(this.stack, 'LambdaRole', {
+            assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
             managedPolicies: [
-                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
-                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+                ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole'),
+                ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
             ],
         });
     }
@@ -60,32 +60,32 @@ export class AwsProvider extends Provider<AwsConstruct<any>> {
 
         // Setup the bootstrap stack
         // Ideally we don't do that every time
-        console.log("Setting up the CDK");
+        log('Setting up the CDK');
         const cdkBootstrapper = new Bootstrapper({
-            source: "default",
+            source: 'default',
         });
         const bootstrapDeployResult = await cdkBootstrapper.bootstrapEnvironment(
             {
                 account: await this.legacyProvider.getAccountId(),
-                name: "dev",
+                name: 'dev',
                 region: this.stack.region,
             },
             sdkProvider
         );
         if (bootstrapDeployResult.noOp) {
-            console.log("The CDK is already set up, moving on");
+            log('The CDK is already set up, moving on');
         }
 
-        console.log(`Deploying ${this.stack.stackName}`);
+        log(`Deploying ${this.stack.stackName}`);
         const stackArtifact = this.app.synth().getStackByName(this.stack.stackName);
         const cloudFormation = new CloudFormationDeployments({ sdkProvider });
         const deployResult = await cloudFormation.deployStack({
             stack: stackArtifact,
         });
         if (deployResult.noOp) {
-            console.log("Nothing to deploy, the stack is up to date 👌");
+            log('Nothing to deploy, the stack is up to date 👌');
         } else {
-            console.log("Deployment success 🎉");
+            log('Deployment success 🎉');
         }
 
         await this.postDeploy();
@@ -103,7 +103,7 @@ export class AwsProvider extends Provider<AwsConstruct<any>> {
         }
         log(`Packaging ${this.stack.stackName}`);
         const stackArtifact = this.app.synth().getStackByName(this.stack.stackName);
-        const templatePath = path.join(process.cwd(), ".serverless/cdk-template.json");
+        const templatePath = path.join(process.cwd(), '.serverless/cdk-template.json');
         fs.writeFileSync(templatePath, JSON.stringify(stackArtifact.template, undefined, 2));
     }
 

@@ -1,23 +1,23 @@
-import * as lambda from "@aws-cdk/aws-lambda";
-import { CfnOutput } from "@aws-cdk/core";
-import { FromSchema } from "json-schema-to-ts";
-import { AwsConstruct } from "./AwsConstruct";
-import { AwsProvider } from "./AwsProvider";
+import * as lambda from '@aws-cdk/aws-lambda';
+import { CfnOutput } from '@aws-cdk/core';
+import { FromSchema } from 'json-schema-to-ts';
+import AwsConstruct from './AwsConstruct';
+import AwsProvider from './AwsProvider';
 
 export const FUNCTION_DEFINITION = {
-    type: "object",
+    type: 'object',
     properties: {
-        type: { const: "function" },
-        handler: { type: "string" },
-        timeout: { type: "number" },
-        runtime: { type: "string" },
+        type: { const: 'function' },
+        handler: { type: 'string' },
+        timeout: { type: 'number' },
+        runtime: { type: 'string' },
         environment: {
-            type: "object",
-            additionalProperties: { type: "string" },
+            type: 'object',
+            additionalProperties: { type: 'string' },
         },
     },
     additionalProperties: false,
-    required: ["type", "handler"],
+    required: ['type', 'handler'],
 } as const;
 
 export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
@@ -28,7 +28,7 @@ export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
         super(provider, id, configuration);
 
         // TODO set options based on configuration
-        this.function = new lambda.Function(this, "Function", {
+        this.function = new lambda.Function(this, 'Function', {
             runtime: lambda.Runtime.NODEJS_14_X,
             code: lambda.Code.fromAsset(process.cwd()),
             handler: configuration.handler,
@@ -36,7 +36,7 @@ export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
             role: provider.lambdaRole,
         });
 
-        this.functionNameOutput = new CfnOutput(this, "FunctionName", {
+        this.functionNameOutput = new CfnOutput(this, 'FunctionName', {
             description: `Name of the "${id}" function.`,
             value: this.function.functionName,
         });
