@@ -122,7 +122,7 @@ export class Queues extends Component<typeof COMPONENT_NAME, typeof COMPONENT_DE
         const queue = this.getComponent(id);
 
         const properties = queue.exposedVariables();
-        if (!has(properties, id)) {
+        if (!has(properties, property)) {
             throw new Error(
                 `\${${this.getName()}:${id}.${property}} does not exist. Properties available on \${${this.getName()}:${id}} are: ${Object.keys(
                     properties
