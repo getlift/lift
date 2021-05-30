@@ -1,4 +1,4 @@
-import { CfnOutput, Duration } from '@aws-cdk/core';
+import { CfnOutput, Construct, Duration } from '@aws-cdk/core';
 import { FromSchema } from 'json-schema-to-ts';
 import { Queue as AwsQueue } from '@aws-cdk/aws-sqs';
 import { SqsEventSource } from '@aws-cdk/aws-lambda-event-sources';
@@ -27,14 +27,19 @@ export const QUEUE_DEFINITION = {
     required: ['type', 'worker'],
 } as const;
 
-export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
+export class Queue extends Construct implements AwsConstruct {
     private readonly queue: AwsQueue;
     private readonly worker: Function;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
 
-    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof QUEUE_DEFINITION>) {
-        super(provider, id, configuration);
+    constructor(
+        scope: Construct,
+        private readonly provider: AwsProvider,
+        id: string,
+        configuration: FromSchema<typeof QUEUE_DEFINITION>
+    ) {
+        super(scope, id);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         // TODO use the Function's construct timeout
@@ -95,12 +100,12 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
             });
         }
 
-        this.worker = new Function(this.provider, 'Worker', configuration.worker);
-        this.queue.grantConsumeMessages(this.worker.function);
-        this.worker.function.addEventSource(
+        this.worker = new Function(this, this.provider, 'Worker', configuration.worker);
+        this.queue.grantConsumeMessages(this.worker);
+        this.worker.addEventSource(
             new SqsEventSource(this.queue, {
                 // The default batch size is 1
-                batchSize: this.configuration.batchSize ?? 1,
+                batchSize: configuration.batchSize ?? 1,
                 // TODO add setting
                 maxBatchingWindow: Duration.seconds(1),
             })

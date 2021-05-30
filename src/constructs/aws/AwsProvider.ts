@@ -12,7 +12,7 @@ import { Provider as LegacyAwsProvider, Serverless } from '../../types/serverles
 import AwsConstruct from './AwsConstruct';
 import Provider from '../Provider';
 
-export default class AwsProvider extends Provider<AwsConstruct<any>> {
+export default class AwsProvider extends Provider<AwsConstruct> {
     public readonly region: string;
     public readonly app: App;
     public readonly stack: Stack;
@@ -110,13 +110,17 @@ export default class AwsProvider extends Provider<AwsConstruct<any>> {
 
     private async postDeploy(): Promise<void> {
         for (const [, construct] of Object.entries(this.constructs)) {
-            await construct.postDeploy();
+            if (construct.postDeploy !== undefined) {
+                await construct.postDeploy();
+            }
         }
     }
 
     private async preRemove(): Promise<void> {
         for (const [, construct] of Object.entries(this.constructs)) {
-            await construct.preRemove();
+            if (construct.preRemove !== undefined) {
+                await construct.preRemove();
+            }
         }
     }
 
@@ -158,7 +162,9 @@ export default class AwsProvider extends Provider<AwsConstruct<any>> {
 
     private appendPermissions(): void {
         const statements = Object.entries(this.constructs)
-            .map(([, construct]) => (construct.permissions() as unknown) as AwsIamPolicyStatements)
+            .map(([, construct]) => {
+                return ((construct.permissions ? construct.permissions() : []) as unknown) as AwsIamPolicyStatements;
+            })
             .flat(1);
         if (statements.length === 0) {
             return;

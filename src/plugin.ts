@@ -12,6 +12,7 @@ import { NETLIFY_WEBSITE_DEFINITION, NetlifyWebsite } from './constructs/netlify
 import NetlifyProvider from './constructs/netlify/NetlifyProvider';
 import { HTTP_API_DEFINITION, HttpApi } from './constructs/aws/HttpApi';
 import AwsProvider from './constructs/aws/AwsProvider';
+import AwsConstruct from './constructs/aws/AwsConstruct';
 
 // TODO of course this should be dynamic in the real implementation
 const constructRegistry: Record<string, { class: any; schema: JSONSchema }> = {
@@ -152,8 +153,13 @@ class LiftPlugin {
         for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig(true))) {
             const provider = this.providers[configuration.provider];
             const type = constructRegistry[configuration.type].class;
-            // TODO type that more strongly
-            const construct = new type(provider, id, configuration);
+            let construct: Construct;
+            // TODO make that much much cleaner :)
+            if (provider instanceof AwsProvider) {
+                construct = new type(provider.stack, provider, id, configuration) as AwsConstruct;
+            } else {
+                construct = new type(provider, id, configuration) as Construct;
+            }
             this.constructs[id] = construct;
             provider.addConstruct(id, construct);
         }

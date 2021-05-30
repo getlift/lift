@@ -1,4 +1,4 @@
-import { CfnOutput } from '@aws-cdk/core';
+import { CfnOutput, Construct } from '@aws-cdk/core';
 import { FromSchema } from 'json-schema-to-ts';
 import * as apigatewayv2 from '@aws-cdk/aws-apigatewayv2';
 import { LambdaProxyIntegration } from '@aws-cdk/aws-apigatewayv2-integrations';
@@ -19,18 +19,23 @@ export const HTTP_API_DEFINITION = {
     required: ['type', 'routes'],
 } as const;
 
-export class HttpApi extends AwsConstruct<typeof HTTP_API_DEFINITION> {
+export class HttpApi extends Construct implements AwsConstruct {
     private readonly api: apigatewayv2.HttpApi;
-    private readonly apiUrlOutput: CfnOutput;
+    private readonly urlOutput: CfnOutput;
 
-    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof HTTP_API_DEFINITION>) {
-        super(provider, id, configuration);
+    constructor(
+        scope: Construct,
+        private readonly provider: AwsProvider,
+        id: string,
+        configuration: FromSchema<typeof HTTP_API_DEFINITION>
+    ) {
+        super(scope, id);
 
         let defaultRoute: LambdaProxyIntegration | undefined;
         if ('*' in configuration.routes) {
-            const handler = new Function(this.provider, 'ApiHandler', configuration.routes['*']);
+            const handler = new Function(this, provider, 'ApiHandler', configuration.routes['*']);
             defaultRoute = new LambdaProxyIntegration({
-                handler: handler.function,
+                handler,
             });
         }
 
@@ -49,18 +54,18 @@ export class HttpApi extends AwsConstruct<typeof HTTP_API_DEFINITION> {
             const method = apigatewayv2.HttpMethod[methodString as apigatewayv2.HttpMethod];
 
             // TODO Unique ID for each handler (sub-constructs?)
-            const handler = new Function(this.provider, 'ApiHandler', handlerConfig);
+            const handler = new Function(this, this.provider, 'ApiHandler', handlerConfig);
             this.api.addRoutes({
                 methods: [method],
                 path,
                 integration: new LambdaProxyIntegration({
-                    handler: handler.function,
+                    handler,
                 }),
             });
         }
 
         // CloudFormation outputs
-        this.apiUrlOutput = new CfnOutput(this, 'ApiUrl', {
+        this.urlOutput = new CfnOutput(this, 'ApiUrl', {
             description: `URL of the "${id}" API.`,
             value: this.api.url ?? '',
         });
@@ -78,11 +83,11 @@ export class HttpApi extends AwsConstruct<typeof HTTP_API_DEFINITION> {
 
     references(): Record<string, string> {
         return {
-            queueArn: this.api.url!,
+            url: this.api.url!,
         };
     }
 
     async getUrl(): Promise<string | undefined> {
-        return this.provider.getStackOutput(this.apiUrlOutput);
+        return this.provider.getStackOutput(this.urlOutput);
     }
 }

@@ -1,5 +1,5 @@
 import * as lambda from '@aws-cdk/aws-lambda';
-import { CfnOutput } from '@aws-cdk/core';
+import { CfnOutput, Construct } from '@aws-cdk/core';
 import { FromSchema } from 'json-schema-to-ts';
 import AwsConstruct from './AwsConstruct';
 import AwsProvider from './AwsProvider';
@@ -20,15 +20,17 @@ export const FUNCTION_DEFINITION = {
     required: ['type', 'handler'],
 } as const;
 
-export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
-    public readonly function: lambda.Function;
+export class Function extends lambda.Function implements AwsConstruct {
     private readonly functionNameOutput: CfnOutput;
 
-    constructor(provider: AwsProvider, id: string, configuration: FromSchema<typeof FUNCTION_DEFINITION>) {
-        super(provider, id, configuration);
-
+    constructor(
+        scope: Construct,
+        private provider: AwsProvider,
+        private id: string,
+        private configuration: FromSchema<typeof FUNCTION_DEFINITION>
+    ) {
         // TODO set options based on configuration
-        this.function = new lambda.Function(this, 'Function', {
+        super(scope, id, {
             runtime: lambda.Runtime.NODEJS_14_X,
             code: lambda.Code.fromAsset(process.cwd()),
             handler: configuration.handler,
@@ -38,7 +40,7 @@ export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
 
         this.functionNameOutput = new CfnOutput(this, 'FunctionName', {
             description: `Name of the "${id}" function.`,
-            value: this.function.functionName,
+            value: this.functionName,
         });
     }
 
