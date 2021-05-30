@@ -120,7 +120,7 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
     }
 
     permissions(): PolicyStatement[] {
-        return [new PolicyStatement('sqs:SendMessage', [this.referenceQueueArn()])];
+        return [new PolicyStatement('sqs:SendMessage', [this.queue.queueArn])];
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
@@ -134,26 +134,18 @@ export class Queue extends AwsConstruct<typeof QUEUE_DEFINITION> {
         return {};
     }
 
-    references(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, string> {
         return {
-            queueUrl: () => this.referenceQueueUrl(),
-            queueArn: () => this.referenceQueueArn(),
+            queueUrl: this.queue.queueUrl,
+            queueArn: this.queue.queueArn,
         };
     }
 
-    referenceQueueArn(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.queue.queueArn);
-    }
-
-    referenceQueueUrl(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.queue.queueUrl);
-    }
-
     async getQueueArn(): Promise<string | undefined> {
-        return this.getOutputValue(this.queueArnOutput);
+        return this.provider.getStackOutput(this.queueArnOutput);
     }
 
     async getQueueUrl(): Promise<string | undefined> {
-        return this.getOutputValue(this.queueUrlOutput);
+        return this.provider.getStackOutput(this.queueUrlOutput);
     }
 }

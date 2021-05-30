@@ -4,5 +4,5 @@ export default interface Construct {
     commands(): Record<string, () => void | Promise<void>>;
 
     // TODO will eventually be removed
-    references(): Record<string, () => Record<string, unknown>>;
+    references(): Record<string, string>;
 }

@@ -52,11 +52,11 @@ export class Function extends AwsConstruct<typeof FUNCTION_DEFINITION> {
         return {};
     }
 
-    references(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, string> {
         return {};
     }
 
     async getFunctionName(): Promise<string | undefined> {
-        return this.getOutputValue(this.functionNameOutput);
+        return this.provider.getStackOutput(this.functionNameOutput);
     }
 }

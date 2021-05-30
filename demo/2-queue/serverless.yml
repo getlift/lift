@@ -20,8 +20,8 @@ constructs:
                 runtime: nodejs14.x
                 environment:
                     # TODO: make the reference work
-                    QUEUE_URL: https://sqs.us-east-1.amazonaws.com/416566615250/lift-demo-queues-dev-constructs-import
 #                    QUEUE_URL: ${reference:import.queueUrl}
+                    QUEUE_URL: https://sqs.us-east-1.amazonaws.com/416566615250/lift-demo-queues-dev-constructs-import
 
     import:
         provider: aws

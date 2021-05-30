@@ -76,17 +76,13 @@ export class HttpApi extends AwsConstruct<typeof HTTP_API_DEFINITION> {
         return {};
     }
 
-    references(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, string> {
         return {
-            queueArn: () => this.referenceUrl(),
+            queueArn: this.api.url!,
         };
     }
 
-    referenceUrl(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.api.url!);
-    }
-
     async getUrl(): Promise<string | undefined> {
-        return this.getOutputValue(this.apiUrlOutput);
+        return this.provider.getStackOutput(this.apiUrlOutput);
     }
 }

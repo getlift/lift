@@ -43,7 +43,7 @@ type MinimallyValidConstructConfig = { type: string; provider: string; [k: strin
  * Serverless plugin
  */
 class LiftPlugin {
-    private readonly providers: Record<string, Provider<Construct>> = {};
+    private readonly providers: Record<string, Provider<any>> = {};
     private readonly constructs: Record<string, Construct> = {};
     private readonly serverless: Serverless;
     public readonly hooks: Record<string, Hook>;
@@ -184,7 +184,7 @@ class LiftPlugin {
         };
     }
 
-    resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
+    resolveReference({ address }: { address: string }): { value: string } {
         const [id, property] = address.split('.', 2);
 
         if (!has(this.constructs, id)) {
@@ -202,7 +202,7 @@ class LiftPlugin {
         }
 
         return {
-            value: properties[property](),
+            value: properties[property],
         };
     }
 

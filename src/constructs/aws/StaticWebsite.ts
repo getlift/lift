@@ -250,7 +250,7 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
         };
     }
 
-    references(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, string> {
         return {};
     }
 
@@ -264,18 +264,18 @@ export class StaticWebsite extends AwsConstruct<typeof STATIC_WEBSITE_DEFINITION
     }
 
     async getBucketName(): Promise<string | undefined> {
-        return this.getOutputValue(this.bucketNameOutput);
+        return this.provider.getStackOutput(this.bucketNameOutput);
     }
 
     async getDomain(): Promise<string | undefined> {
-        return this.getOutputValue(this.domainOutput);
+        return this.provider.getStackOutput(this.domainOutput);
     }
 
     async getCName(): Promise<string | undefined> {
-        return this.getOutputValue(this.cnameOutput);
+        return this.provider.getStackOutput(this.cnameOutput);
     }
 
     async getDistributionId(): Promise<string | undefined> {
-        return this.getOutputValue(this.distributionIdOutput);
+        return this.provider.getStackOutput(this.distributionIdOutput);
     }
 }

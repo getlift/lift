@@ -1,4 +1,4 @@
-import { App, Stack } from '@aws-cdk/core';
+import { App, CfnOutput, Stack } from '@aws-cdk/core';
 import { CredentialProviderChain, Credentials } from 'aws-sdk';
 import { Bootstrapper, SdkProvider } from 'aws-cdk';
 import { CloudFormationDeployments } from 'aws-cdk/lib/api/cloudformation-deployments';
@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { AwsIamPolicyStatements } from '@serverless/typescript';
 import { ManagedPolicy, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
+import { DescribeStacksInput, DescribeStacksOutput } from 'aws-sdk/clients/cloudformation';
 import { log } from '../../utils/logger';
 import { Provider as LegacyAwsProvider, Serverless } from '../../types/serverless';
 import AwsConstruct from './AwsConstruct';
@@ -117,6 +118,35 @@ export default class AwsProvider extends Provider<AwsConstruct<any>> {
         for (const [, construct] of Object.entries(this.constructs)) {
             await construct.preRemove();
         }
+    }
+
+    /**
+     * Resolves the value of a CloudFormation stack output.
+     */
+    async getStackOutput(output: CfnOutput): Promise<string | undefined> {
+        const outputId = Stack.of(this.stack).resolve(output.logicalId) as string;
+        const stackName = this.stack.stackName;
+
+        let data: DescribeStacksOutput;
+        try {
+            data = await this.request<DescribeStacksInput, DescribeStacksOutput>('CloudFormation', 'describeStacks', {
+                StackName: stackName,
+            });
+        } catch (e) {
+            if (e instanceof Error && e.message === `Stack with id ${stackName} does not exist`) {
+                return undefined;
+            }
+
+            throw e;
+        }
+        if (!data.Stacks || !data.Stacks[0].Outputs) return undefined;
+        for (const item of data.Stacks[0].Outputs) {
+            if (item.OutputKey === outputId) {
+                return item.OutputValue;
+            }
+        }
+
+        return undefined;
     }
 
     /**

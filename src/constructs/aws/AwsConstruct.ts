@@ -1,7 +1,6 @@
-import { Construct as CdkConstruct, CfnOutput, Stack } from '@aws-cdk/core';
+import { Construct as CdkConstruct } from '@aws-cdk/core';
 import { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import { PolicyStatement } from '../../Stack';
-import { getStackOutput } from '../../CloudFormation';
 import AwsProvider from './AwsProvider';
 import Construct from '../Construct';
 
@@ -21,7 +20,10 @@ export default abstract class AwsConstruct<S extends JSONSchema> extends CdkCons
 
     abstract commands(): Record<string, () => Promise<void>>;
 
-    abstract references(): Record<string, () => Record<string, unknown>>;
+    /**
+     * CDK references
+     */
+    abstract references(): Record<string, string>;
 
     async postDeploy(): Promise<void> {
         // Can be overridden by constructs
@@ -33,16 +35,5 @@ export default abstract class AwsConstruct<S extends JSONSchema> extends CdkCons
 
     permissions(): PolicyStatement[] {
         return [];
-    }
-
-    /**
-     * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
-     */
-    protected getCloudFormationReference(value: string): Record<string, unknown> {
-        return Stack.of(this).resolve(value) as Record<string, unknown>;
-    }
-
-    protected async getOutputValue(output: CfnOutput): Promise<string | undefined> {
-        return await getStackOutput(this.provider, Stack.of(this).resolve(output.logicalId));
     }
 }
