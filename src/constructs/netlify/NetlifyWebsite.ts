@@ -90,7 +90,7 @@ export class NetlifyWebsite implements Construct {
         progress.succeed(`Website '${this.id}' deployed to Netlify`);
     }
 
-    references(): Record<string, () => Record<string, unknown>> {
+    references(): Record<string, string> {
         return {};
     }
 
