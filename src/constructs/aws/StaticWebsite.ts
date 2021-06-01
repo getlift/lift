@@ -22,7 +22,7 @@ import {
 import { log } from '../../utils/logger';
 import AwsConstruct from './AwsConstruct';
 import AwsProvider from './AwsProvider';
-import { s3Sync } from "../utils/s3-sync";
+import { s3Sync } from '../../utils/s3-sync';
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: 'object',
@@ -188,7 +188,7 @@ export class StaticWebsite extends Construct implements AwsConstruct {
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
         const { hasChanges } = await s3Sync({
-            aws: this.serverless.getProvider("aws"),
+            aws: this.provider,
             localPath: this.configuration.path,
             bucketName,
         });
