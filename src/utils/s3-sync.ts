@@ -6,15 +6,15 @@ import {
     PutObjectOutput,
     PutObjectRequest,
     Object as S3Object,
-} from "aws-sdk/clients/s3";
-import * as fs from "fs";
-import * as util from "util";
-import * as path from "path";
-import * as crypto from "crypto";
-import { lookup } from "mime-types";
-import { chunk } from "lodash";
-import chalk from "chalk";
-import { Provider } from "../types/serverless";
+} from 'aws-sdk/clients/s3';
+import * as fs from 'fs';
+import * as util from 'util';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import { lookup } from 'mime-types';
+import { chunk } from 'lodash';
+import chalk from 'chalk';
+import { Provider } from '../types/serverless';
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
@@ -76,23 +76,23 @@ export async function s3Sync({
 async function listFilesRecursively(directory: string): Promise<Set<string>> {
     const items = await readdir(directory);
 
-    const files = await Promise.all(
+    const files: Set<string> = new Set();
+    await Promise.all(
         items.map(async (fileName) => {
             const fullPath = path.join(directory, fileName);
             const fileStat = await stat(fullPath);
             if (fileStat.isFile()) {
-                return [fileName];
+                files.add(fileName);
             } else if (fileStat.isDirectory()) {
                 const subFiles = await listFilesRecursively(fullPath);
-
-                return [...subFiles].map((subFileName) => path.join(fileName, subFileName));
+                subFiles.forEach((subFileName) => {
+                    files.add(path.join(fileName, subFileName));
+                });
             }
-
-            return [];
         })
     );
 
-    return new Set(files.flat(1));
+    return files;
 }
 
 async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> {
@@ -100,7 +100,7 @@ async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> 
     let continuationToken = undefined;
     const objects: Record<string, S3Object> = {};
     do {
-        result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+        result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>('S3', 'listObjectsV2', {
             Bucket: bucketName,
             MaxKeys: 1000,
             ContinuationToken: continuationToken,
@@ -125,9 +125,9 @@ function findObjectsToDelete(existing: string[], target: Set<string>): string[] 
 async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
     let contentType = lookup(key);
     if (contentType === false) {
-        contentType = "application/octet-stream";
+        contentType = 'application/octet-stream';
     }
-    await aws.request<PutObjectRequest, PutObjectOutput>("S3", "putObject", {
+    await aws.request<PutObjectRequest, PutObjectOutput>('S3', 'putObject', {
         Bucket: bucket,
         Key: key,
         Body: fileContent,
@@ -136,7 +136,7 @@ async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Bu
 }
 
 async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<void> {
-    await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+    await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>('S3', 'deleteObjects', {
         Bucket: bucket,
         Delete: {
             Objects: keys.map((key) => {
@@ -149,5 +149,5 @@ async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<
 }
 
 export function computeS3ETag(fileContent: Buffer): string {
-    return `"${crypto.createHash("md5").update(fileContent).digest("hex")}"`;
+    return `"${crypto.createHash('md5').update(fileContent).digest('hex')}"`;
 }
