@@ -71,7 +71,26 @@ export default class AwsProvider extends Provider<AwsConstruct> {
                 name: 'dev',
                 region: this.stack.region,
             },
-            sdkProvider
+            sdkProvider,
+            {
+                /**
+                 * We use a CDK toolkit stack dedicated to Serverless.
+                 * The reason for this is:
+                 * - to keep complete control over that stack
+                 * - because there are multiple versions, we don't want to force
+                 * one specific version on users
+                 * (see https://docs.aws.amazon.com/cdk/latest/guide/bootstrapping.html#bootstrapping-templates)
+                 */
+                toolkitStackName: 'serverless-cdk-toolkit',
+                /**
+                 * In the same spirit as the custom stack name, we must provide
+                 * a different "qualifier": this ID will be used in CloudFormation
+                 * exports to provide a unique export name.
+                 */
+                parameters: {
+                    qualifier: 'serverless',
+                },
+            }
         );
         if (bootstrapDeployResult.noOp) {
             log('The CDK is already set up, moving on');
