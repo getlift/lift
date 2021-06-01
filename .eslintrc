@@ -5,6 +5,8 @@
     "@serverless/eslint-config/node"
   ],
   "rules": {
+    // The CDK works with side-effects in `new`
+    "no-new": "off",
     "quotes": [
       "error",
       "single",
