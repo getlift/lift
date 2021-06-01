@@ -1,6 +1,18 @@
+import AWSMock from "aws-sdk-mock";
+import * as sinon from "sinon";
+import { ListObjectsV2Output, ListObjectsV2Request } from "aws-sdk/clients/s3";
+import * as fs from "fs";
+import * as path from "path";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
+import * as CloudFormationHelpers from "../../src/CloudFormation";
+import { computeS3ETag } from "../../src/utils/s3-sync";
 
 describe("static websites", () => {
+    afterEach(() => {
+        sinon.restore();
+        AWSMock.restore();
+    });
+
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "staticWebsites",
@@ -219,4 +231,79 @@ describe("static websites", () => {
             },
         });
     });
+
+    it("should synchronize files to S3", async () => {
+        sinon.stub(CloudFormationHelpers, "getStackOutput").returns(Promise.resolve("bucket-name"));
+        /*
+         * This scenario simulates the following:
+         * - index.html is up to date, it should be ignored
+         * - styles.css has changes, it should be updated to S3
+         * - scripts.js is new, it should be created in S3
+         * - image.jpg doesn't exist on disk, it should be removed from S3
+         */
+        mockBucketContent([
+            {
+                Key: "index.html",
+                ETag: computeS3ETag(
+                    fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/index.html"))
+                ),
+            },
+            { Key: "styles.css" },
+            { Key: "image.jpg" },
+        ]);
+        const putObjectSpy = sinon.stub().returns(Promise.resolve());
+        AWSMock.mock("S3", "putObject", putObjectSpy);
+        const deleteObjectsSpy = sinon.stub().returns(Promise.resolve());
+        AWSMock.mock("S3", "deleteObjects", deleteObjectsSpy);
+        const cloudfrontInvalidationSpy = sinon.stub().returns(Promise.resolve());
+        AWSMock.mock("CloudFront", "createInvalidation", cloudfrontInvalidationSpy);
+
+        await runServerless({
+            fixture: "staticWebsites",
+            configExt: pluginConfigExt,
+            cliArgs: ["static-websites", "deploy"],
+        });
+
+        // scripts.js and styles.css were updated
+        sinon.assert.callCount(putObjectSpy, 2);
+        expect(putObjectSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "scripts.js",
+            Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/scripts.js")),
+            ContentType: "application/javascript",
+        });
+        expect(putObjectSpy.secondCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "styles.css",
+            Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/styles.css")),
+            ContentType: "text/css",
+        });
+        // image.jpg was deleted
+        sinon.assert.calledOnce(deleteObjectsSpy);
+        expect(deleteObjectsSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Delete: {
+                Objects: [
+                    {
+                        Key: "image.jpg",
+                    },
+                ],
+            },
+        });
+        // A CloudFront invalidation was triggered
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+    });
 });
+
+function mockBucketContent(objects: Array<{ Key: string; ETag?: string }>) {
+    AWSMock.mock(
+        "S3",
+        "listObjectsV2",
+        (params: ListObjectsV2Request, callback: (a: null, b: ListObjectsV2Output) => void) => {
+            callback(null, {
+                IsTruncated: false,
+                Contents: objects,
+            });
+        }
+    );
+}

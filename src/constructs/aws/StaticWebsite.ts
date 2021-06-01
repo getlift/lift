@@ -11,7 +11,6 @@ import {
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from '@aws-cdk/aws-cloudfront';
-import { spawnSync } from 'child_process';
 import chalk from 'chalk';
 import { CreateInvalidationRequest, CreateInvalidationResult } from 'aws-sdk/clients/cloudfront';
 import {
@@ -23,6 +22,7 @@ import {
 import { log } from '../../utils/logger';
 import AwsConstruct from './AwsConstruct';
 import AwsProvider from './AwsProvider';
+import { s3Sync } from "../utils/s3-sync";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: 'object',
@@ -187,11 +187,14 @@ export class StaticWebsite extends Construct implements AwsConstruct {
         }
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
-        // TODO proper upload, without going through a subcommand
-        spawnSync('aws', ['s3', 'sync', '--delete', this.configuration.path, `s3://${bucketName}`], {
-            stdio: 'inherit',
+        const { hasChanges } = await s3Sync({
+            aws: this.serverless.getProvider("aws"),
+            localPath: this.configuration.path,
+            bucketName,
         });
-        await this.clearCDNCache();
+        if (hasChanges) {
+            await this.clearCDNCache();
+        }
 
         const domain = await this.getDomain();
         if (domain !== undefined) {
