@@ -4,9 +4,21 @@ import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
+import chalk from "chalk";
+import {
+    DeleteMessageBatchRequest,
+    DeleteMessageBatchResult,
+    PurgeQueueRequest,
+    ReceiveMessageRequest,
+    ReceiveMessageResult,
+    SendMessageBatchRequest,
+    SendMessageBatchResult,
+} from "aws-sdk/clients/sqs";
+import ora from "ora";
 import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
+import { log } from "../utils/logger";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -116,7 +128,7 @@ export class Queue extends CdkConstruct implements Construct {
             value: this.queue.queueUrl,
         });
         this.dlqUrlOutput = new CfnOutput(this, "DlqUrl", {
-            description: `URL of the "${id}" SQS Dead Letter Queue.`,
+            description: `URL of the "${id}" SQS dead letter queue.`,
             value: dlq.queueUrl,
         });
 
@@ -124,7 +136,11 @@ export class Queue extends CdkConstruct implements Construct {
     }
 
     commands(): Record<string, () => void | Promise<void>> {
-        return {};
+        return {
+            failed: () => this.listDlq(),
+            "failed:clear": () => this.clearDlq(),
+            "failed:retry": () => this.retryDlq(),
+        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
@@ -177,5 +193,130 @@ export class Queue extends CdkConstruct implements Construct {
 
     async getDlqUrl(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.dlqUrlOutput);
+    }
+
+    async listDlq(): Promise<void> {
+        const queueUrl = await this.getDlqUrl();
+        if (queueUrl === undefined) {
+            console.log(
+                chalk.red('Could not find the queue in the deployed stack. Try running "serverless deploy" first?')
+            );
+
+            return;
+        }
+        console.log(chalk.yellow(`Polling failed messages from the dead letter queue`));
+        const progress = ora().start();
+        const messagesResponse = await this.provider.request<ReceiveMessageRequest, ReceiveMessageResult>(
+            "SQS",
+            "receiveMessage",
+            {
+                QueueUrl: queueUrl,
+                MaxNumberOfMessages: 10,
+                WaitTimeSeconds: 3,
+                // Only hide messages for 1 second
+                VisibilityTimeout: 1,
+            }
+        );
+        progress.stop();
+        if (!messagesResponse.Messages) {
+            console.log("👌 No failed messages found in the dead letter queue");
+
+            return;
+        }
+        for (const message of messagesResponse.Messages) {
+            console.log(chalk.yellow(`Message #${message.MessageId ?? "?"}`));
+            console.log(this.formatMessageBody(message.Body ?? ""));
+            console.log();
+        }
+    }
+
+    async clearDlq(): Promise<void> {
+        const queueUrl = await this.getDlqUrl();
+        if (queueUrl === undefined) {
+            return;
+        }
+        log(`Clearing dead letter queue ${queueUrl}`);
+        await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
+            QueueUrl: queueUrl,
+        });
+        log("Failed messages have been cleared 🙈");
+    }
+
+    async retryDlq(): Promise<void> {
+        const queueUrl = await this.getQueueUrl();
+        const dlqUrl = await this.getDlqUrl();
+        if (queueUrl === undefined || dlqUrl === undefined) {
+            return;
+        }
+        console.log(chalk.yellow("Moving failed messages from DLQ to the main queue to be retried"));
+        // TODO loop until there are no more messages
+        const messagesResponse = await this.provider.request<ReceiveMessageRequest, ReceiveMessageResult>(
+            "SQS",
+            "receiveMessage",
+            {
+                QueueUrl: dlqUrl,
+                MaxNumberOfMessages: 10,
+                WaitTimeSeconds: 2,
+                VisibilityTimeout: 2,
+            }
+        );
+        const messages = messagesResponse.Messages;
+        if (!messages) {
+            console.log("No failed messages found");
+
+            return;
+        }
+        const sendResult = await this.provider.request<SendMessageBatchRequest, SendMessageBatchResult>(
+            "SQS",
+            "sendMessageBatch",
+            {
+                QueueUrl: queueUrl,
+                Entries: messages.map((message) => {
+                    return {
+                        Id: message.MessageId as string,
+                        MessageAttributes: message.MessageAttributes,
+                        MessageBody: message.Body as string,
+                    };
+                }),
+            }
+        );
+        sendResult.Failed;
+        if (sendResult.Failed.length > 0) {
+            log(
+                `Couldn't retry ${sendResult.Failed.length} failed messages (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`
+            );
+        }
+        const deletionResult = await this.provider.request<DeleteMessageBatchRequest, DeleteMessageBatchResult>(
+            "SQS",
+            "deleteMessageBatch",
+            {
+                QueueUrl: dlqUrl,
+                // TODO only delete successful "sent" messages here
+                Entries: messages.map((message) => {
+                    return {
+                        Id: message.MessageId as string,
+                        ReceiptHandle: message.ReceiptHandle as string,
+                    };
+                }),
+            }
+        );
+        if (deletionResult.Failed.length > 0) {
+            log(
+                `${deletionResult.Failed.length} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+            );
+        }
+        log(`${messages.length} failed messages have been moved to the main queue to be retried 💪`);
+    }
+
+    private formatMessageBody(body: string): string {
+        try {
+            // If it's valid JSON, we'll format it nicely
+            const data = JSON.parse(body) as unknown;
+
+            return JSON.stringify(data, null, 2);
+        } catch (e) {
+            // If it's not valid JSON, we'll print the body as-is
+            return body;
+        }
     }
 }
