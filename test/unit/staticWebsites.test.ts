@@ -277,6 +277,45 @@ describe("static websites", () => {
         });
     });
 
+    it("should allow to customize security HTTP headers", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        security: {
+                            allowIframe: true,
+                        },
+                    },
+                },
+            }),
+        });
+        const edgeFunction = computeLogicalId("landing", "EdgeFunction");
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                // Check that the `x-frame-options` header is not set
+                FunctionCode: `function handler(event) {
+    var response = event.response;
+    response.headers = Object.assign({}, {
+    "x-content-type-options": {
+        "value": "nosniff"
+    },
+    "x-xss-protection": {
+        "value": "1; mode=block"
+    },
+    "strict-transport-security": {
+        "value": "max-age=63072000"
+    }
+}, response.headers);
+    return response;
+}`,
+            },
+        });
+    });
+
     it("should synchronize files to S3", async () => {
         sinon.stub(CloudFormationHelpers, "getStackOutput").returns(Promise.resolve("bucket-name"));
         /*

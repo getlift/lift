@@ -36,13 +36,18 @@ export const STATIC_WEBSITE_DEFINITION = {
                 { type: "string" },
                 {
                     type: "array",
-                    items: {
-                        type: "string",
-                    },
+                    items: { type: "string" },
                 },
             ],
         },
         certificate: { type: "string" },
+        security: {
+            type: "object",
+            properties: {
+                allowIframe: { type: "boolean" },
+            },
+            additionalProperties: false,
+        },
     },
     additionalProperties: false,
     required: ["type", "path"],
@@ -79,17 +84,22 @@ export class StaticWebsite extends CdkConstruct implements Construct {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
+        const securityHeaders: Record<string, { value: string }> = {
+            "x-frame-options": { value: "SAMEORIGIN" },
+            "x-content-type-options": { value: "nosniff" },
+            "x-xss-protection": { value: "1; mode=block" },
+            "strict-transport-security": { value: "max-age=63072000" },
+        };
+        if (this.configuration.security?.allowIframe === true) {
+            delete securityHeaders["x-frame-options"];
+        }
+        const jsonHeaders = JSON.stringify(securityHeaders, undefined, 4);
         /**
          * CloudFront function that manipulates the HTTP responses to add security headers.
          */
         const code = `function handler(event) {
     var response = event.response;
-    response.headers = Object.assign({}, {
-        'x-frame-options': {value: 'SAMEORIGIN'},
-        'x-content-type-options': {value: 'nosniff'},
-        'x-xss-protection': {value: '1; mode=block'},
-        'strict-transport-security': {value: 'max-age=63072000'},
-    }, response.headers);
+    response.headers = Object.assign({}, ${jsonHeaders}, response.headers);
     return response;
 }`;
         const edgeFunction = new cloudfront.Function(this, "EdgeFunction", {
