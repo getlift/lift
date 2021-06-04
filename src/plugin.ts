@@ -85,7 +85,9 @@ class LiftPlugin {
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
         if (!has(this.constructs, id)) {
-            throw new Error(`No construct named '${id}' found in service file.`);
+            throw new Error(
+                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`
+            );
         }
         const construct = this.constructs[id];
 
