@@ -40,6 +40,7 @@ export async function s3Sync({
     const existingS3Objects = await s3ListAll(aws, bucketName);
 
     // Upload files by chunks
+    let skippedFiles = 0;
     for (const batch of chunk(filesToUpload, 2)) {
         await Promise.all(
             batch.map(async (file) => {
@@ -50,7 +51,7 @@ export async function s3Sync({
                     const existingObject = existingS3Objects[file];
                     const etag = computeS3ETag(fileContent);
                     if (etag === existingObject.ETag) {
-                        console.log(chalk.gray(`Skipping ${file}, no changes`));
+                        skippedFiles++;
 
                         return;
                     }
@@ -62,6 +63,7 @@ export async function s3Sync({
             })
         );
     }
+    console.log(chalk.gray(`Skipped uploading ${skippedFiles} unchanged files`));
 
     const objectsToDelete = findObjectsToDelete(Object.keys(existingS3Objects), filesToUpload);
     if (objectsToDelete.length > 0) {
