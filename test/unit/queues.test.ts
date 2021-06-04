@@ -16,19 +16,20 @@ describe("queues", () => {
             "IamRoleLambdaExecution",
             "EmailsWorkerLambdaFunction",
             // Lambda subscription to SQS
-            "EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE",
+            "EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A",
             // Queues
-            "queuesemailsDlq7ACDC28D",
-            "queuesemailsQueueCEEDDDDE",
+            "emailsDlq47F8494C",
+            "emailsQueueF057328A",
         ]);
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
+        const s = computeLogicalId("emails", "Queue");
+        expect(cfTemplate.Resources[s]).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 QueueName: expect.stringMatching(/test-queues-\w+-dev-emails/),
                 RedrivePolicy: {
                     deadLetterTargetArn: {
-                        "Fn::GetAtt": ["queuesemailsDlq7ACDC28D", "Arn"],
+                        "Fn::GetAtt": [computeLogicalId("emails", "Dlq"), "Arn"],
                     },
                     maxReceiveCount: 3,
                 },
@@ -37,7 +38,7 @@ describe("queues", () => {
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
         });
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Dlq")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")]).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 MessageRetentionPeriod: 1209600,
@@ -62,13 +63,13 @@ describe("queues", () => {
             },
             Type: "AWS::Lambda::Function",
         });
-        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE).toEqual({
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toEqual({
             DependsOn: ["IamRoleLambdaExecution"],
             Properties: {
                 BatchSize: 1,
                 Enabled: true,
                 EventSourceArn: {
-                    "Fn::GetAtt": ["queuesemailsQueueCEEDDDDE", "Arn"],
+                    "Fn::GetAtt": [computeLogicalId("emails", "Queue"), "Arn"],
                 },
                 FunctionName: {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
@@ -78,16 +79,16 @@ describe("queues", () => {
             Type: "AWS::Lambda::EventSourceMapping",
         });
         expect(cfTemplate.Outputs).toMatchObject({
-            queuesemailsQueueName8E6EF14C: {
-                Description: 'Name of the "emails" SQS queue.',
+            [computeLogicalId("emails", "QueueArn")]: {
+                Description: 'ARN of the "emails" SQS queue.',
                 Value: {
-                    "Fn::GetAtt": ["queuesemailsQueueCEEDDDDE", "QueueName"],
+                    "Fn::GetAtt": [computeLogicalId("emails", "Queue"), "Arn"],
                 },
             },
-            queuesemailsQueueUrlF73A22D6: {
+            [computeLogicalId("emails", "QueueUrl")]: {
                 Description: 'URL of the "emails" SQS queue.',
                 Value: {
-                    Ref: "queuesemailsQueueCEEDDDDE",
+                    Ref: computeLogicalId("emails", "Queue"),
                 },
             },
         });
@@ -105,7 +106,7 @@ describe("queues", () => {
                                     Effect: "Allow",
                                     Resource: [
                                         {
-                                            "Fn::GetAtt": ["queuesemailsQueueCEEDDDDE", "Arn"],
+                                            "Fn::GetAtt": [computeLogicalId("emails", "Queue"), "Arn"],
                                         },
                                     ],
                                 },
@@ -121,7 +122,7 @@ describe("queues", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
-                queues: {
+                constructs: {
                     emails: {
                         worker: {
                             timeout: 7,
@@ -131,7 +132,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
                 VisibilityTimeout: 7 * 6,
             },
@@ -147,7 +148,7 @@ describe("queues", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
-                queues: {
+                constructs: {
                     emails: {
                         maxRetries: 1,
                     },
@@ -155,7 +156,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Queue")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
                 RedrivePolicy: {
                     maxReceiveCount: 1,
@@ -168,7 +169,7 @@ describe("queues", () => {
         const { cfTemplate } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
-                queues: {
+                constructs: {
                     emails: {
                         batchSize: 10,
                     },
@@ -176,7 +177,7 @@ describe("queues", () => {
             }),
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE).toMatchObject({
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
             Properties: {
                 BatchSize: 10,
             },
@@ -187,7 +188,7 @@ describe("queues", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
-                queues: {
+                constructs: {
                     emails: {
                         alarm: "alerting@example.com",
                     },
@@ -201,19 +202,19 @@ describe("queues", () => {
             "EmailsWorkerLogGroup",
             "IamRoleLambdaExecution",
             "EmailsWorkerLambdaFunction",
-            "EmailsWorkerEventSourceMappingSQSQueuesemailsQueueCEEDDDDE",
-            "queuesemailsDlq7ACDC28D",
-            "queuesemailsQueueCEEDDDDE",
+            "EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A",
+            "emailsDlq47F8494C",
+            "emailsQueueF057328A",
             // Alarm
-            "queuesemailsAlarmTopic4EC198A9",
-            "queuesemailsAlarmTopicSubscription9A3D35C5",
-            "queuesemailsAlarm0E7F75C1",
+            "emailsAlarmTopic594BAEC9",
+            "emailsAlarmTopicSubscription688AECB6",
+            "emailsAlarm1821C14F",
         ]);
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "Alarm")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Alarm")]).toMatchObject({
             Properties: {
                 AlarmActions: [
                     {
-                        Ref: "queuesemailsAlarmTopic4EC198A9",
+                        Ref: computeLogicalId("emails", "AlarmTopic"),
                     },
                 ],
                 AlarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
@@ -224,7 +225,7 @@ describe("queues", () => {
                     {
                         Name: "QueueName",
                         Value: {
-                            "Fn::GetAtt": ["queuesemailsDlq7ACDC28D", "QueueName"],
+                            "Fn::GetAtt": [computeLogicalId("emails", "Dlq"), "QueueName"],
                         },
                     },
                 ],
@@ -236,19 +237,19 @@ describe("queues", () => {
                 Threshold: 0,
             },
         });
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "AlarmTopic")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "AlarmTopic")]).toMatchObject({
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 TopicName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm-topic/),
                 DisplayName: "[Alert][emails] There are failed jobs in the dead letter queue.",
             },
         });
-        expect(cfTemplate.Resources[computeLogicalId("queues", "emails", "AlarmTopicSubscription")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "AlarmTopicSubscription")]).toMatchObject({
             Properties: {
                 Endpoint: "alerting@example.com",
                 Protocol: "email",
                 TopicArn: {
-                    Ref: "queuesemailsAlarmTopic4EC198A9",
+                    Ref: computeLogicalId("emails", "AlarmTopic"),
                 },
             },
         });

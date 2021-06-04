@@ -1,127 +1,41 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
-import { CfnOutput, Construct, Duration, Fn, Stack } from "@aws-cdk/core";
+import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { isString } from "lodash";
-import chalk from "chalk";
-import type { Serverless } from "../types/serverless";
-import { Component, ComponentConstruct } from "../classes/Component";
 import { PolicyStatement } from "../Stack";
+import Construct from "../classes/Construct";
+import AwsProvider from "../classes/AwsProvider";
 
-const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
-const STORAGE_COMPONENT = "storage";
-const STORAGE_DEFINITION = {
+export const STORAGE_DEFINITION = {
     type: "object",
     properties: {
+        type: { const: "storage" },
         archive: { type: "number", minimum: 30 },
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
     },
     additionalProperties: false,
-} as const;
-const STORAGE_DEFINITIONS = {
-    type: "object",
-    minProperties: 1,
-    patternProperties: {
-        [LIFT_COMPONENT_NAME_PATTERN]: STORAGE_DEFINITION,
-    },
-    additionalProperties: false,
+    required: ["type"],
 } as const;
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
+    type: "storage",
     archive: 45,
     encryption: "s3",
 };
-enum STORAGE_VARIABLES {
-    name = "bucketName",
-    arn = "bucketArn",
-}
 
-export class Storage extends Component<typeof STORAGE_COMPONENT, typeof STORAGE_DEFINITIONS, StorageConstruct> {
-    constructor(serverless: Serverless) {
-        super({
-            name: STORAGE_COMPONENT,
-            serverless,
-            schema: STORAGE_DEFINITIONS,
-        });
-
-        this.configurationVariablesSources = {
-            [STORAGE_COMPONENT]: {
-                resolve: this.resolve.bind(this),
-            },
-        };
-
-        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
-    }
-
-    resolve({ address }: { address: string }): { value: Record<string, unknown> } {
-        const [id, property] = address.split(".", 2);
-        const storage = this.getComponent(id);
-
-        switch (property) {
-            case STORAGE_VARIABLES.arn:
-                return {
-                    value: storage.referenceBucketArn(),
-                };
-            case STORAGE_VARIABLES.name:
-                return {
-                    value: storage.referenceBucketName(),
-                };
-            default:
-                throw new Error(
-                    `Unexepected property ${property} accessed on storage componened ${id}. ` +
-                        `Allowed values are ${Object.values(STORAGE_VARIABLES).join(", ")}`
-                );
-        }
-    }
-
-    compile(): void {
-        Object.entries(this.getConfiguration()).map(([storageName, storageConfiguration]) => {
-            new StorageConstruct(this, storageName, this.serverless, storageConfiguration);
-        });
-    }
-
-    permissions(): PolicyStatement[] {
-        return this.getComponents().map((storage) => {
-            return new PolicyStatement(
-                ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
-                [
-                    storage.referenceBucketArn(),
-                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
-                    Stack.of(this).resolve(Fn.join("/", [storage.referenceBucketArn(), "*"])),
-                ]
-            );
-        });
-    }
-
-    async info(): Promise<void> {
-        const getAllStorageBucketNames = await Promise.all(
-            this.getComponents().map(async (storage) => {
-                return await storage.getBucketName();
-            })
-        );
-        const foundBucketNames = getAllStorageBucketNames.filter(isString);
-        if (foundBucketNames.length <= 0) {
-            return;
-        }
-        console.log(chalk.yellow("storage:"));
-        for (const storage of foundBucketNames) {
-            console.log(`  ${storage}`);
-        }
-    }
-}
-
-class StorageConstruct extends ComponentConstruct {
-    private bucket: Bucket;
-    private bucketNameOutput: CfnOutput;
+export class Storage extends CdkConstruct implements Construct {
+    private readonly bucket: Bucket;
+    private readonly bucketNameOutput: CfnOutput;
 
     constructor(
-        scope: Construct,
+        scope: CdkConstruct,
         id: string,
-        serverless: Serverless,
-        storageConfiguration: FromSchema<typeof STORAGE_DEFINITION>
+        configuration: FromSchema<typeof STORAGE_DEFINITION>,
+        private readonly provider: AwsProvider
     ) {
-        super(scope, id, serverless);
-        const resolvedStorageConfiguration = Object.assign({}, STORAGE_DEFAULTS, storageConfiguration);
+        super(scope, id);
+
+        const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
@@ -129,7 +43,7 @@ class StorageConstruct extends ComponentConstruct {
         };
 
         this.bucket = new Bucket(this, "Bucket", {
-            encryption: encryptionOptions[resolvedStorageConfiguration.encryption],
+            encryption: encryptionOptions[resolvedConfiguration.encryption],
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
             enforceSSL: true,
@@ -153,15 +67,45 @@ class StorageConstruct extends ComponentConstruct {
         });
     }
 
+    references(): Record<string, Record<string, unknown>> {
+        return {
+            bucketArn: this.referenceBucketArn(),
+            bucketName: this.referenceBucketName(),
+        };
+    }
+
+    permissions(): PolicyStatement[] {
+        return [
+            new PolicyStatement(
+                ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                [
+                    this.referenceBucketArn(),
+                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
+                    Stack.of(this).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
+                ]
+            ),
+        ];
+    }
+
+    commands(): Record<string, () => void | Promise<void>> {
+        return {};
+    }
+
+    outputs(): Record<string, () => Promise<string | undefined>> {
+        return {
+            bucketName: () => this.getBucketName(),
+        };
+    }
+
     referenceBucketName(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.bucket.bucketName);
+        return this.provider.getCloudFormationReference(this.bucket.bucketName);
     }
 
     referenceBucketArn(): Record<string, unknown> {
-        return this.getCloudFormationReference(this.bucket.bucketArn);
+        return this.provider.getCloudFormationReference(this.bucket.bucketArn);
     }
 
-    async getBucketName() {
-        return this.getOutputValue(this.bucketNameOutput);
+    async getBucketName(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.bucketNameOutput);
     }
 }

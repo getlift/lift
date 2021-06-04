@@ -9,7 +9,7 @@ import {
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { CfnOutput, Construct, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { Construct as CdkConstruct, CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import {
     DeleteObjectsOutput,
@@ -19,19 +19,18 @@ import {
 } from "aws-sdk/clients/s3";
 import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
-import { Component, ComponentConstruct } from "../classes/Component";
-import { Serverless } from "../types/serverless";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
+import AwsProvider from "../classes/AwsProvider";
+import Construct from "../classes/Construct";
 
-const LIFT_COMPONENT_NAME_PATTERN = "^[a-zA-Z0-9-_]+$";
-const COMPONENT_NAME = "static-websites";
-const COMPONENT_DEFINITION = {
+export const STATIC_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
+        type: { const: "static-website" },
         path: { type: "string" },
         domain: {
-            oneOf: [
+            anyOf: [
                 { type: "string" },
                 {
                     type: "array",
@@ -44,106 +43,24 @@ const COMPONENT_DEFINITION = {
         certificate: { type: "string" },
     },
     additionalProperties: false,
-    required: ["path"],
-} as const;
-const COMPONENT_DEFINITIONS = {
-    type: "object",
-    minProperties: 1,
-    patternProperties: {
-        [LIFT_COMPONENT_NAME_PATTERN]: COMPONENT_DEFINITION,
-    },
-    additionalProperties: false,
+    required: ["type", "path"],
 } as const;
 
-type ComponentConfiguration = FromSchema<typeof COMPONENT_DEFINITION>;
+type Configuration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
 
-export class StaticWebsites extends Component<
-    typeof COMPONENT_NAME,
-    typeof COMPONENT_DEFINITIONS,
-    StaticWebsiteConstruct
-> {
-    constructor(serverless: Serverless) {
-        super({
-            name: COMPONENT_NAME,
-            serverless,
-            schema: COMPONENT_DEFINITIONS,
-        });
-
-        this.commands = {
-            "static-websites": {
-                commands: {
-                    // Sub-command: `serverless static-website deploy`
-                    deploy: {
-                        lifecycleEvents: ["deploy"],
-                    },
-                },
-            },
-        };
-
-        this.hooks["after:deploy:deploy"] = this.deploy.bind(this);
-        this.hooks["static-websites:deploy:deploy"] = this.deploy.bind(this);
-
-        this.hooks["before:remove:remove"] = this.remove.bind(this);
-
-        this.hooks["before:aws:info:displayStackOutputs"] = this.info.bind(this);
-    }
-
-    compile(): void {
-        Object.entries(this.getConfiguration()).map(([websiteName, websiteConfiguration]) => {
-            new StaticWebsiteConstruct(this, websiteName, this.serverless, websiteConfiguration);
-        });
-    }
-
-    async deploy(): Promise<void> {
-        // Deploy each website sequentially (to simplify the log output)
-        for (const website of this.getComponents()) {
-            await website.deployWebsite();
-        }
-    }
-
-    async remove(): Promise<void> {
-        for (const website of this.getComponents()) {
-            await website.emptyBucket();
-        }
-    }
-
-    async info(): Promise<void> {
-        const lines: string[] = [];
-        await Promise.all(
-            this.getComponents().map(async (website) => {
-                const domain = await website.getDomain();
-                if (domain === undefined) {
-                    return;
-                }
-                const cname = await website.getCName();
-                if (cname === undefined) {
-                    return;
-                }
-                if (domain !== cname) {
-                    lines.push(`  ${website.id}: https://${domain} (CNAME: ${cname})`);
-                } else {
-                    lines.push(`  ${website.id}: https://${domain}`);
-                }
-            })
-        );
-        if (lines.length <= 0) {
-            return;
-        }
-        console.log(chalk.yellow("static websites:"));
-        for (const line of lines) {
-            console.log(line);
-        }
-    }
-}
-
-class StaticWebsiteConstruct extends ComponentConstruct {
+export class StaticWebsite extends CdkConstruct implements Construct {
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(scope: Construct, id: string, serverless: Serverless, readonly configuration: ComponentConfiguration) {
-        super(scope, id, serverless);
+    constructor(
+        scope: CdkConstruct,
+        private readonly id: string,
+        readonly configuration: Configuration,
+        private readonly provider: AwsProvider
+    ) {
+        super(scope, id);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
@@ -232,7 +149,7 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         });
     }
 
-    private compileViewerCertificate(config: ComponentConfiguration) {
+    private compileViewerCertificate(config: Configuration) {
         if (config.certificate === undefined) {
             return undefined;
         }
@@ -253,23 +170,28 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         } as ViewerCertificate;
     }
 
-    async getBucketName(): Promise<string | undefined> {
-        return this.getOutputValue(this.bucketNameOutput);
+    commands(): Record<string, () => Promise<void>> {
+        return {
+            upload: this.uploadWebsite.bind(this),
+        };
     }
 
-    async getDomain(): Promise<string | undefined> {
-        return this.getOutputValue(this.domainOutput);
+    outputs(): Record<string, () => Promise<string | undefined>> {
+        return {
+            url: () => this.getUrl(),
+            cname: () => this.getCName(),
+        };
     }
 
-    async getCName(): Promise<string | undefined> {
-        return this.getOutputValue(this.cnameOutput);
+    references(): Record<string, Record<string, unknown>> {
+        return {};
     }
 
-    async getDistributionId(): Promise<string | undefined> {
-        return this.getOutputValue(this.distributionIdOutput);
+    async postDeploy(): Promise<void> {
+        await this.uploadWebsite();
     }
 
-    async deployWebsite() {
+    async uploadWebsite(): Promise<void> {
         log(`Deploying the static website '${this.id}'`);
 
         const bucketName = await this.getBucketName();
@@ -281,7 +203,7 @@ class StaticWebsiteConstruct extends ComponentConstruct {
 
         log(`Uploading directory '${this.configuration.path}' to bucket '${bucketName}'`);
         const { hasChanges } = await s3Sync({
-            aws: this.serverless.getProvider("aws"),
+            aws: this.provider,
             localPath: this.configuration.path,
             bucketName,
         });
@@ -291,7 +213,7 @@ class StaticWebsiteConstruct extends ComponentConstruct {
 
         const domain = await this.getDomain();
         if (domain !== undefined) {
-            log("Deployed " + chalk.green(`https://${domain}`));
+            log(`Deployed ${chalk.green(`https://${domain}`)}`);
         }
     }
 
@@ -300,22 +222,25 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         if (distributionId === undefined) {
             return;
         }
-        const aws = this.serverless.getProvider("aws");
-        await aws.request<CreateInvalidationRequest, CreateInvalidationResult>("CloudFront", "createInvalidation", {
-            DistributionId: distributionId,
-            InvalidationBatch: {
-                // This should be a unique ID: we use a timestamp
-                CallerReference: Date.now().toString(),
-                Paths: {
-                    // Invalidate everything
-                    Items: ["/*"],
-                    Quantity: 1,
+        await this.provider.request<CreateInvalidationRequest, CreateInvalidationResult>(
+            "CloudFront",
+            "createInvalidation",
+            {
+                DistributionId: distributionId,
+                InvalidationBatch: {
+                    // This should be a unique ID: we use a timestamp
+                    CallerReference: Date.now().toString(),
+                    Paths: {
+                        // Invalidate everything
+                        Items: ["/*"],
+                        Quantity: 1,
+                    },
                 },
-            },
-        });
+            }
+        );
     }
 
-    async emptyBucket(): Promise<void> {
+    async preRemove(): Promise<void> {
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
             // No bucket found => nothing to delete!
@@ -325,19 +250,43 @@ class StaticWebsiteConstruct extends ComponentConstruct {
         log(
             `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
-        const aws = this.serverless.getProvider("aws");
-        const data = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
+        const data = await this.provider.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
             Bucket: bucketName,
         });
         if (data.Contents === undefined) {
             return;
         }
         const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
-        await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+        await this.provider.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
             Bucket: bucketName,
             Delete: {
                 Objects: keys.map((key) => ({ Key: key })),
             },
         });
+    }
+
+    async getUrl(): Promise<string | undefined> {
+        const domain = await this.getDomain();
+        if (domain === undefined) {
+            return undefined;
+        }
+
+        return `https://${domain}`;
+    }
+
+    async getBucketName(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.bucketNameOutput);
+    }
+
+    async getDomain(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.domainOutput);
+    }
+
+    async getCName(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.cnameOutput);
+    }
+
+    async getDistributionId(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.distributionIdOutput);
     }
 }

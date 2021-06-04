@@ -14,7 +14,7 @@ import * as crypto from "crypto";
 import { lookup } from "mime-types";
 import { chunk } from "lodash";
 import chalk from "chalk";
-import { Provider } from "../types/serverless";
+import AwsProvider from "../classes/AwsProvider";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
@@ -31,7 +31,7 @@ export async function s3Sync({
     localPath,
     bucketName,
 }: {
-    aws: Provider;
+    aws: AwsProvider;
     localPath: string;
     bucketName: string;
 }): Promise<{ hasChanges: boolean }> {
@@ -95,7 +95,7 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
     return files.flat(1);
 }
 
-async function s3ListAll(aws: Provider, bucketName: string): Promise<S3Objects> {
+async function s3ListAll(aws: AwsProvider, bucketName: string): Promise<S3Objects> {
     let result;
     let continuationToken = undefined;
     const objects: Record<string, S3Object> = {};
@@ -122,7 +122,7 @@ function findObjectsToDelete(existing: string[], target: string[]): string[] {
     return existing.filter((key) => target.indexOf(key) === -1);
 }
 
-async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
+async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
     let contentType = lookup(key);
     if (contentType === false) {
         contentType = "application/octet-stream";
@@ -135,7 +135,7 @@ async function s3Put(aws: Provider, bucket: string, key: string, fileContent: Bu
     });
 }
 
-async function s3Delete(aws: Provider, bucket: string, keys: string[]): Promise<void> {
+async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
     await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
         Bucket: bucket,
         Delete: {

@@ -19,10 +19,10 @@ describe("static websites", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        const bucketLogicalId = computeLogicalId("static-websites", "landing", "Bucket");
-        const bucketPolicyLogicalId = computeLogicalId("static-websites", "landing", "Bucket", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("static-websites", "landing", "OriginAccessIdentity");
-        const cfDistributionLogicalId = computeLogicalId("static-websites", "landing", "CDN", "CFDistribution");
+        const bucketLogicalId = computeLogicalId("landing", "Bucket");
+        const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
+        const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -137,25 +137,25 @@ describe("static websites", () => {
             },
         });
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-websites", "landing", "BucketName")]: {
+            [computeLogicalId("landing", "BucketName")]: {
                 Description: "Name of the bucket that stores the static website.",
                 Value: {
                     Ref: bucketLogicalId,
                 },
             },
-            [computeLogicalId("static-websites", "landing", "Domain")]: {
+            [computeLogicalId("landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: {
                     "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"],
                 },
             },
-            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
                     "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"],
                 },
             },
-            [computeLogicalId("static-websites", "landing", "DistributionId")]: {
+            [computeLogicalId("landing", "DistributionId")]: {
                 Description: "ID of the CloudFront distribution.",
                 Value: {
                     Ref: cfDistributionLogicalId,
@@ -170,7 +170,7 @@ describe("static websites", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        const cfDistributionLogicalId = computeLogicalId("static-websites", "landing", "CDN", "CFDistribution");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         // Check that CloudFront uses the custom ACM certificate and custom domain
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
@@ -188,11 +188,11 @@ describe("static websites", () => {
         });
         // The domain should be the custom domain, not the CloudFront one
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-websites", "landing", "Domain")]: {
+            [computeLogicalId("landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
                     "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"],
@@ -207,7 +207,7 @@ describe("static websites", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        const cfDistributionLogicalId = computeLogicalId("static-websites", "landing", "CDN", "CFDistribution");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
         // Check that CloudFront uses all the custom domains
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
@@ -219,11 +219,11 @@ describe("static websites", () => {
         });
         // This should contain the first domain of the list
         expect(cfTemplate.Outputs).toMatchObject({
-            [computeLogicalId("static-websites", "landing", "Domain")]: {
+            [computeLogicalId("landing", "Domain")]: {
                 Description: "Website domain name.",
                 Value: "example.com",
             },
-            [computeLogicalId("static-websites", "landing", "CloudFrontCName")]: {
+            [computeLogicalId("landing", "CloudFrontCName")]: {
                 Description: "CloudFront CNAME.",
                 Value: {
                     "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"],
@@ -261,7 +261,7 @@ describe("static websites", () => {
         await runServerless({
             fixture: "staticWebsites",
             configExt: pluginConfigExt,
-            cliArgs: ["static-websites", "deploy"],
+            cliArgs: ["landing:upload"],
         });
 
         // scripts.js and styles.css were updated

@@ -1,7 +1,9 @@
 service: storage
+configValidationMode: error
 
 provider:
   name: aws
 
-storage:
+constructs:
   avatars:
+    type: storage

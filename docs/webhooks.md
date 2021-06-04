@@ -113,7 +113,7 @@ webhooks:
 
 **Lift will automatically configure the function to be triggered by API Gateway.** It is not necessary to define `events` on the function.
 
-### Type
+### Event type
 
 _Optional_
 Defaults to `Webhook`.
@@ -122,7 +122,7 @@ Can either be a dynamic path selector:
 ```yaml
 webhooks:
   stripe:
-    type: $request.body.type
+    eventType: $request.body.type
     # ...
 ```
 
@@ -130,7 +130,7 @@ Or a static string:
 ```yaml
 webhooks:
   stripe:
-    type: stripe
+    eventType: stripe
     # ...
 ```
 

@@ -1,10 +1,12 @@
 service: storage
+configValidationMode: error
 
 provider:
   name: aws
 
-storage:
+constructs:
   testStorage:
+    type: storage
 
 resources:
   Resources:

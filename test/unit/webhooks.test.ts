@@ -7,7 +7,7 @@ describe("webhooks", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources[computeLogicalId("webhooks", "stripe", "Route")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("stripe", "Route")]).toMatchObject({
             Properties: {
                 AuthorizationType: "CUSTOM",
             },
@@ -19,7 +19,7 @@ describe("webhooks", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources[computeLogicalId("webhooks", "github", "Route")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("github", "Route")]).toMatchObject({
             Properties: {
                 AuthorizationType: "NONE",
             },

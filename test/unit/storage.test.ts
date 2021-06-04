@@ -7,7 +7,7 @@ describe("storage", () => {
             configExt: pluginConfigExt,
             cliArgs: ["package"],
         });
-        expect(cfTemplate.Resources[computeLogicalId("storage", "avatars", "Bucket")]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("avatars", "Bucket")]).toMatchObject({
             Type: "AWS::S3::Bucket",
         });
     });

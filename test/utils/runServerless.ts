@@ -1,7 +1,8 @@
 import path from "path";
-import { ConstructNode, Names } from "@aws-cdk/core";
+import { Names } from "@aws-cdk/core";
 import type originalRunServerless from "@serverless/test/run-serverless";
 import setupRunServerlessFixturesEngine from "@serverless/test/setup-run-serverless-fixtures-engine";
+import { Serverless } from "../../src/types/serverless";
 
 type ComputeLogicalId = (...address: string[]) => string;
 
@@ -9,9 +10,8 @@ type RunServerlessPromiseReturn = ReturnType<typeof originalRunServerless>;
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 type RunServerlessReturn = ThenArg<RunServerlessPromiseReturn>;
 
-const computeLogicalId = (serverless: Record<string, unknown>, ...address: string[]): string => {
-    // @ts-expect-error Comes from the stack being declared by plugin.ts. Serverless context object definition shall be improved.
-    const initialNode = serverless.stack.node as ConstructNode;
+const computeLogicalId = (serverless: Serverless, ...address: string[]): string => {
+    const initialNode = serverless.stack.node;
     const foundNode = [...address].reduce((currentNode, nextNodeId) => {
         const nextNode = currentNode.tryFindChild(nextNodeId);
         if (!nextNode) {
@@ -40,7 +40,8 @@ export const runServerless = async (
 
     return {
         ...runServerlessReturnValues,
-        computeLogicalId: (...address: string[]) => computeLogicalId(runServerlessReturnValues.serverless, ...address),
+        computeLogicalId: (...address: string[]) =>
+            computeLogicalId(runServerlessReturnValues.serverless as Serverless, ...address),
     };
 };
 

@@ -33,6 +33,7 @@ export type Provider = {
 };
 
 export type Serverless = {
+    // To use only in tests
     stack: Stack;
     pluginManager: {
         addPlugin: (plugin: unknown) => void;
