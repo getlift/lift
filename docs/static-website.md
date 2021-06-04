@@ -1,6 +1,6 @@
-# Static websites
+# Static website
 
-The `static-websites` component deploys:
+The `static-website` construct deploys:
 
 - **single-page applications**, for example React or VueJS applications
 - **plain static websites** composed of HTML files and assets (CSS, JS…)
@@ -10,11 +10,12 @@ The `static-websites` component deploys:
 ```yaml
 service: my-app
 provider:
-  name: aws
+    name: aws
 
-static-websites:
-  landing:
-    path: 'public'
+constructs:
+    landing:
+        type: static-website
+        path: public
 
 plugins:
     - serverless-lift
@@ -33,38 +34,43 @@ On the first `serverless deploy`, Lift creates:
 - an S3 bucket
 - a CloudFront CDN configured to serve the website from S3 over HTTPS, with caching at the edge
 
-![](static-websites.png)
+![](static-website.png)
 
 Additionally, every time `serverless deploy` runs, Lift:
 
 - uploads all files of the `public/` directory to the S3 bucket
 - invalidates the CloudFront cache so that the new version of the website is live
 
-To learn more about the architecture of this component, [read this article](https://medium.com/serverless-transformation/static-websites-on-aws-designing-lift-1db94574ba3b).
+To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/static-websites-on-aws-designing-lift-1db94574ba3b).
 
 _Note: the S3 bucket is public and entirely managed by Lift. Do not store or upload files to the bucket, they will be removed by Lift on the next deployment._
 
 ## Configuration reference
 
-It is possible to create multiple websites:
+### Custom domain
 
 ```yaml
-static-websites:
-  landing:
-    path: 'landing/dist'
-  admin-panel:
-    path: 'admin/dist'
+constructs:
+    landing:
+        type: static-website
+        path: public
 ```
+
+The `path` option should point to the local directory containing the static website. Use `path: .` to upload the content of the current directory.
+
+All files in that directory will be deployed and made available publicly.
+
+When using a JavaScript bundler (for example when working with Webpack, VueJS, React, etc.), the compiled files should be uploaded. For example this could be the `dist/` directory.
 
 ### Custom domain
 
 ```yaml
-static-websites:
-  landing:
-    ...
-    domain: mywebsite.com
-    # ARN of an ACM certificate for the domain, registered in us-east-1
-    certificate: arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123
+constructs:
+    landing:
+        # ...
+        domain: mywebsite.com
+        # ARN of an ACM certificate for the domain, registered in us-east-1
+        certificate: arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123
 ```
 
 The configuration above will activate the custom domain `mywebsite.com` on CloudFront, using the provided HTTPS certificate.
@@ -72,8 +78,9 @@ The configuration above will activate the custom domain `mywebsite.com` on Cloud
 After running `serverless deploy` (or `serverless info`), you should see the following output in the terminal:
 
 ```
-static websites:
-  landing: https://mywebsite.com (CNAME: s1p63x3kjhocjp.cloudfront.net)
+landing:
+  url: https://mywebsite.com
+  cname: s13hocjp.cloudfront.net
 ```
 
 Create a CNAME DNS entry that points your domain to the `xxx.cloudfront.net` domain. After a few minutes/hours, the domain should be available.
@@ -92,17 +99,17 @@ After the certificate is created and validated, you should see the ARN of the ce
 
 #### Multiple domains
 
-It is possible to register multiple domains:
+It is possible to setup multiple domains:
 
 ```yaml
-static-websites:
-  landing:
-    ...
-    domain:
-      - mywebsite.com
-      - app.mywebsite.com
+constructs:
+    landing:
+        # ...
+        domain:
+            - mywebsite.com
+            - app.mywebsite.com
 ```
 
 ### More options
 
-Looking for more options in the component configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).
+Looking for more options in the construct configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).

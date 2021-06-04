@@ -23,7 +23,7 @@ npm i -D serverless-lift
 
 ## Quick start
 
-Once installed, require the `serverless-lift` plugin and start using Lift components in `serverless.yml`:
+Once installed, require the `serverless-lift` plugin and start using Lift constructs in `serverless.yml`:
 
 ```yaml
 service: my-app
@@ -34,23 +34,23 @@ plugins:
 provider:
   name: aws
 
-static-websites:
-  landing-page:
-    path: 'landing/dist'
-    domain: mywebsite.com
+constructs:
 
-storage:
+  landing-page:
+    type: static-website
+    path: 'landing/dist'
+
   avatars:
-    encrypted: true
+    type: storage
 ```
 
-## Components
+## Constructs
 
-### Static Websites
+### Static Website
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
-[**Static websites documentation**](docs/static-websites.md)
+[**Static website documentation**](docs/static-website.md)
 
 ### Storage
 
@@ -58,19 +58,19 @@ Deploy preconfigured S3 buckets to store files.
 
 [**Storage documentation**](docs/storage.md)
 
-### Queues
+### Queue
 
 Deploy queues and workers for asynchronous processing.
 
-[**Queues documentation**](docs/queues.md)
+[**Queue documentation**](docs/queue.md)
 
-### Webhooks
+### Webhook
 
 Deploy webhooks to receive notification from 3rd party applications.
 
-[**Webhooks documentation**](docs/webhooks.md)
+[**Webhook documentation**](docs/webhook.md)
 
-Got ideas for new components? [Open and upvote component drafts](https://github.com/getlift/lift/discussions/categories/components).
+Got ideas for new constructs? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
 ---
 
