@@ -28,8 +28,9 @@ describe("static websites", () => {
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
         const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
-        const edgeFunction = computeLogicalId("landing", "EdgeFunction");
-        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
+        const edgeFunction = computeLogicalId("landing", "ResponseFunction");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -52,24 +53,29 @@ describe("static websites", () => {
                 PolicyDocument: {
                     Statement: [
                         {
-                            Action: "s3:GetObject",
+                            Action: ["s3:GetObject*", "s3:GetBucket*", "s3:List*"],
                             Effect: "Allow",
                             Principal: {
                                 CanonicalUser: {
                                     "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
                                 },
                             },
-                            Resource: {
-                                "Fn::Join": [
-                                    "",
-                                    [
-                                        {
-                                            "Fn::GetAtt": [bucketLogicalId, "Arn"],
-                                        },
-                                        "/*",
+                            Resource: [
+                                {
+                                    "Fn::GetAtt": [bucketLogicalId, "Arn"],
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt": [bucketLogicalId, "Arn"],
+                                            },
+                                            "/*",
+                                        ],
                                     ],
-                                ],
-                            },
+                                },
+                            ],
                         },
                     ],
                     Version: "2012-10-17",
@@ -98,16 +104,8 @@ describe("static websites", () => {
                     ],
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS"],
-                        CachedMethods: ["GET", "HEAD", "OPTIONS"],
                         Compress: true,
-                        DefaultTTL: 3600,
-                        ForwardedValues: {
-                            Cookies: {
-                                Forward: "none",
-                            },
-                            QueryString: false,
-                        },
-                        TargetOriginId: "origin1",
+                        TargetOriginId: cfOriginId,
                         ViewerProtocolPolicy: "redirect-to-https",
                         FunctionAssociations: [
                             {
@@ -124,12 +122,10 @@ describe("static websites", () => {
                     IPV6Enabled: true,
                     Origins: [
                         {
-                            ConnectionAttempts: 3,
-                            ConnectionTimeout: 10,
                             DomainName: {
                                 "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
                             },
-                            Id: "origin1",
+                            Id: cfOriginId,
                             S3OriginConfig: {
                                 OriginAccessIdentity: {
                                     "Fn::Join": [
@@ -145,10 +141,6 @@ describe("static websites", () => {
                             },
                         },
                     ],
-                    PriceClass: "PriceClass_100",
-                    ViewerCertificate: {
-                        CloudFrontDefaultCertificate: true,
-                    },
                 },
             },
         });
@@ -206,7 +198,7 @@ describe("static websites", () => {
                 },
             }),
         });
-        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         // Check that CloudFront uses the custom ACM certificate and custom domain
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
@@ -216,7 +208,7 @@ describe("static websites", () => {
                     ViewerCertificate: {
                         AcmCertificateArn:
                             "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
-                        MinimumProtocolVersion: "TLSv1.1_2016",
+                        MinimumProtocolVersion: "TLSv1.2_2019",
                         SslSupportMethod: "sni-only",
                     },
                 },
@@ -252,7 +244,7 @@ describe("static websites", () => {
                 },
             }),
         });
-        const cfDistributionLogicalId = computeLogicalId("landing", "CDN", "CFDistribution");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         // Check that CloudFront uses all the custom domains
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
@@ -292,7 +284,7 @@ describe("static websites", () => {
                 },
             }),
         });
-        const edgeFunction = computeLogicalId("landing", "EdgeFunction");
+        const edgeFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
             Type: "AWS::CloudFront::Function",
             Properties: {
