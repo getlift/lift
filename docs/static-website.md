@@ -31,23 +31,24 @@ The website is served over HTTPS and cached all over the world via the CloudFron
 
 On the first `serverless deploy`, Lift creates:
 
-- an S3 bucket
-- a CloudFront CDN configured to serve the website from S3 over HTTPS, with caching at the edge
+- an [S3](https://aws.amazon.com/s3/) bucket
+- a [CloudFront CDN](https://aws.amazon.com/cloudfront/) configured to serve the website from S3 over HTTPS, with caching at the edge
+- CloudFront Functions to set security HTTP headers
 
 ![](static-website.png)
 
 Additionally, every time `serverless deploy` runs, Lift:
 
-- uploads all files of the `public/` directory to the S3 bucket
+- uploads all files from the configured directory to the S3 bucket
 - invalidates the CloudFront cache so that the new version of the website is live
 
 To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/static-websites-on-aws-designing-lift-1db94574ba3b).
 
-_Note: the S3 bucket is public and entirely managed by Lift. Do not store or upload files to the bucket, they will be removed by Lift on the next deployment._
+_Note: the S3 bucket is public and entirely managed by Lift. Do not store or upload files to the bucket, they will be removed by Lift on the next deployment. Instead, create a separate bucket to store any extra file._
 
 ## Configuration reference
 
-### Custom domain
+### Path
 
 ```yaml
 constructs:
@@ -99,7 +100,7 @@ After the certificate is created and validated, you should see the ARN of the ce
 
 #### Multiple domains
 
-It is possible to setup multiple domains:
+It is possible to set up multiple domains:
 
 ```yaml
 constructs:
@@ -108,6 +109,20 @@ constructs:
         domain:
             - mywebsite.com
             - app.mywebsite.com
+```
+
+### Allow iframes
+
+By default, as recommended [for security reasons](https://scotthelme.co.uk/hardening-your-http-response-headers/#x-frame-options), the static website cannot be embedded in an iframe.
+
+To allow embedding the website in an iframe, set it up explicitly:
+
+```yaml
+constructs:
+    landing:
+        # ...
+        security:
+            allowIframe: true
 ```
 
 ### More options
