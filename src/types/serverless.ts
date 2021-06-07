@@ -24,6 +24,7 @@ export type Provider = {
     naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
+        getCompiledTemplateFileName: () => string;
     };
     getRegion: () => string;
     /**
@@ -35,8 +36,10 @@ export type Provider = {
 export type Serverless = {
     // To use only in tests
     stack: Stack;
+    serviceDir: string;
     pluginManager: {
         addPlugin: (plugin: unknown) => void;
+        spawn: (command: string) => Promise<void>;
     };
     configSchemaHandler: {
         defineTopLevelProperty: (pluginName: string, schema: JSONSchema) => void;

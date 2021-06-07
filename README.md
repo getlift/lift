@@ -72,6 +72,16 @@ Deploy webhooks to receive notification from 3rd party applications.
 
 Got ideas for new constructs? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
+## Ejecting
+
+You can eject from Lift at any time: Lift is based on CloudFormation. That allows anyone to kickstart a project with Lift, and fallback to CloudFormation if you ever grow out of it.
+
+To eject:
+
+- export the CloudFormation template via `serverless lift eject`
+- copy the parts you want to turn into CloudFormation and paste them in the [`resources` section of serverless.yml](https://www.serverless.com/framework/docs/providers/aws/guide/resources/)
+- don't forget to remove from `serverless.yml` the Lift constructs you have turned into CloudFormation
+
 ---
 
 ## Lift is built and maintained with love ❤️ by
