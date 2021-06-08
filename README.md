@@ -4,10 +4,10 @@ Lift is a plugin that leverages the AWS CDK to expand the [Serverless Framework]
 
 Deploy production-ready websites, queues, storage buckets and more with a few lines in serverless.yml.
 
-⚡️ **For developers** - No AWS knowledge required
-⚡️ **Production-ready** - Built by AWS experts, optimized for production
-⚡️ **Not invasive** - Integrates with existing projects
-⚡️ **No lock-in** - Eject to CloudFormation at any time
+- ⚡️ **For developers** - No AWS knowledge required
+- ⚡️ **Production-ready** - Built by AWS experts, optimized for production
+- ⚡️ **Not invasive** - Integrates with existing projects
+- ⚡️ **No lock-in** - Eject to CloudFormation at any time
 
 [Why should I choose Lift ?](docs/comparison.md)
 
@@ -16,7 +16,7 @@ Deploy production-ready websites, queues, storage buckets and more with a few li
 Lift is a [Serverless Framework plugin](https://www.serverless.com/plugins/), install it in your project via:
 
 ```bash
-serverless plugin install --name=serverless-lift
+serverless plugin install -n serverless-lift
 ```
 
 ## Quick start
@@ -32,9 +32,12 @@ provider:
 plugins:
     - serverless-lift
 
+functions: 
+    # ...
+
 constructs:
 
-    # Add Lift constructs here
+    # Include Lift constructs here
 
     landing-page:
         type: static-website
@@ -46,7 +49,7 @@ constructs:
 
 ## Constructs
 
-#### [**Static website**](docs/static-website.md)
+### [**Static website**](docs/static-website.md)
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
@@ -59,7 +62,7 @@ constructs:
 
 [Read more...](docs/static-website.md)
 
-#### [**Storage**](docs/storage.md)
+### [**Storage**](docs/storage.md)
 
 Deploy preconfigured S3 buckets to store files.
 
@@ -71,7 +74,7 @@ constructs:
 
 [Read more...](docs/storage.md)
 
-#### [**Queue**](docs/queue.md)
+### [**Queue**](docs/queue.md)
 
 Deploy SQS queues and workers for asynchronous processing.
 
@@ -85,7 +88,7 @@ constructs:
 
 [Read more...](docs/queue.md)
 
-#### [**Webhook**](docs/webhook.md)
+### [**Webhook**](docs/webhook.md)
 
 Deploy webhooks to receive notification from 3rd party applications.
 
