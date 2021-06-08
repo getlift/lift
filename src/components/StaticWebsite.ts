@@ -3,12 +3,14 @@ import {
     CloudFrontAllowedCachedMethods,
     CloudFrontAllowedMethods,
     CloudFrontWebDistribution,
+    FunctionEventType,
     HttpVersion,
     OriginAccessIdentity,
     PriceClass,
     ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
+import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import { Construct as CdkConstruct, CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import {
@@ -34,13 +36,18 @@ export const STATIC_WEBSITE_DEFINITION = {
                 { type: "string" },
                 {
                     type: "array",
-                    items: {
-                        type: "string",
-                    },
+                    items: { type: "string" },
                 },
             ],
         },
         certificate: { type: "string" },
+        security: {
+            type: "object",
+            properties: {
+                allowIframe: { type: "boolean" },
+            },
+            additionalProperties: false,
+        },
     },
     additionalProperties: false,
     required: ["type", "path"],
@@ -77,7 +84,31 @@ export class StaticWebsite extends CdkConstruct implements Construct {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
 
+        const securityHeaders: Record<string, { value: string }> = {
+            "x-frame-options": { value: "SAMEORIGIN" },
+            "x-content-type-options": { value: "nosniff" },
+            "x-xss-protection": { value: "1; mode=block" },
+            "strict-transport-security": { value: "max-age=63072000" },
+        };
+        if (this.configuration.security?.allowIframe === true) {
+            delete securityHeaders["x-frame-options"];
+        }
+        const jsonHeaders = JSON.stringify(securityHeaders, undefined, 4);
+        /**
+         * CloudFront function that manipulates the HTTP responses to add security headers.
+         */
+        const code = `function handler(event) {
+    var response = event.response;
+    response.headers = Object.assign({}, ${jsonHeaders}, response.headers);
+    return response;
+}`;
+        const edgeFunction = new cloudfront.Function(this, "EdgeFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${id}-response`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
+
         const distribution = new CloudFrontWebDistribution(this, "CDN", {
+            comment: `${provider.stackName} ${id} website CDN`,
             // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
             priceClass: PriceClass.PRICE_CLASS_100,
             // Enable http2 transfer for better performances
@@ -98,6 +129,12 @@ export class StaticWebsite extends CdkConstruct implements Construct {
                             isDefaultBehavior: true,
                             allowedMethods: CloudFrontAllowedMethods.GET_HEAD_OPTIONS,
                             cachedMethods: CloudFrontAllowedCachedMethods.GET_HEAD_OPTIONS,
+                            functionAssociations: [
+                                {
+                                    function: edgeFunction,
+                                    eventType: FunctionEventType.VIEWER_RESPONSE,
+                                },
+                            ],
                             forwardedValues: {
                                 // Do not forward the query string or cookies
                                 queryString: false,
