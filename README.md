@@ -9,7 +9,7 @@
 ![](https://img.shields.io/npm/l/serverless-lift)
 
 <!-- Lift usage animations -->
-![](docs/animations/storage.gif)
+![](docs/animations/all.gif)
 
 *Shipping Serverless features made easy*
 
