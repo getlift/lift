@@ -1,13 +1,11 @@
 import { Bucket } from "@aws-cdk/aws-s3";
 import {
-    CloudFrontAllowedCachedMethods,
-    CloudFrontAllowedMethods,
-    CloudFrontWebDistribution,
+    AllowedMethods,
+    CachePolicy,
+    Distribution,
     FunctionEventType,
     HttpVersion,
     OriginAccessIdentity,
-    PriceClass,
-    ViewerCertificate,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
@@ -21,6 +19,8 @@ import {
 } from "aws-sdk/clients/s3";
 import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
+import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
+import * as acm from "@aws-cdk/aws-certificatemanager";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import AwsProvider from "../classes/AwsProvider";
@@ -83,83 +83,48 @@ export class StaticWebsite extends CdkConstruct implements Construct {
         const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
             comment: `Identity that represents CloudFront for the ${id} static website.`,
         });
+        bucket.grantRead(cloudFrontOAI);
 
-        const securityHeaders: Record<string, { value: string }> = {
-            "x-frame-options": { value: "SAMEORIGIN" },
-            "x-content-type-options": { value: "nosniff" },
-            "x-xss-protection": { value: "1; mode=block" },
-            "strict-transport-security": { value: "max-age=63072000" },
-        };
-        if (this.configuration.security?.allowIframe === true) {
-            delete securityHeaders["x-frame-options"];
-        }
-        const jsonHeaders = JSON.stringify(securityHeaders, undefined, 4);
-        /**
-         * CloudFront function that manipulates the HTTP responses to add security headers.
-         */
-        const code = `function handler(event) {
-    var response = event.response;
-    response.headers = Object.assign({}, ${jsonHeaders}, response.headers);
-    return response;
-}`;
-        const edgeFunction = new cloudfront.Function(this, "EdgeFunction", {
-            functionName: `${this.provider.stackName}-${this.provider.region}-${id}-response`,
-            code: cloudfront.FunctionCode.fromInline(code),
-        });
-
-        const distribution = new CloudFrontWebDistribution(this, "CDN", {
+        // Cast the domains to an array
+        const domains = configuration.domain !== undefined ? [configuration.domain].flat() : undefined;
+        const certificate =
+            configuration.certificate !== undefined
+                ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
+                : undefined;
+        const distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
-            // Cheapest option by default (https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DistributionConfig.html)
-            priceClass: PriceClass.PRICE_CLASS_100,
-            // Enable http2 transfer for better performances
-            httpVersion: HttpVersion.HTTP2,
-            viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             // Send all page requests to index.html
             defaultRootObject: "index.html",
-            // Origins are where CloudFront fetches content
-            originConfigs: [
-                {
-                    // The CDK will automatically allow CloudFront to access S3 via the "Origin Access Identity"
-                    s3OriginSource: {
-                        s3BucketSource: bucket,
-                        originAccessIdentity: cloudFrontOAI,
+            defaultBehavior: {
+                // Origins are where CloudFront fetches content
+                origin: new S3Origin(bucket, {
+                    originAccessIdentity: cloudFrontOAI,
+                }),
+                allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+                // Use the "Managed-CachingOptimized" policy
+                // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
+                cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+                viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                functionAssociations: [
+                    {
+                        function: this.createResponseFunction(),
+                        eventType: FunctionEventType.VIEWER_RESPONSE,
                     },
-                    behaviors: [
-                        {
-                            isDefaultBehavior: true,
-                            allowedMethods: CloudFrontAllowedMethods.GET_HEAD_OPTIONS,
-                            cachedMethods: CloudFrontAllowedCachedMethods.GET_HEAD_OPTIONS,
-                            functionAssociations: [
-                                {
-                                    function: edgeFunction,
-                                    eventType: FunctionEventType.VIEWER_RESPONSE,
-                                },
-                            ],
-                            forwardedValues: {
-                                // Do not forward the query string or cookies
-                                queryString: false,
-                                cookies: {
-                                    forward: "none",
-                                },
-                            },
-                            // Serve files with gzip for browsers that support it (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/ServingCompressedFiles.html)
-                            compress: true,
-                            // Cache files in CloudFront for 1 hour by default
-                            defaultTtl: Duration.hours(1),
-                        },
-                    ],
-                },
-            ],
+                ],
+            },
             // For SPA we need dynamic pages to be served by index.html
-            errorConfigurations: [
+            errorResponses: [
                 {
-                    errorCode: 404,
-                    errorCachingMinTtl: 0,
-                    responseCode: 200,
+                    httpStatus: 404,
+                    ttl: Duration.seconds(0),
+                    responseHttpStatus: 200,
                     responsePagePath: "/index.html",
                 },
             ],
-            viewerCertificate: this.compileViewerCertificate(configuration),
+            // Enable http2 transfer for better performances
+            httpVersion: HttpVersion.HTTP2,
+            certificate: certificate,
+            domainNames: domains,
         });
 
         // CloudFormation outputs
@@ -184,27 +149,6 @@ export class StaticWebsite extends CdkConstruct implements Construct {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
-    }
-
-    private compileViewerCertificate(config: Configuration) {
-        if (config.certificate === undefined) {
-            return undefined;
-        }
-
-        let aliases: string[] = [];
-        if (config.domain !== undefined) {
-            aliases = typeof config.domain === "string" ? [config.domain] : config.domain;
-        }
-
-        return {
-            aliases: aliases,
-            props: {
-                acmCertificateArn: config.certificate,
-                // See https://docs.aws.amazon.com/fr_fr/cloudfront/latest/APIReference/API_ViewerCertificate.html
-                sslSupportMethod: "sni-only",
-                minimumProtocolVersion: "TLSv1.1_2016",
-            },
-        } as ViewerCertificate;
     }
 
     commands(): Record<string, () => Promise<void>> {
@@ -325,5 +269,31 @@ export class StaticWebsite extends CdkConstruct implements Construct {
 
     async getDistributionId(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.distributionIdOutput);
+    }
+
+    private createResponseFunction(): cloudfront.Function {
+        const securityHeaders: Record<string, { value: string }> = {
+            "x-frame-options": { value: "SAMEORIGIN" },
+            "x-content-type-options": { value: "nosniff" },
+            "x-xss-protection": { value: "1; mode=block" },
+            "strict-transport-security": { value: "max-age=63072000" },
+        };
+        if (this.configuration.security?.allowIframe === true) {
+            delete securityHeaders["x-frame-options"];
+        }
+        const jsonHeaders = JSON.stringify(securityHeaders, undefined, 4);
+        /**
+         * CloudFront function that manipulates the HTTP responses to add security headers.
+         */
+        const code = `function handler(event) {
+    var response = event.response;
+    response.headers = Object.assign({}, ${jsonHeaders}, response.headers);
+    return response;
+}`;
+
+        return new cloudfront.Function(this, "ResponseFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
     }
 }
