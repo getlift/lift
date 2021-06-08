@@ -63,7 +63,9 @@ export async function s3Sync({
             })
         );
     }
-    console.log(chalk.gray(`Skipped uploading ${skippedFiles} unchanged files`));
+    if (skippedFiles > 0) {
+        console.log(chalk.gray(`Skipped uploading ${skippedFiles} unchanged files`));
+    }
 
     const objectsToDelete = findObjectsToDelete(Object.keys(existingS3Objects), filesToUpload);
     if (objectsToDelete.length > 0) {
