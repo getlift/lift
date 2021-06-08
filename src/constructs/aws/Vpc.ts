@@ -20,12 +20,12 @@ export class Vpc extends CdkVpc implements ConstructInterface {
     public static schema = VPC_DEFINITION;
 
     static create(provider: AwsProvider, id: string, configuration: Configuration): Vpc {
-        return new this(provider.stack, id, configuration, provider);
+        return new this(provider.stack, id, configuration);
     }
 
-    private readonly appSecurityGroup: SecurityGroup;
+    public readonly appSecurityGroup: SecurityGroup;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
+    constructor(scope: CdkConstruct, id: string, private configuration: Configuration) {
         super(scope, id, {
             maxAzs: 2,
         });
@@ -36,12 +36,6 @@ export class Vpc extends CdkVpc implements ConstructInterface {
         });
         // Lambda is allowed to reach out to the whole internet
         this.appSecurityGroup.addEgressRule(Peer.anyIpv4(), Port.allTraffic());
-
-        // Auto-register the VPC
-        provider.setVpcConfig(
-            [this.appSecurityGroup.securityGroupName],
-            this.privateSubnets.map((subnet) => subnet.subnetId)
-        );
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {

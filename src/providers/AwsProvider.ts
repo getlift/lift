@@ -1,10 +1,10 @@
 import type { CfnOutput } from "@aws-cdk/core";
 import { App, Stack } from "@aws-cdk/core";
 import { get, merge } from "lodash";
-import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import { DatabaseDynamoDBSingleTable, Queue, StaticWebsite, Storage, Vpc, Webhook } from "@lift/constructs/aws";
+import { DatabaseSql } from "@lift/constructs/aws/DatabaseSql";
 import { getStackOutput } from "../CloudFormation";
 import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
@@ -51,6 +51,7 @@ export class AwsProvider implements ProviderInterface {
     public readonly stackName: string;
     private readonly legacyProvider: LegacyAwsProvider;
     public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
+    private vpc: Vpc | undefined;
 
     constructor(private readonly serverless: Serverless) {
         this.stackName = serverless.getProvider("aws").naming.getStackName();
@@ -95,32 +96,38 @@ export class AwsProvider implements ProviderInterface {
     }
 
     /**
-     * @internal
+     * The VPC is a special construct: it isn't defined in the `constructs:` section.
+     *
+     * Why: because other constructs that use it (like RDS DB, etc.) need the instance (JS object) of the VPC construct,
+     * not just values that can be referenced via variables (like subnet IDs). This is how the CDK works.
+     *
+     * Because they need instances, we enter a new problem: how do we initialize constructs in the correct order so
+     * that VPC is instantiated before a "RDS" construct? With variables, we avoid this problem thanks to lazy variable
+     * resolution (with the "token" system of the CDK). But we can't do that with entire constructs/JS objects.
+     *
+     * As such, the VPC construct is a special construct that is global to the AWS provider. It is configured at the
+     * AWS provider level too. And that isn't too crazy: that means 1 VPC per application, which is what we want 99%
+     * of the cases. That also allows easily sharing the VPC across all constructs that need it, without having to
+     * reference it explicitly in the config (the config is simpler), which is a small win.
      */
-    setVpcConfig(securityGroups: AwsCfInstruction[], subnets: AwsCfInstruction[]): void {
-        if (this.getVpcConfig() !== null) {
+    enableVpc(): Vpc {
+        if (this.vpc !== undefined) {
+            return this.vpc;
+        }
+        if ((this.serverless.service.provider.vpc ?? null) !== null) {
             throw new ServerlessError(
-                "Can't register more than one VPC.\n" +
-                    'Either you have several "vpc" constructs \n' +
-                    'or you already defined "provider.vpc" in serverless.yml',
-                "LIFT_ONLY_ONE_VPC"
+                "A VPC is manually configured in the 'aws' provider configuration. That is incompatible with Lift's automatic VPC feature.",
+                "LIFT_VPC_ALREADY_CONFIGURED"
             );
         }
 
+        this.vpc = Vpc.create(this, "vpc", {});
         this.serverless.service.provider.vpc = {
-            securityGroupIds: securityGroups, // TODO : merge with existing groups ?
-            subnetIds: subnets,
+            securityGroupIds: [this.vpc.appSecurityGroup.securityGroupName],
+            subnetIds: this.vpc.privateSubnets.map((subnet) => subnet.subnetId),
         };
-    }
 
-    /**
-     * This function can be used by other constructs to reference
-     * global subnets or security groups in their resources
-     *
-     * @internal
-     */
-    getVpcConfig(): AwsLambdaVpcConfig | null {
-        return this.serverless.service.provider.vpc ?? null;
+        return this.vpc;
     }
 
     /**
@@ -152,4 +159,4 @@ export class AwsProvider implements ProviderInterface {
  *  If they use TypeScript, `registerConstructs()` will validate that the construct class
  *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
  */
-AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, Vpc, DatabaseDynamoDBSingleTable);
+AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, DatabaseDynamoDBSingleTable, DatabaseSql);
