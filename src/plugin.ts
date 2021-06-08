@@ -40,7 +40,7 @@ class LiftPlugin {
 
         this.serverless = serverless;
 
-        this.commands["lift"] = {
+        this.commands.lift = {
             commands: {
                 eject: {
                     lifecycleEvents: ["eject"],
