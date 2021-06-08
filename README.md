@@ -13,11 +13,13 @@ Deploy production-ready websites, queues, storage buckets and more with a few li
 
 ## Installation
 
-Lift is a [Serverless Framework plugin](https://www.serverless.com/plugins/), install it in your project via:
+Lift is a [Serverless Framework plugin](https://www.serverless.com/plugins/), install it in your project:
 
 ```bash
 serverless plugin install -n serverless-lift
 ```
+
+If you prefer, you can install via `npm` directly: `npm i -D serverless-lift`.
 
 ## Quick start
 
@@ -49,7 +51,7 @@ constructs:
 
 ## Constructs
 
-### [**Static website**](docs/static-website.md)
+### [Static website](docs/static-website.md)
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
@@ -62,7 +64,7 @@ constructs:
 
 [Read more...](docs/static-website.md)
 
-### [**Storage**](docs/storage.md)
+### [Storage](docs/storage.md)
 
 Deploy preconfigured S3 buckets to store files.
 
@@ -74,7 +76,7 @@ constructs:
 
 [Read more...](docs/storage.md)
 
-### [**Queue**](docs/queue.md)
+### [Queue](docs/queue.md)
 
 Deploy SQS queues and workers for asynchronous processing.
 
@@ -88,7 +90,7 @@ constructs:
 
 [Read more...](docs/queue.md)
 
-### [**Webhook**](docs/webhook.md)
+### [Webhook](docs/webhook.md)
 
 Deploy webhooks to receive notification from 3rd party applications.
 
