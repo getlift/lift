@@ -3,6 +3,9 @@ import { has, merge } from "lodash";
 import chalk from "chalk";
 import { JSONSchema6 } from "json-schema";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
+import * as path from "path";
+import { readFileSync } from "fs";
+import { dump } from "js-yaml";
 import type {
     CloudformationTemplate,
     CommandsDefinition,
@@ -13,6 +16,7 @@ import type {
 import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
 import { constructs } from "./components";
+import { log } from "./utils/logger";
 
 type MinimallyValidConstructConfig = { type: string; [k: string]: unknown };
 
@@ -36,12 +40,21 @@ class LiftPlugin {
 
         this.serverless = serverless;
 
+        this.commands.lift = {
+            commands: {
+                eject: {
+                    lifecycleEvents: ["eject"],
+                },
+            },
+        };
+
         this.hooks = {
             initialize: this.appendPermissions.bind(this),
             "before:aws:info:displayStackOutputs": this.info.bind(this),
             "after:package:compileEvents": this.appendCloudformationResources.bind(this),
             "after:deploy:deploy": this.postDeploy.bind(this),
             "before:remove:remove": this.preRemove.bind(this),
+            "lift:eject:eject": this.eject.bind(this),
         };
 
         // TODO variables should be resolved just before deploying each provider
@@ -189,6 +202,19 @@ class LiftPlugin {
         }
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
         this.serverless.service.provider.iamRoleStatements.push(...statements);
+    }
+
+    private async eject() {
+        log("Ejecting from Lift to CloudFormation");
+        await this.serverless.pluginManager.spawn("package");
+        const legacyProvider = this.serverless.getProvider("aws");
+        const compiledTemplateFileName = legacyProvider.naming.getCompiledTemplateFileName();
+        const compiledTemplateFilePath = path.join(this.serverless.serviceDir, ".serverless", compiledTemplateFileName);
+        const cfTemplate = readFileSync(compiledTemplateFilePath);
+        const formattedYaml = dump(JSON.parse(cfTemplate.toString()));
+        console.log(formattedYaml);
+        log("You can also find that CloudFormation template in the following file:");
+        log(compiledTemplateFilePath);
     }
 }
 
