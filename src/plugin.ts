@@ -15,7 +15,7 @@ import type {
 } from "./types/serverless";
 import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
-import { constructs } from "./components";
+import { constructs } from "./constructs";
 import { log } from "./utils/logger";
 
 type MinimallyValidConstructConfig = { type: string; [k: string]: unknown };
