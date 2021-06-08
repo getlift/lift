@@ -2,11 +2,13 @@
 ![](docs/lift.png)
 
 <!-- Lift badges -->
-![](https://img.shields.io/github/workflow/status/getlift/lift/CI/master)
-![](https://img.shields.io/npm/v/serverless-lift)
-![](https://img.shields.io/node/v/serverless-lift)
-![](https://img.shields.io/npm/dw/serverless-lift)
-![](https://img.shields.io/npm/l/serverless-lift)
+<p align="center">
+  <img src="https://img.shields.io/github/workflow/status/getlift/lift/CI/master">
+  <img src="https://img.shields.io/npm/v/serverless-lift">
+  <img src="https://img.shields.io/node/v/serverless-lift">
+  <img src="https://img.shields.io/npm/dw/serverless-lift">
+  <img src="https://img.shields.io/npm/l/serverless-lift">
+</p>
 
 <!-- Lift usage animations -->
 ![](docs/animations/all.gif)
