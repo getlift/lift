@@ -1,4 +1,15 @@
+<!-- Lift main cover -->
 ![](docs/lift.png)
+
+<!-- Lift badges -->
+![](https://img.shields.io/github/workflow/status/getlift/lift/CI/master)
+![](https://img.shields.io/npm/v/serverless-lift)
+![](https://img.shields.io/node/v/serverless-lift)
+![](https://img.shields.io/npm/dw/serverless-lift)
+![](https://img.shields.io/npm/l/serverless-lift)
+
+<!-- Lift usage animations -->
+![](docs/animations/storage.gif)
 
 *Shipping Serverless features made easy*
 
