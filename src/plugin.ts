@@ -5,6 +5,7 @@ import { JSONSchema6 } from "json-schema";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
+import { dump } from "js-yaml";
 import type {
     CloudformationTemplate,
     CommandsDefinition,
@@ -210,8 +211,8 @@ class LiftPlugin {
         const compiledTemplateFileName = legacyProvider.naming.getCompiledTemplateFileName();
         const compiledTemplateFilePath = path.join(this.serverless.serviceDir, ".serverless", compiledTemplateFileName);
         const cfTemplate = readFileSync(compiledTemplateFilePath);
-        const formattedJson = JSON.stringify(JSON.parse(cfTemplate.toString()), undefined, 2);
-        console.log(formattedJson);
+        const formattedYaml = dump(JSON.parse(cfTemplate.toString()));
+        console.log(formattedYaml);
         log("You can also find that CloudFormation template in the following file:");
         log(compiledTemplateFilePath);
     }
