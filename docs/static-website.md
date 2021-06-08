@@ -23,7 +23,7 @@ plugins:
 
 On `serverless deploy`, the `public/` directory will be deployed as a public website.
 
-_Note: **the first deployment takes 5 minutes**. Next deployments only take seconds._
+_Note: **the first deployment takes 4 minutes**. Next deployments only take seconds._
 
 The website is served over HTTPS and cached all over the world via the CloudFront CDN.
 
@@ -46,6 +46,42 @@ To learn more about the architecture of this construct, [read this article](http
 
 _Note: the S3 bucket is public and entirely managed by Lift. Do not store or upload files to the bucket, they will be removed by Lift on the next deployment. Instead, create a separate bucket to store any extra file._
 
+## React
+
+To deploy a [React](https://reactjs.org/) app, use the following configuration:
+
+```yaml
+constructs:
+    react:
+        type: static-website
+        path: build
+```
+
+To deploy, run:
+
+```
+npm run build
+serverless deploy
+```
+
+## Vue
+
+To deploy a [Vue](https://vuejs.org/) app, use the following configuration:
+
+```yaml
+constructs:
+    vue:
+        type: static-website
+        path: dist
+```
+
+To deploy, run:
+
+```
+npm run build
+serverless deploy
+```
+
 ## Configuration reference
 
 ### Path
@@ -61,7 +97,7 @@ The `path` option should point to the local directory containing the static webs
 
 All files in that directory will be deployed and made available publicly.
 
-When using a JavaScript bundler (for example when working with Webpack, VueJS, React, etc.), the compiled files should be uploaded. For example this could be the `dist/` directory.
+When using a JavaScript bundler (for example when working with Webpack, VueJS, React, etc.), upload the compiled files. For example this could be the `dist/` directory.
 
 ### Custom domain
 
