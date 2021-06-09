@@ -5,22 +5,12 @@ import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
-import {
-    DeleteMessageBatchRequest,
-    DeleteMessageBatchResult,
-    Message,
-    PurgeQueueRequest,
-    ReceiveMessageRequest,
-    ReceiveMessageResult,
-    SendMessageBatchRequest,
-    SendMessageBatchResult,
-} from "aws-sdk/clients/sqs";
+import { PurgeQueueRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
 import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
-import { log } from "../utils/logger";
-import { sleep } from "../utils/sleep";
+import { pollMessages, retryMessages } from "./queue/sqs";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -198,26 +188,20 @@ export class Queue extends CdkConstruct implements Construct {
     }
 
     async listDlq(): Promise<void> {
-        const queueUrl = await this.getDlqUrl();
-        if (queueUrl === undefined) {
+        const dlqUrl = await this.getDlqUrl();
+        if (dlqUrl === undefined) {
             console.log(
-                chalk.red('Could not find the queue in the deployed stack. Try running "serverless deploy" first?')
+                chalk.red(
+                    'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?'
+                )
             );
 
             return;
         }
         const progress = ora("Polling failed messages from the dead letter queue").start();
-        const messages: Message[] = [];
-        const promises = [];
-        for (let i = 0; i < 5; i++) {
-            promises.push(
-                this.pollMessages(queueUrl, messages).then(() => {
-                    progress.text = `Polling failed messages from the dead letter queue (${messages.length} found)`;
-                })
-            );
-            await sleep(200);
-        }
-        await Promise.all(promises);
+        const messages = await pollMessages(this.provider, dlqUrl, (numberOfMessagesFound) => {
+            progress.text = `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`;
+        });
         if (messages.length === 0) {
             progress.succeed("👌 No failed messages found in the dead letter queue");
 
@@ -235,110 +219,91 @@ export class Queue extends CdkConstruct implements Construct {
             console.log(this.formatMessageBody(message.Body ?? ""));
             console.log();
         }
-    }
-
-    private async pollMessages(queueUrl: string, messages: Message[]): Promise<boolean> {
-        const messagesResponse = await this.provider.request<ReceiveMessageRequest, ReceiveMessageResult>(
-            "SQS",
-            "receiveMessage",
-            {
-                QueueUrl: queueUrl,
-                MaxNumberOfMessages: 10,
-                WaitTimeSeconds: 5,
-                // Only hide messages for 1 second
-                VisibilityTimeout: 1,
-            }
-        );
-        let foundNewMessages = false;
-        for (const newMessage of messagesResponse.Messages ?? []) {
-            const alreadyInTheList = messages.some((message) => {
-                return message.MessageId === newMessage.MessageId;
-            });
-            if (!alreadyInTheList) {
-                messages.push(newMessage);
-                foundNewMessages = true;
-            }
-        }
-
-        return foundNewMessages;
+        const retryCommand = chalk.bold(`serverless ${this.id}:failed:retry`);
+        const clearCommand = chalk.bold(`serverless ${this.id}:failed:clear`);
+        console.log(`Run ${retryCommand} to retry all messages, or ${clearCommand} to delete those messages forever.`);
     }
 
     async clearDlq(): Promise<void> {
-        const queueUrl = await this.getDlqUrl();
-        if (queueUrl === undefined) {
+        const dlqUrl = await this.getDlqUrl();
+        if (dlqUrl === undefined) {
+            console.log(
+                chalk.red(
+                    'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?'
+                )
+            );
+
             return;
         }
-        log(`Clearing dead letter queue ${queueUrl}`);
+        const progress = ora("Clearing the dead letter queue of failed messages").start();
         await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
-            QueueUrl: queueUrl,
+            QueueUrl: dlqUrl,
         });
-        log("Failed messages have been cleared 🙈");
+        progress.succeed("The dead letter queue has been cleared, failed messages are gone 🙈");
     }
 
     async retryDlq(): Promise<void> {
         const queueUrl = await this.getQueueUrl();
         const dlqUrl = await this.getDlqUrl();
         if (queueUrl === undefined || dlqUrl === undefined) {
-            return;
-        }
-        console.log(chalk.yellow("Moving failed messages from DLQ to the main queue to be retried"));
-        // TODO loop until there are no more messages
-        const messagesResponse = await this.provider.request<ReceiveMessageRequest, ReceiveMessageResult>(
-            "SQS",
-            "receiveMessage",
-            {
-                QueueUrl: dlqUrl,
-                MaxNumberOfMessages: 10,
-                WaitTimeSeconds: 2,
-                VisibilityTimeout: 2,
-            }
-        );
-        const messages = messagesResponse.Messages;
-        if (!messages) {
-            console.log("No failed messages found");
+            console.log(
+                chalk.red('Could not find the queue in the deployed stack. Try running "serverless deploy" first?')
+            );
 
             return;
         }
-        const sendResult = await this.provider.request<SendMessageBatchRequest, SendMessageBatchResult>(
-            "SQS",
-            "sendMessageBatch",
-            {
-                QueueUrl: queueUrl,
-                Entries: messages.map((message) => {
-                    return {
-                        Id: message.MessageId as string,
-                        MessageAttributes: message.MessageAttributes,
-                        MessageBody: message.Body as string,
-                    };
-                }),
+        const progress = ora("Moving failed messages from DLQ to the main queue to be retried").start();
+        let shouldContinue = true;
+        let totalMessagesToRetry = 0;
+        let totalMessagesRetried = 0;
+        do {
+            const messages = await pollMessages(this.provider, dlqUrl);
+            /**
+             * TODO We should filter those messages to exclude those we already retried
+             * Indeed, SQS delete takes a while to be effective, so we don't want to retry the same
+             * message multiple times.
+             */
+            totalMessagesToRetry += messages.length;
+            progress.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
+
+            const result = await retryMessages(this.provider, queueUrl, dlqUrl, messages);
+            totalMessagesRetried += result.numberOfMessagesRetried;
+            progress.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
+
+            // Stop if we have any failure (that simplifies the flow for now)
+            if (result.numberOfMessagesRetriedButNotDeleted > 0 || result.numberOfMessagesNotRetried > 0) {
+                progress.fail(`There were some errors:`);
+                if (totalMessagesRetried > 0) {
+                    console.log(
+                        `${totalMessagesRetried} failed messages have been successfully moved to the main queue to be retried.`
+                    );
+                }
+                if (result.numberOfMessagesNotRetried > 0) {
+                    console.log(
+                        `${result.numberOfMessagesNotRetried} failed messages could not be retried (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`
+                    );
+                }
+                if (result.numberOfMessagesRetriedButNotDeleted > 0) {
+                    console.log(
+                        `${result.numberOfMessagesRetriedButNotDeleted} failed messages were moved to the main queue, but were not successfully deleted from the dead letter queue. That means that these messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+                    );
+                }
+                console.log(
+                    "Stopping now because of the error above. Not all messages have been retried, run the command again to continue."
+                );
+
+                return;
             }
-        );
-        sendResult.Failed;
-        if (sendResult.Failed.length > 0) {
-            log(
-                `Couldn't retry ${sendResult.Failed.length} failed messages (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`
-            );
+
+            shouldContinue = result.numberOfMessagesRetried > 0;
+        } while (shouldContinue);
+
+        if (totalMessagesToRetry === 0) {
+            progress.succeed("👌 No failed messages found in the dead letter queue");
+
+            return;
         }
-        const deletionResult = await this.provider.request<DeleteMessageBatchRequest, DeleteMessageBatchResult>(
-            "SQS",
-            "deleteMessageBatch",
-            {
-                QueueUrl: dlqUrl,
-                // TODO only delete successful "sent" messages here
-                Entries: messages.map((message) => {
-                    return {
-                        Id: message.MessageId as string,
-                        ReceiptHandle: message.ReceiptHandle as string,
-                    };
-                }),
-            }
-        );
-        if (deletionResult.Failed.length > 0) {
-            log(
-                `${deletionResult.Failed.length} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
-            );
-        }
-        log(`${messages.length} failed messages have been moved to the main queue to be retried 💪`);
+        progress.succeed(`${totalMessagesRetried} failed messages have been moved to the main queue to be retried 💪`);
     }
 
     private formatMessageBody(body: string): string {
