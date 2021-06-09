@@ -94,7 +94,7 @@ constructs:
 
 ### [Webhook](docs/webhook.md)
 
-Deploy webhooks to receive notification from 3rd party applications.
+Deploy webhooks to receive notifications from 3rd party applications.
 
 ```yaml
 constructs:
