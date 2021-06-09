@@ -51,6 +51,8 @@ constructs:
 
 ## Constructs
 
+AWS CDK constructs are very powerful, but they are hard to get started with. Instead, Lift provides a selection of constructs curated for serverless applications. Lift constructs have extra capabilities to provide awesome developer experience, and are all built using the CDK and its best practices.
+
 ### [Static website](docs/static-website.md)
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
