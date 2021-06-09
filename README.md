@@ -104,7 +104,7 @@ constructs:
 
 [Read more...](docs/webhook.md)
 
-Got ideas for new constructs? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
+More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
 ## Ejecting
 
