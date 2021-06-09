@@ -1,74 +1,108 @@
 ![](docs/lift.png)
 
-*Shipping Serverless features made easy*
+Lift is a plugin that leverages the AWS CDK to expand the [Serverless Framework](https://www.serverless.com/) beyond functions.
 
-## Features
+Deploy production-ready websites, queues, storage buckets and more with a few lines in serverless.yml.
 
-Lift is a [Serverless](https://www.serverless.com/) plugin that simplifies deploying well-architected serverless applications.
-
-It is made for developers new to serverless, as well as experienced AWS builders.
-
-- ⚡️ **Get started with Serverless** - Developer-friendly vocabulary, no AWS knowledge required
-- 📦 **Faster delivery** - Production-ready components with minimal configuration
-- 🔁 **Not invasive** - Integrates with existing Serverless Framework projects
-- ⏏️ **No lock-in** - Eject to CloudFormation at any time
+- ⚡️ **For developers** - No AWS knowledge required
+- ⚡️ **Production-ready** - Built by AWS experts, optimized for production
+- ⚡️ **Not invasive** - Integrates with existing projects
+- ⚡️ **No lock-in** - Eject to CloudFormation at any time
 
 [Why should I choose Lift ?](docs/comparison.md)
 
 ## Installation
 
+Lift is a [Serverless Framework plugin](https://www.serverless.com/plugins/), install it in your project:
+
 ```bash
-npm i -D serverless-lift
+serverless plugin install -n serverless-lift
 ```
+
+If you prefer, you can install via `npm` directly: `npm install --save-dev serverless-lift`.
 
 ## Quick start
 
-Once installed, require the `serverless-lift` plugin and start using Lift constructs in `serverless.yml`:
+Once installed, start using Lift constructs in `serverless.yml`:
 
 ```yaml
 service: my-app
 
-plugins:
-  - serverless-lift
-
 provider:
-  name: aws
+    name: aws
+
+plugins:
+    - serverless-lift
+
+functions: 
+    # ...
 
 constructs:
 
-  landing-page:
-    type: static-website
-    path: 'landing/dist'
+    # Include Lift constructs here
 
-  avatars:
-    type: storage
+    landing-page:
+        type: static-website
+        path: 'landing/dist'
+
+    avatars:
+        type: storage
 ```
 
 ## Constructs
 
-### Static Website
+### [Static website](docs/static-website.md)
 
 Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
 
-[**Static website documentation**](docs/static-website.md)
+```yaml
+constructs:
+    landing:
+        type: static-website
+        path: dist
+```
 
-### Storage
+[Read more...](docs/static-website.md)
+
+### [Storage](docs/storage.md)
 
 Deploy preconfigured S3 buckets to store files.
 
-[**Storage documentation**](docs/storage.md)
+```yaml
+constructs:
+    avatars:
+        type: storage
+```
 
-### Queue
+[Read more...](docs/storage.md)
 
-Deploy queues and workers for asynchronous processing.
+### [Queue](docs/queue.md)
 
-[**Queue documentation**](docs/queue.md)
+Deploy SQS queues and workers for asynchronous processing.
 
-### Webhook
+```yaml
+constructs:
+    my-queue:
+        type: queue
+        worker:
+            handler: src/report-generator.handler
+```
+
+[Read more...](docs/queue.md)
+
+### [Webhook](docs/webhook.md)
 
 Deploy webhooks to receive notification from 3rd party applications.
 
-[**Webhook documentation**](docs/webhook.md)
+```yaml
+constructs:
+    stripe-webhook:
+        path: /my-webhook-endpoint
+        authorizer:
+            handler: myAuthorizer.main
+```
+
+[Read more...](docs/webhook.md)
 
 Got ideas for new constructs? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
