@@ -34,7 +34,7 @@ The `queue` construct deploys the following resources:
 
 To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/serverless-queues-and-workers-designing-lift-d870afdba867).
 
-![](queue.png)
+![](img/queue.png)
 
 ## Variables
 

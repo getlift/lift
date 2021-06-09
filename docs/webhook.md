@@ -30,7 +30,7 @@ Each webhook construct deploys the following resources:
 - an **API Gateway V2 integration** defining mappings of parameters between the HTTP request body and the Eventbridge  Event's body
 - a **custom Lambda authorizer** to handle signature verification at API Gateway level
 
-![](webhook.png)
+![](img/webhook.png)
 
 ## Variables
 

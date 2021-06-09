@@ -35,7 +35,7 @@ On the first `serverless deploy`, Lift creates:
 - a [CloudFront CDN](https://aws.amazon.com/cloudfront/) configured to serve the website from S3 over HTTPS, with caching at the edge
 - CloudFront Functions to set security HTTP headers
 
-![](static-website.png)
+![](img/static-website.png)
 
 Additionally, every time `serverless deploy` runs, Lift:
 
