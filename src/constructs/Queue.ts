@@ -8,6 +8,7 @@ import chalk from "chalk";
 import {
     DeleteMessageBatchRequest,
     DeleteMessageBatchResult,
+    Message,
     PurgeQueueRequest,
     ReceiveMessageRequest,
     ReceiveMessageResult,
@@ -19,6 +20,7 @@ import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
 import { log } from "../utils/logger";
+import { sleep } from "../utils/sleep";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -204,30 +206,61 @@ export class Queue extends CdkConstruct implements Construct {
 
             return;
         }
-        console.log(chalk.yellow(`Polling failed messages from the dead letter queue`));
-        const progress = ora().start();
+        const progress = ora("Polling failed messages from the dead letter queue").start();
+        const messages: Message[] = [];
+        const promises = [];
+        for (let i = 0; i < 5; i++) {
+            promises.push(
+                this.pollMessages(queueUrl, messages).then(() => {
+                    progress.text = `Polling failed messages from the dead letter queue (${messages.length} found)`;
+                })
+            );
+            await sleep(200);
+        }
+        await Promise.all(promises);
+        if (messages.length === 0) {
+            progress.succeed("👌 No failed messages found in the dead letter queue");
+
+            return;
+        }
+        progress.warn(`${messages.length} messages found in the dead letter queue:`);
+        for (const message of messages) {
+            console.log(chalk.yellow(`Message #${message.MessageId ?? "?"}`));
+            if (message.Attributes !== undefined) {
+                console.log(chalk.gray(JSON.stringify(message.Attributes)));
+            }
+            if (message.MessageAttributes !== undefined) {
+                console.log(chalk.gray(JSON.stringify(message.MessageAttributes)));
+            }
+            console.log(this.formatMessageBody(message.Body ?? ""));
+            console.log();
+        }
+    }
+
+    private async pollMessages(queueUrl: string, messages: Message[]): Promise<boolean> {
         const messagesResponse = await this.provider.request<ReceiveMessageRequest, ReceiveMessageResult>(
             "SQS",
             "receiveMessage",
             {
                 QueueUrl: queueUrl,
                 MaxNumberOfMessages: 10,
-                WaitTimeSeconds: 3,
+                WaitTimeSeconds: 5,
                 // Only hide messages for 1 second
                 VisibilityTimeout: 1,
             }
         );
-        progress.stop();
-        if (!messagesResponse.Messages) {
-            console.log("👌 No failed messages found in the dead letter queue");
+        let foundNewMessages = false;
+        for (const newMessage of messagesResponse.Messages ?? []) {
+            const alreadyInTheList = messages.some((message) => {
+                return message.MessageId === newMessage.MessageId;
+            });
+            if (!alreadyInTheList) {
+                messages.push(newMessage);
+                foundNewMessages = true;
+            }
+        }
 
-            return;
-        }
-        for (const message of messagesResponse.Messages) {
-            console.log(chalk.yellow(`Message #${message.MessageId ?? "?"}`));
-            console.log(this.formatMessageBody(message.Body ?? ""));
-            console.log();
-        }
+        return foundNewMessages;
     }
 
     async clearDlq(): Promise<void> {
