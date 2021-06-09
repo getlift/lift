@@ -51,7 +51,9 @@ constructs:
 
 ## Constructs
 
-AWS CDK constructs are very powerful, but they are hard to get started with. Instead, Lift provides a selection of constructs curated for serverless applications. Lift constructs have extra capabilities to provide awesome developer experience, and are all built using the CDK and its best practices.
+The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) is extremely powerful, but it is very complex and cannot be used in `serverless.yml`. Lift changes that: use the best of the CDK in Serverless, without having to learn about it!
+
+Lift provides components, aka "**constructs**", specifically selected for serverless applications. They are all built using the CDK and its best practices, with unique features to provide an awesome developer experience.
 
 ### [Static website](docs/static-website.md)
 
