@@ -1,4 +1,4 @@
-![](docs/lift.png)
+![](docs/img/animation.gif)
 
 Lift is a plugin that leverages the AWS CDK to expand the [Serverless Framework](https://www.serverless.com/) beyond functions.
 
