@@ -120,5 +120,7 @@ To eject:
 
 Lift is built and maintained with love ❤️ by
 
-<a href="https://www.theodo.fr/" title="Theodo"><img src="docs/img/theodo.png" width="100"></a>
-<a href="https://www.serverless.com/" title="null"><img src="docs/img/serverless-logo.png" width="100"></a>
+<p style="display: flex;align-items: center">
+<a href="https://www.theodo.fr/" title="Theodo" style="margin-left: 60px"><img src="docs/img/theodo.png" width="200"></a>
+<a href="https://www.serverless.com/" title="Serverless" style="margin-left: 60px"><img src="docs/img/serverless-logo.png" width="100"></a>
+</p>
