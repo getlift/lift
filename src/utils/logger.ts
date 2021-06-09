@@ -5,7 +5,7 @@ export function log(message: string): void {
 }
 
 export function debug(message: string): void {
-    if (process.env.SLS_DEBUG) {
+    if (process.env.SLS_DEBUG !== undefined) {
         console.log(chalk.gray("Lift: " + message));
     }
 }

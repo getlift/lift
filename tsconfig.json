@@ -12,6 +12,7 @@
     "experimentalDecorators": true,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "sourceMap": true,
   },
   "include": [
     "src",

@@ -1,11 +1,11 @@
 import { App, Stack } from "@aws-cdk/core";
-import { has, merge } from "lodash";
+import { get, has, merge } from "lodash";
 import chalk from "chalk";
-import { JSONSchema6 } from "json-schema";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
+import { FromSchema } from "json-schema-to-ts";
 import type {
     CloudformationTemplate,
     CommandsDefinition,
@@ -18,7 +18,32 @@ import AwsProvider from "./classes/AwsProvider";
 import { constructs } from "./constructs";
 import { log } from "./utils/logger";
 
-type MinimallyValidConstructConfig = { type: string; [k: string]: unknown };
+const CONSTRUCTS_DEFINITION = {
+    type: "object",
+    patternProperties: {
+        "^[a-zA-Z0-9-_]+$": {
+            allOf: [
+                {
+                    // Replacing with a map on constructs values generates type (A | B | C)[] instead of A, B, C
+                    anyOf: [
+                        constructs.storage.schema,
+                        constructs["static-website"].schema,
+                        constructs.webhook.schema,
+                        constructs.queue.schema,
+                    ],
+                },
+                {
+                    type: "object",
+                    properties: {
+                        type: { type: "string" },
+                    },
+                    required: ["type"],
+                },
+            ],
+        },
+    },
+    additionalProperties: false,
+} as const;
 
 /**
  * Serverless plugin
@@ -72,26 +97,18 @@ class LiftPlugin {
     }
 
     private registerConfigSchema() {
-        const constructProperties: { [k: string]: JSONSchema6 } = {};
-        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
-            constructProperties[id] = (constructs as any)[configuration.type].schema as JSONSchema6;
-        }
-        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", {
-            type: "object",
-            properties: constructProperties,
-            additionalProperties: false,
-        });
+        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", CONSTRUCTS_DEFINITION);
     }
 
     private loadConstructs() {
         const awsProvider = new AwsProvider(this.serverless, this.stack);
-        for (const [id, configuration] of Object.entries(this.normalizeConstructsConfig())) {
-            if (!(configuration.type in constructs)) {
-                throw new Error(`Unknown '${configuration.type}' Lift construct`);
-            }
-            const type = (constructs as any)[configuration.type].class;
-            // TODO make that much much cleaner :)
-            this.constructs[id] = new type(awsProvider.stack, id, configuration, awsProvider) as Construct;
+        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {}) as FromSchema<
+            typeof CONSTRUCTS_DEFINITION
+        >;
+        for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
+            const constructConstructor = constructs[configuration.type].class;
+            // Typescript cannot infer configuration specific to a type, thus computing intersetion of all configurations to never
+            this.constructs[id] = new constructConstructor(awsProvider.stack, id, configuration as never, awsProvider);
         }
     }
 
@@ -159,30 +176,6 @@ class LiftPlugin {
                 await construct.preRemove();
             }
         }
-    }
-
-    /**
-     * This method is mostly a helper to validate types.
-     * It's a TypeScript mess right now, but it does the job.
-     */
-    private normalizeConstructsConfig(): Record<string, MinimallyValidConstructConfig> {
-        const serverlessConfig = (this.serverless.configurationInput as unknown) as Record<string, any>;
-        const constructConfig: Record<string, MinimallyValidConstructConfig> = {};
-        for (const [id, configuration] of Object.entries(serverlessConfig.constructs ?? {})) {
-            if (!(configuration instanceof Object)) {
-                throw new Error(`Construct '${id}' must be an object`);
-            }
-            if (!Object.prototype.hasOwnProperty.call(configuration, "type")) {
-                throw new Error(`Construct '${id}' must have a 'type'`);
-            }
-            const validConfig = configuration as { type: unknown };
-            if (typeof validConfig.type !== "string" || !(validConfig.type in constructs)) {
-                throw new Error(`Construct '${id}' has an unknown type '${validConfig.type as string}'`);
-            }
-            constructConfig[id] = validConfig as MinimallyValidConstructConfig;
-        }
-
-        return constructConfig;
     }
 
     private appendCloudformationResources() {
