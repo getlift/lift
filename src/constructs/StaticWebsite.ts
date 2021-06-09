@@ -50,7 +50,7 @@ export const STATIC_WEBSITE_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["type", "path"],
+    required: ["path"],
 } as const;
 
 type Configuration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
