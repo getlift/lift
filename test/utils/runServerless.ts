@@ -2,8 +2,8 @@ import path from "path";
 import { Names } from "@aws-cdk/core";
 import type originalRunServerless from "@serverless/test/run-serverless";
 import setupRunServerlessFixturesEngine from "@serverless/test/setup-run-serverless-fixtures-engine";
-import { Serverless } from "../../src/types/serverless";
 import type { AWS } from "@serverless/typescript";
+import { Serverless } from "../../src/types/serverless";
 
 type ComputeLogicalId = (...address: string[]) => string;
 

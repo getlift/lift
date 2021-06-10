@@ -15,7 +15,6 @@ export const STORAGE_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["type"],
 } as const;
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     type: "storage",

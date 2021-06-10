@@ -30,7 +30,7 @@ export const QUEUE_DEFINITION = {
         },
     },
     additionalProperties: false,
-    required: ["type", "worker"],
+    required: ["worker"],
 } as const;
 type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
 
