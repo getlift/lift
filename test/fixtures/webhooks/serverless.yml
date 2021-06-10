@@ -8,4 +8,8 @@ constructs:
     type: webhook
     authorizer:
       handler: authorizer.main
-    path: /webhook
+    path: /stripe-webhook
+  github:
+    type: webhook
+    insecure: true
+    path: /github-webhook
