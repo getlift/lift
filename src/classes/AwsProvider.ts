@@ -1,6 +1,7 @@
 import { CfnOutput, Stack } from "@aws-cdk/core";
 import { getStackOutput } from "../CloudFormation";
 import { Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import { awsRequest } from "./aws";
 
 export default class AwsProvider {
     public readonly region: string;
@@ -39,7 +40,7 @@ export default class AwsProvider {
     /**
      * Send a request to the AWS API.
      */
-    async request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
-        return await this.legacyProvider.request<Input, Output>(service, method, params);
+    request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
+        return awsRequest<Input, Output>(service, method, params, this.legacyProvider);
     }
 }

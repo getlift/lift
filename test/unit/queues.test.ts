@@ -1,7 +1,15 @@
 import { merge } from "lodash";
+import * as sinon from "sinon";
+import { DeleteMessageBatchResult, ReceiveMessageResult, SendMessageBatchResult } from "aws-sdk/clients/sqs";
+import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
+import { mockAws } from "../utils/mockAws";
 
 describe("queues", () => {
+    afterEach(() => {
+        sinon.restore();
+    });
+
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
@@ -252,6 +260,122 @@ describe("queues", () => {
                     Ref: computeLogicalId("emails", "AlarmTopic"),
                 },
             },
+        });
+    });
+
+    it("should clear messages from the DLQ", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").returns(Promise.resolve("queue-url"));
+        awsMock.mockService("SQS", "purgeQueue");
+        const purgeSpy = awsMock.mockService("SQS", "purgeQueue").returns(Promise.resolve());
+
+        await runServerless({
+            fixture: "queues",
+            configExt: pluginConfigExt,
+            cliArgs: ["emails:failed:clear"],
+        });
+
+        // TODO simplify `.args[2]`
+        expect(purgeSpy.firstCall.args[2]).toStrictEqual({
+            QueueUrl: "queue-url",
+        });
+    });
+
+    it("should not do anything if there are no failed messages to retry", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").returns(Promise.resolve("queue-url"));
+        awsMock.mockService("SQS", "receiveMessage").returns(
+            Promise.resolve({
+                Messages: [],
+            })
+        );
+        const sendSpy = awsMock.mockService("SQS", "sendMessageBatch").returns(Promise.resolve());
+        const deleteSpy = awsMock.mockService("SQS", "deleteMessageBatch").returns(Promise.resolve());
+
+        await runServerless({
+            fixture: "queues",
+            configExt: pluginConfigExt,
+            cliArgs: ["emails:failed:retry"],
+        });
+
+        expect(sendSpy.callCount).toBe(0);
+        expect(deleteSpy.callCount).toBe(0);
+    });
+
+    it("should retry messages from the DLQ", async () => {
+        const awsMock = mockAws();
+        const stackOutputStub = sinon.stub(CloudFormationHelpers, "getStackOutput");
+        stackOutputStub.onFirstCall().returns(Promise.resolve("queue-url"));
+        stackOutputStub.onSecondCall().returns(Promise.resolve("dlq-url"));
+        const receiveStub = awsMock.mockService("SQS", "receiveMessage");
+        // First call: 1 message is found
+        const sqsResponse: ReceiveMessageResult = {
+            Messages: [
+                {
+                    MessageId: "abcd",
+                    Body: "sample body",
+                    ReceiptHandle: "abcd-handle",
+                    Attributes: {},
+                    MessageAttributes: {},
+                },
+            ],
+        };
+        receiveStub.onFirstCall().returns(Promise.resolve(sqsResponse));
+        // On next calls: no messages found
+        receiveStub.returns(
+            Promise.resolve({
+                Messages: [],
+            })
+        );
+        const sendResult: SendMessageBatchResult = {
+            Successful: [
+                {
+                    Id: "abcd",
+                    MessageId: "abcd",
+                    MD5OfMessageBody: "",
+                },
+            ],
+            Failed: [],
+        };
+        const sendSpy = awsMock.mockService("SQS", "sendMessageBatch").returns(Promise.resolve(sendResult));
+        const deleteResult: DeleteMessageBatchResult = {
+            Successful: [
+                {
+                    Id: "abcd",
+                },
+            ],
+            Failed: [],
+        };
+        const deleteSpy = awsMock.mockService("SQS", "deleteMessageBatch").returns(Promise.resolve(deleteResult));
+
+        await runServerless({
+            fixture: "queues",
+            configExt: pluginConfigExt,
+            cliArgs: ["emails:failed:retry"],
+        });
+
+        // The failed message should have been "sent" to the main queue
+        expect(sendSpy.callCount).toBe(1);
+        expect(sendSpy.firstCall.args[2]).toStrictEqual({
+            QueueUrl: "queue-url",
+            Entries: [
+                {
+                    Id: "abcd",
+                    MessageBody: "sample body",
+                    MessageAttributes: {},
+                },
+            ],
+        });
+        // The failed message should have been "deleted" from the dead letter queue
+        expect(deleteSpy.callCount).toBe(1);
+        expect(deleteSpy.firstCall.args[2]).toStrictEqual({
+            QueueUrl: "dlq-url",
+            Entries: [
+                {
+                    Id: "abcd",
+                    ReceiptHandle: "abcd-handle",
+                },
+            ],
         });
     });
 });
