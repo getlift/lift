@@ -1,3 +1,4 @@
+import { EventBus } from "@aws-cdk/aws-events";
 import { CfnOutput, Stack } from "@aws-cdk/core";
 import { getStackOutput } from "../CloudFormation";
 import { Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
@@ -6,6 +7,7 @@ import { awsRequest } from "./aws";
 export default class AwsProvider {
     public readonly region: string;
     public readonly stackName: string;
+    private bus: EventBus | undefined;
     private readonly legacyProvider: LegacyAwsProvider;
     public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
 
@@ -42,5 +44,13 @@ export default class AwsProvider {
      */
     request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
         return awsRequest<Input, Output>(params, service, method, this.legacyProvider);
+    }
+
+    getProviderBus(): EventBus {
+        if (!this.bus) {
+            this.bus = new EventBus(this.stack, "Bus");
+        }
+
+        return this.bus;
     }
 }

@@ -42,13 +42,11 @@ export class Webhook extends CdkConstruct implements Construct {
         private readonly provider: AwsProvider
     ) {
         super(scope, id);
-
+        this.bus = provider.getProviderBus();
         const api = new HttpApi(this, "HttpApi");
         this.apiEndpointOutput = new CfnOutput(this, "HttpApiEndpoint", {
             value: api.apiEndpoint,
         });
-        const bus = new EventBus(this, "Bus");
-        this.bus = bus;
         const apiGatewayRole = new Role(this, "ApiGatewayRole", {
             assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
             inlinePolicies: {
@@ -56,7 +54,7 @@ export class Webhook extends CdkConstruct implements Construct {
                     statements: [
                         new PolicyStatement({
                             actions: ["events:PutEvents"],
-                            resources: [bus.eventBusArn],
+                            resources: [this.bus.eventBusArn],
                         }),
                     ],
                 }),
@@ -90,7 +88,7 @@ export class Webhook extends CdkConstruct implements Construct {
                 DetailType: resolvedConfiguration.eventType ?? "Webhook",
                 Detail: "$request.body",
                 Source: id,
-                EventBusName: bus.eventBusName,
+                EventBusName: this.bus.eventBusName,
             },
         });
         const route = new CfnRoute(this, "Route", {
