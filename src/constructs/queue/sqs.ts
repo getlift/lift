@@ -13,19 +13,28 @@ import { sleep } from "../../utils/sleep";
 
 type ProgressCallback = (numberOfMessagesFound: number) => void;
 
-export async function pollMessages(
-    aws: AwsProvider,
-    queueUrl: string,
-    progressCallback?: ProgressCallback
-): Promise<Message[]> {
+export async function pollMessages({
+    aws,
+    queueUrl,
+    progressCallback,
+    visibilityTimeout,
+}: {
+    aws: AwsProvider;
+    queueUrl: string;
+    progressCallback?: ProgressCallback;
+    visibilityTimeout?: number;
+}): Promise<Message[]> {
     const messages: Message[] = [];
     const promises = [];
-    // Poll in parallel to hit multiple SQS servers at once
-    // See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html
-    // (a single request might not return all messages)
-    for (let i = 0; i < 5; i++) {
+    /**
+     * Poll in parallel to hit multiple SQS servers at once
+     * See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html
+     * and https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
+     * (a single request might not return all messages)
+     */
+    for (let i = 0; i < 3; i++) {
         promises.push(
-            pollMoreMessages(aws, queueUrl, messages).then(() => {
+            pollMoreMessages(aws, queueUrl, messages, visibilityTimeout).then(() => {
                 if (progressCallback && messages.length > 0) {
                     progressCallback(messages.length);
                 }
@@ -38,14 +47,19 @@ export async function pollMessages(
     return messages;
 }
 
-async function pollMoreMessages(aws: AwsProvider, queueUrl: string, messages: Message[]): Promise<void> {
+async function pollMoreMessages(
+    aws: AwsProvider,
+    queueUrl: string,
+    messages: Message[],
+    visibilityTimeout?: number
+): Promise<void> {
     const messagesResponse = await aws.request<ReceiveMessageRequest, ReceiveMessageResult>("SQS", "receiveMessage", {
         QueueUrl: queueUrl,
         // 10 is the maximum
         MaxNumberOfMessages: 10,
-        WaitTimeSeconds: 5,
-        // Only hide messages for 1 second
-        VisibilityTimeout: 1,
+        WaitTimeSeconds: 3,
+        // By default only hide messages for 1 second to avoid disrupting the queue too much
+        VisibilityTimeout: visibilityTimeout ?? 1,
     });
     for (const newMessage of messagesResponse.Messages ?? []) {
         const alreadyInTheList = messages.some((message) => {

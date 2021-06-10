@@ -11,6 +11,7 @@ import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
 import { pollMessages, retryMessages } from "./queue/sqs";
+import { sleep } from "../utils/sleep";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -199,23 +200,24 @@ export class Queue extends CdkConstruct implements Construct {
             return;
         }
         const progress = ora("Polling failed messages from the dead letter queue").start();
-        const messages = await pollMessages(this.provider, dlqUrl, (numberOfMessagesFound) => {
-            progress.text = `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`;
+        const messages = await pollMessages({
+            aws: this.provider,
+            queueUrl: dlqUrl,
+            progressCallback: (numberOfMessagesFound) => {
+                progress.text = `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`;
+            },
         });
         if (messages.length === 0) {
-            progress.succeed("👌 No failed messages found in the dead letter queue");
+            progress.stopAndPersist({
+                symbol: "👌",
+                text: "No failed messages found in the dead letter queue",
+            });
 
             return;
         }
         progress.warn(`${messages.length} messages found in the dead letter queue:`);
         for (const message of messages) {
             console.log(chalk.yellow(`Message #${message.MessageId ?? "?"}`));
-            if (message.Attributes !== undefined) {
-                console.log(chalk.gray(JSON.stringify(message.Attributes)));
-            }
-            if (message.MessageAttributes !== undefined) {
-                console.log(chalk.gray(JSON.stringify(message.MessageAttributes)));
-            }
             console.log(this.formatMessageBody(message.Body ?? ""));
             console.log();
         }
@@ -239,6 +241,12 @@ export class Queue extends CdkConstruct implements Construct {
         await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
             QueueUrl: dlqUrl,
         });
+        /**
+         * Sometimes messages are still returned after the purge is issued.
+         * For a less confusing experience, we wait 500ms so that if the user re-runs `sls queue:failed` there
+         * are less chances that deleted messages show up again.
+         */
+        await sleep(500);
         progress.succeed("The dead letter queue has been cleared, failed messages are gone 🙈");
     }
 
@@ -257,12 +265,16 @@ export class Queue extends CdkConstruct implements Construct {
         let totalMessagesToRetry = 0;
         let totalMessagesRetried = 0;
         do {
-            const messages = await pollMessages(this.provider, dlqUrl);
-            /**
-             * TODO We should filter those messages to exclude those we already retried
-             * Indeed, SQS delete takes a while to be effective, so we don't want to retry the same
-             * message multiple times.
-             */
+            const messages = await pollMessages({
+                aws: this.provider,
+                queueUrl: dlqUrl,
+                /**
+                 * Since we intend on deleting the messages, we'll reserve them for 10 seconds
+                 * That avoids having those message reappear in the `do` loop, because SQS sometimes
+                 * takes a while to actually delete messages.
+                 */
+                visibilityTimeout: 10,
+            });
             totalMessagesToRetry += messages.length;
             progress.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
 
@@ -299,11 +311,14 @@ export class Queue extends CdkConstruct implements Construct {
         } while (shouldContinue);
 
         if (totalMessagesToRetry === 0) {
-            progress.succeed("👌 No failed messages found in the dead letter queue");
+            progress.stopAndPersist({
+                symbol: "👌",
+                text: "No failed messages found in the dead letter queue",
+            });
 
             return;
         }
-        progress.succeed(`${totalMessagesRetried} failed messages have been moved to the main queue to be retried 💪`);
+        progress.succeed(`${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`);
     }
 
     private formatMessageBody(body: string): string {
