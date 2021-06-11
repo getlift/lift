@@ -37,7 +37,7 @@ describe("webhooks", () => {
                 Name: "Bus",
             },
         });
-        expect(cfTemplate.Resources[computeLogicalId("github", "Integration")]).toMatchObject({
+        const expectedIntegration = {
             Properties: {
                 RequestParameters: {
                     EventBusName: {
@@ -45,15 +45,8 @@ describe("webhooks", () => {
                     },
                 },
             },
-        });
-        expect(cfTemplate.Resources[computeLogicalId("stripe", "Integration")]).toMatchObject({
-            Properties: {
-                RequestParameters: {
-                    EventBusName: {
-                        Ref: computeLogicalId("Bus"),
-                    },
-                },
-            },
-        });
+        };
+        expect(cfTemplate.Resources[computeLogicalId("github", "Integration")]).toMatchObject(expectedIntegration);
+        expect(cfTemplate.Resources[computeLogicalId("stripe", "Integration")]).toMatchObject(expectedIntegration);
     });
 });
