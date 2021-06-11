@@ -3,7 +3,7 @@ import { Queue, QUEUE_DEFINITION } from "./Queue";
 import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./StaticWebsite";
 import { Webhook, WEBHOOK_DEFINITION } from "./Webhook";
 
-export const constructs = {
+export const allConstructs = {
     storage: {
         class: Storage,
         schema: STORAGE_DEFINITION,

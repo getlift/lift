@@ -1,4 +1,4 @@
-import { App, Stack } from "@aws-cdk/core";
+import { App, DefaultTokenResolver, Lazy, Stack, StringConcat } from "@aws-cdk/core";
 import { get, has, merge } from "lodash";
 import chalk from "chalk";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
@@ -6,6 +6,7 @@ import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
 import { FromSchema } from "json-schema-to-ts";
+import { Tokenization } from "@aws-cdk/core/lib/token";
 import type {
     CloudformationTemplate,
     CommandsDefinition,
@@ -15,7 +16,7 @@ import type {
 } from "./types/serverless";
 import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
-import { constructs } from "./constructs";
+import { allConstructs } from "./constructs";
 import { log } from "./utils/logger";
 
 const CONSTRUCTS_DEFINITION = {
@@ -26,10 +27,10 @@ const CONSTRUCTS_DEFINITION = {
                 {
                     // Replacing with a map on constructs values generates type (A | B | C)[] instead of A, B, C
                     anyOf: [
-                        constructs.storage.schema,
-                        constructs["static-website"].schema,
-                        constructs.webhook.schema,
-                        constructs.queue.schema,
+                        allConstructs.storage.schema,
+                        allConstructs["static-website"].schema,
+                        allConstructs.webhook.schema,
+                        allConstructs.queue.schema,
                     ],
                 },
                 {
@@ -49,7 +50,7 @@ const CONSTRUCTS_DEFINITION = {
  * Serverless plugin
  */
 class LiftPlugin {
-    private readonly constructs: Record<string, Construct> = {};
+    private constructs?: Record<string, Construct>;
     private readonly serverless: Serverless;
     private readonly app: App;
     // Only public to be used in tests
@@ -74,7 +75,11 @@ class LiftPlugin {
         };
 
         this.hooks = {
-            initialize: this.appendPermissions.bind(this),
+            initialize: () => {
+                this.loadConstructs();
+                this.appendPermissions();
+                this.resolveLazyTokens();
+            },
             "before:aws:info:displayStackOutputs": this.info.bind(this),
             "after:package:compileEvents": this.appendCloudformationResources.bind(this),
             "after:deploy:deploy": this.postDeploy.bind(this),
@@ -82,61 +87,97 @@ class LiftPlugin {
             "lift:eject:eject": this.eject.bind(this),
         };
 
-        // TODO variables should be resolved just before deploying each provider
-        // else we might get outdated values
         this.configurationVariablesSources = {
-            // TODO these 2 variable sources should be merged eventually
             construct: {
                 resolve: this.resolveReference.bind(this),
             },
         };
 
         this.registerConfigSchema();
-        this.loadConstructs();
-        this.registerCommands();
     }
 
     private registerConfigSchema() {
         this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", CONSTRUCTS_DEFINITION);
     }
 
-    private loadConstructs() {
+    private loadConstructs(): Record<string, Construct> {
+        if (this.constructs !== undefined) {
+            // Safeguard
+            throw new Error("Constructs are already initialized: this should not happen");
+        }
         const awsProvider = new AwsProvider(this.serverless, this.stack);
+        // @ts-ignore
         const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {}) as FromSchema<
             typeof CONSTRUCTS_DEFINITION
         >;
+        this.constructs = {};
         for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
-            const constructConstructor = constructs[configuration.type].class;
+            const constructConstructor = allConstructs[configuration.type].class;
             // Typescript cannot infer configuration specific to a type, thus computing intersetion of all configurations to never
             this.constructs[id] = new constructConstructor(awsProvider.stack, id, configuration as never, awsProvider);
         }
+
+        return this.constructs;
     }
 
-    resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
-        const [id, property] = address.split(".", 2);
-        if (!has(this.constructs, id)) {
-            throw new Error(
-                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`
-            );
-        }
-        const construct = this.constructs[id];
-
-        const properties = construct.references();
-        if (!has(properties, property)) {
-            throw new Error(
-                `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
-                    properties
-                ).join(", ")}.`
-            );
+    private getConstructs(): Record<string, Construct> {
+        if (this.constructs === undefined) {
+            // Safeguard
+            throw new Error("Constructs are not initialized: this should not happen");
         }
 
+        return this.constructs;
+    }
+
+    resolveReference({ address }: { address: string }): { value: string } {
         return {
-            value: properties[property],
+            /**
+             * Construct variables are resolved lazily using the CDK's "Token" system.
+             * CDK Lazy values generate a unique `${Token[TOKEN.63]}` string. These strings
+             * can later be resolved to the real value (which we do in `initialize()`).
+             * Problem:
+             * - Lift variables need constructs to be resolved
+             * - Constructs can be created when Serverless variables are resolved
+             * - Serverless variables must resolve Lift variables
+             * This is a chicken and egg problem.
+             * Solution:
+             * - Serverless boots, plugins are created
+             * - variables are resolved
+             *   - Lift variables are resolved to CDK tokens (`${Token[TOKEN.63]}`) via `Lazy.any(...)`
+             *     (we can't resolve the actual values since we don't have the constructs yet)
+             * - `initialize` hook
+             *   - Lift builds the constructs
+             *   - CDK tokens are resolved into real value: we can now do that s
+             */
+            value: Lazy.any({
+                produce: () => {
+                    const constructs = this.getConstructs();
+                    const [id, property] = address.split(".", 2);
+                    if (!has(constructs, id)) {
+                        throw new Error(
+                            `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`
+                        );
+                    }
+                    const construct = constructs[id];
+
+                    const properties = construct.references();
+                    if (!has(properties, property)) {
+                        throw new Error(
+                            `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
+                                properties
+                            ).join(", ")}.`
+                        );
+                    }
+
+                    return properties[property];
+                },
+            }).toString(),
         };
     }
 
     async info(): Promise<void> {
-        for (const [id, construct] of Object.entries(this.constructs)) {
+        const constructs = this.getConstructs();
+        for (const [id, construct] of Object.entries(constructs)) {
             const outputs = construct.outputs();
             if (Object.keys(outputs).length > 0) {
                 console.log(chalk.yellow(`${id}:`));
@@ -151,19 +192,23 @@ class LiftPlugin {
     }
 
     private registerCommands() {
-        for (const [id, construct] of Object.entries(this.constructs)) {
-            const commands = construct.commands();
-            for (const [command, handler] of Object.entries(commands)) {
-                this.commands[`${id}:${command}`] = {
-                    lifecycleEvents: [command],
-                };
-                this.hooks[`${id}:${command}:${command}`] = handler;
-            }
-        }
+        // TODO we need to be able to register commands without having to boot constructs
+        // WHY? Because commands MUST be registered in the plugin constructor, at which point
+        // we don't have the constructs
+        // for (const [id, construct] of Object.entries(this.constructs)) {
+        //     const commands = construct.commands();
+        //     for (const [command, handler] of Object.entries(commands)) {
+        //         this.commands[`${id}:${command}`] = {
+        //             lifecycleEvents: [command],
+        //         };
+        //         this.hooks[`${id}:${command}:${command}`] = handler;
+        //     }
+        // }
     }
 
     private async postDeploy(): Promise<void> {
-        for (const [, construct] of Object.entries(this.constructs)) {
+        const constructs = this.getConstructs();
+        for (const [, construct] of Object.entries(constructs)) {
             if (construct.postDeploy !== undefined) {
                 await construct.postDeploy();
             }
@@ -171,10 +216,34 @@ class LiftPlugin {
     }
 
     private async preRemove(): Promise<void> {
-        for (const [, construct] of Object.entries(this.constructs)) {
+        const constructs = this.getConstructs();
+        for (const [, construct] of Object.entries(constructs)) {
             if (construct.preRemove !== undefined) {
                 await construct.preRemove();
             }
+        }
+    }
+
+    private resolveLazyTokens() {
+        const options = {
+            resolver: new DefaultTokenResolver(new StringConcat()),
+            scope: this.stack,
+        };
+        this.serverless.service.provider = Tokenization.resolve(this.serverless.service.provider, options);
+        if (this.serverless.service.functions !== undefined) {
+            this.serverless.service.functions = Tokenization.resolve(this.serverless.service.functions, options);
+        }
+        if (this.serverless.service.custom !== undefined) {
+            this.serverless.service.custom = Tokenization.resolve(this.serverless.service.custom, options);
+        }
+        if (this.serverless.service.resources !== undefined) {
+            this.serverless.service.resources = Tokenization.resolve(this.serverless.service.resources, options);
+        }
+        if (this.serverless.service.layers !== undefined) {
+            this.serverless.service.layers = Tokenization.resolve(this.serverless.service.layers, options);
+        }
+        if (this.serverless.service.outputs !== undefined) {
+            this.serverless.service.outputs = Tokenization.resolve(this.serverless.service.outputs, options);
         }
     }
 
@@ -185,7 +254,8 @@ class LiftPlugin {
     }
 
     private appendPermissions(): void {
-        const statements = Object.entries(this.constructs)
+        const constructs = this.getConstructs();
+        const statements = Object.entries(constructs)
             .map(([, construct]) => {
                 return ((construct.permissions ? construct.permissions() : []) as unknown) as AwsIamPolicyStatements;
             })
