@@ -263,7 +263,7 @@ describe("queues", () => {
         });
     });
 
-    it("should clear messages from the DLQ", async () => {
+    it("should purge messages from the DLQ", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").returns(Promise.resolve("queue-url"));
         awsMock.mockService("SQS", "purgeQueue");
@@ -272,7 +272,7 @@ describe("queues", () => {
         await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
-            cliArgs: ["emails:failed:clear"],
+            cliArgs: ["emails:failed:purge"],
         });
 
         // TODO simplify `.args[2]`

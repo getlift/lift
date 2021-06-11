@@ -131,7 +131,7 @@ export class Queue extends CdkConstruct implements Construct {
     commands(): Record<string, () => void | Promise<void>> {
         return {
             failed: () => this.listDlq(),
-            "failed:clear": () => this.clearDlq(),
+            "failed:purge": () => this.purgeDlq(),
             "failed:retry": () => this.retryDlq(),
         };
     }
@@ -222,11 +222,11 @@ export class Queue extends CdkConstruct implements Construct {
             console.log();
         }
         const retryCommand = chalk.bold(`serverless ${this.id}:failed:retry`);
-        const clearCommand = chalk.bold(`serverless ${this.id}:failed:clear`);
-        console.log(`Run ${retryCommand} to retry all messages, or ${clearCommand} to delete those messages forever.`);
+        const purgeCommand = chalk.bold(`serverless ${this.id}:failed:purge`);
+        console.log(`Run ${retryCommand} to retry all messages, or ${purgeCommand} to delete those messages forever.`);
     }
 
-    async clearDlq(): Promise<void> {
+    async purgeDlq(): Promise<void> {
         const dlqUrl = await this.getDlqUrl();
         if (dlqUrl === undefined) {
             console.log(
@@ -237,7 +237,7 @@ export class Queue extends CdkConstruct implements Construct {
 
             return;
         }
-        const progress = ora("Clearing the dead letter queue of failed messages").start();
+        const progress = ora("Purging the dead letter queue of failed messages").start();
         await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
             QueueUrl: dlqUrl,
         });
@@ -247,7 +247,7 @@ export class Queue extends CdkConstruct implements Construct {
          * are less chances that deleted messages show up again.
          */
         await sleep(500);
-        progress.succeed("The dead letter queue has been cleared, failed messages are gone 🙈");
+        progress.succeed("The dead letter queue has been purged, failed messages are gone 🙈");
     }
 
     async retryDlq(): Promise<void> {
