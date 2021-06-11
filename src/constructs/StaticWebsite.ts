@@ -24,9 +24,9 @@ import * as acm from "@aws-cdk/aws-certificatemanager";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import AwsProvider from "../classes/AwsProvider";
-import Construct from "../classes/Construct";
+import Construct, { ConstructDefinition } from "../classes/Construct";
 
-export const STATIC_WEBSITE_DEFINITION = {
+const STATIC_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "static-website" },
@@ -149,12 +149,6 @@ export class StaticWebsite extends CdkConstruct implements Construct {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
-    }
-
-    commands(): Record<string, () => Promise<void>> {
-        return {
-            upload: this.uploadWebsite.bind(this),
-        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
@@ -297,3 +291,17 @@ export class StaticWebsite extends CdkConstruct implements Construct {
         });
     }
 }
+
+export const StaticWebsiteDefinition: ConstructDefinition<Configuration> = {
+    type: "static-website",
+    create(id, configuration, provider) {
+        return new StaticWebsite(provider.stack, id, configuration, provider);
+    },
+    schema: STATIC_WEBSITE_DEFINITION,
+    commands: {
+        upload: {
+            usage: "Upload files directly to S3 without going through a CloudFormation deployment.",
+            handler: StaticWebsite.prototype.uploadWebsite,
+        },
+    },
+};

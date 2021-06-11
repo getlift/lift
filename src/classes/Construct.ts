@@ -1,9 +1,8 @@
 import { PolicyStatement } from "../Stack";
+import AwsProvider from "./AwsProvider";
 
 export default interface Construct {
     outputs(): Record<string, () => Promise<string | undefined>>;
-
-    commands(): Record<string, () => void | Promise<void>>;
 
     /**
      * CloudFormation references
@@ -25,3 +24,22 @@ export default interface Construct {
      */
     permissions?(): PolicyStatement[];
 }
+
+export interface ConstructDefinition<C> {
+    type: string;
+    create: (id: string, configuration: C, provider: AwsProvider) => Construct;
+    schema: unknown;
+    commands?: { [name: string]: ConstructCommandDefinition };
+}
+
+type ConstructCommandDefinition = {
+    usage: string;
+    handler: (opt: Record<string, string>) => void | Promise<void>;
+    options?: {
+        [name: string]: {
+            usage: string;
+            required: boolean;
+            shortcut?: string;
+        };
+    };
+};

@@ -1,23 +1,12 @@
-import { Storage, STORAGE_DEFINITION } from "./Storage";
-import { Queue, QUEUE_DEFINITION } from "./Queue";
-import { STATIC_WEBSITE_DEFINITION, StaticWebsite } from "./StaticWebsite";
-import { Webhook, WEBHOOK_DEFINITION } from "./Webhook";
+import { StorageDefinition } from "./Storage";
+import { QueueDefinition } from "./Queue";
+import { StaticWebsiteDefinition } from "./StaticWebsite";
+import { WebhookDefinition } from "./Webhook";
+import { ConstructDefinition } from "../classes/Construct";
 
-export const allConstructs = {
-    storage: {
-        class: Storage,
-        schema: STORAGE_DEFINITION,
-    },
-    queue: {
-        class: Queue,
-        schema: QUEUE_DEFINITION,
-    },
-    "static-website": {
-        class: StaticWebsite,
-        schema: STATIC_WEBSITE_DEFINITION,
-    },
-    webhook: {
-        class: Webhook,
-        schema: WEBHOOK_DEFINITION,
-    },
+export const constructDefinitions: Record<string, ConstructDefinition<any>> = {
+    [StorageDefinition.type]: StorageDefinition,
+    [QueueDefinition.type]: QueueDefinition,
+    [StaticWebsiteDefinition.type]: StaticWebsiteDefinition,
+    [WebhookDefinition.type]: WebhookDefinition,
 };

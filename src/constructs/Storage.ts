@@ -2,10 +2,10 @@ import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyStatement } from "../Stack";
-import Construct from "../classes/Construct";
+import Construct, { ConstructDefinition } from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
 
-export const STORAGE_DEFINITION = {
+const STORAGE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "storage" },
@@ -16,7 +16,8 @@ export const STORAGE_DEFINITION = {
     },
     additionalProperties: false,
 } as const;
-const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
+type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
+const STORAGE_DEFAULTS: Required<Configuration> = {
     type: "storage",
     archive: 45,
     encryption: "s3",
@@ -26,12 +27,7 @@ export class Storage extends CdkConstruct implements Construct {
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
-    constructor(
-        scope: CdkConstruct,
-        id: string,
-        configuration: FromSchema<typeof STORAGE_DEFINITION>,
-        private readonly provider: AwsProvider
-    ) {
+    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private readonly provider: AwsProvider) {
         super(scope, id);
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
@@ -86,10 +82,6 @@ export class Storage extends CdkConstruct implements Construct {
         ];
     }
 
-    commands(): Record<string, () => void | Promise<void>> {
-        return {};
-    }
-
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             bucketName: () => this.getBucketName(),
@@ -108,3 +100,11 @@ export class Storage extends CdkConstruct implements Construct {
         return this.provider.getStackOutput(this.bucketNameOutput);
     }
 }
+
+export const StorageDefinition: ConstructDefinition<Configuration> = {
+    type: "storage",
+    create(id, configuration, provider) {
+        return new Storage(provider.stack, id, configuration, provider);
+    },
+    schema: STORAGE_DEFINITION,
+};

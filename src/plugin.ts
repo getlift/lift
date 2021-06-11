@@ -5,7 +5,7 @@ import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
-import { FromSchema } from "json-schema-to-ts";
+import { JSONSchema } from "json-schema-to-ts";
 import { Tokenization } from "@aws-cdk/core/lib/token";
 import type {
     CloudformationTemplate,
@@ -16,7 +16,7 @@ import type {
 } from "./types/serverless";
 import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
-import { allConstructs } from "./constructs";
+import { constructDefinitions } from "./constructs";
 import { log } from "./utils/logger";
 
 const CONSTRUCTS_DEFINITION = {
@@ -26,12 +26,7 @@ const CONSTRUCTS_DEFINITION = {
             allOf: [
                 {
                     // Replacing with a map on constructs values generates type (A | B | C)[] instead of A, B, C
-                    anyOf: [
-                        allConstructs.storage.schema,
-                        allConstructs["static-website"].schema,
-                        allConstructs.webhook.schema,
-                        allConstructs.queue.schema,
-                    ],
+                    anyOf: Object.values(constructDefinitions).map((definition) => definition.schema),
                 },
                 {
                     type: "object",
@@ -58,8 +53,10 @@ class LiftPlugin {
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
     public readonly configurationVariablesSources: Record<string, VariableResolver> = {};
+    private readonly cliOptions: Record<string, string>;
 
-    constructor(serverless: Serverless) {
+    constructor(serverless: Serverless, cliOptions: Record<string, string>) {
+        this.cliOptions = cliOptions;
         this.app = new App();
         this.stack = new Stack(this.app);
         serverless.stack = this.stack;
@@ -69,6 +66,7 @@ class LiftPlugin {
         this.commands.lift = {
             commands: {
                 eject: {
+                    usage: "Eject Lift constructs to raw CloudFormation",
                     lifecycleEvents: ["eject"],
                 },
             },
@@ -94,10 +92,11 @@ class LiftPlugin {
         };
 
         this.registerConfigSchema();
+        this.registerCommands();
     }
 
     private registerConfigSchema() {
-        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", CONSTRUCTS_DEFINITION);
+        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", CONSTRUCTS_DEFINITION as JSONSchema);
     }
 
     private loadConstructs(): Record<string, Construct> {
@@ -105,16 +104,15 @@ class LiftPlugin {
             // Safeguard
             throw new Error("Constructs are already initialized: this should not happen");
         }
-        const awsProvider = new AwsProvider(this.serverless, this.stack);
-        // @ts-ignore
-        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {}) as FromSchema<
-            typeof CONSTRUCTS_DEFINITION
+        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {}) as Record<
+            string,
+            { type: string }
         >;
+        const awsProvider = new AwsProvider(this.serverless, this.stack);
         this.constructs = {};
         for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
-            const constructConstructor = allConstructs[configuration.type].class;
-            // Typescript cannot infer configuration specific to a type, thus computing intersetion of all configurations to never
-            this.constructs[id] = new constructConstructor(awsProvider.stack, id, configuration as never, awsProvider);
+            const constructDefinition = constructDefinitions[configuration.type];
+            this.constructs[id] = constructDefinition.create(id, configuration, awsProvider);
         }
 
         return this.constructs;
@@ -192,18 +190,32 @@ class LiftPlugin {
     }
 
     private registerCommands() {
-        // TODO we need to be able to register commands without having to boot constructs
-        // WHY? Because commands MUST be registered in the plugin constructor, at which point
-        // we don't have the constructs
-        // for (const [id, construct] of Object.entries(this.constructs)) {
-        //     const commands = construct.commands();
-        //     for (const [command, handler] of Object.entries(commands)) {
-        //         this.commands[`${id}:${command}`] = {
-        //             lifecycleEvents: [command],
-        //         };
-        //         this.hooks[`${id}:${command}:${command}`] = handler;
-        //     }
-        // }
+        const constructsConfiguration = get(this.serverless.configurationInput, "constructs", {}) as Record<
+            string,
+            { type: string }
+        >;
+        // For each construct
+        for (const [id, constructConfig] of Object.entries(constructsConfiguration)) {
+            const constructDefinition = constructDefinitions[constructConfig.type];
+            if (constructDefinition === undefined) {
+                throw new Error(`Construct ${id} has an unknown type ${constructConfig.type}`);
+            }
+            // For each command of the construct
+            for (const [command, commandConfig] of Object.entries(constructDefinition.commands ?? {})) {
+                this.commands[`${id}:${command}`] = {
+                    lifecycleEvents: [command],
+                    usage: commandConfig.usage,
+                    options: commandConfig.options,
+                };
+                // Register the command handler
+                this.hooks[`${id}:${command}:${command}`] = () => {
+                    // We resolve the construct instance on the fly
+                    const construct = this.getConstructs()[id];
+
+                    return commandConfig.handler.call(construct, this.cliOptions);
+                };
+            }
+        }
     }
 
     private async postDeploy(): Promise<void> {

@@ -5,10 +5,10 @@ import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
 import { PolicyStatement } from "../Stack";
-import Construct from "../classes/Construct";
+import Construct, { ConstructDefinition } from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
 
-export const QUEUE_DEFINITION = {
+const QUEUE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "queue" },
@@ -123,10 +123,6 @@ export class Queue extends CdkConstruct implements Construct {
         this.appendFunctions();
     }
 
-    commands(): Record<string, () => void | Promise<void>> {
-        return {};
-    }
-
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             queueUrl: () => this.getQueueUrl(),
@@ -179,3 +175,11 @@ export class Queue extends CdkConstruct implements Construct {
         return this.provider.getStackOutput(this.dlqUrlOutput);
     }
 }
+
+export const QueueDefinition: ConstructDefinition<Configuration> = {
+    type: "queue",
+    create(id, configuration, provider) {
+        return new Queue(provider.stack, id, configuration, provider);
+    },
+    schema: QUEUE_DEFINITION,
+};

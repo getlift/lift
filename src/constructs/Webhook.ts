@@ -5,9 +5,9 @@ import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import AwsProvider from "../classes/AwsProvider";
-import Construct from "../classes/Construct";
+import Construct, { ConstructDefinition } from "../classes/Construct";
 
-export const WEBHOOK_DEFINITION = {
+const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "webhook" },
@@ -30,6 +30,8 @@ const WEBHOOK_DEFAULTS = {
     insecure: false,
 };
 
+type Configuration = FromSchema<typeof WEBHOOK_DEFINITION>;
+
 export class Webhook extends CdkConstruct implements Construct {
     private readonly bus: EventBus;
     private readonly apiEndpointOutput: CfnOutput;
@@ -38,7 +40,7 @@ export class Webhook extends CdkConstruct implements Construct {
     constructor(
         scope: CdkConstruct,
         private readonly id: string,
-        private readonly configuration: FromSchema<typeof WEBHOOK_DEFINITION>,
+        private readonly configuration: Configuration,
         private readonly provider: AwsProvider
     ) {
         super(scope, id);
@@ -132,10 +134,6 @@ export class Webhook extends CdkConstruct implements Construct {
         this.appendFunctions();
     }
 
-    commands(): Record<string, () => void | Promise<void>> {
-        return {};
-    }
-
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             httpMethod: () => this.getHttpMethod(),
@@ -189,3 +187,11 @@ export class Webhook extends CdkConstruct implements Construct {
         return this.provider.getCloudFormationReference(this.bus.eventBusName);
     }
 }
+
+export const WebhookDefinition: ConstructDefinition<Configuration> = {
+    type: "webhook",
+    create(id, configuration, provider) {
+        return new Webhook(provider.stack, id, configuration, provider);
+    },
+    schema: WEBHOOK_DEFINITION,
+};
