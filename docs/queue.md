@@ -188,7 +188,7 @@ The only required setting is the `handler`: this should point to the code that h
 ```js
 exports.handler = async function (event, context) {
     event.Records.forEach(record => {
-        // `record` contains the job that was pushed to SQS
+        // `record` contains the message that was pushed to SQS
     });
 }
 ```
@@ -216,7 +216,7 @@ constructs:
         alarm: alerting@mycompany.com
 ```
 
-It is possible to configure email alerts in case jobs end up in the dead letter queue.
+It is possible to configure email alerts in case messages end up in the dead letter queue.
 
 After the first deployment, an email will be sent to the email address to confirm the subscription.
 
@@ -231,19 +231,19 @@ constructs:
 
 *Default: 3 retries.*
 
-SQS retries messages when the Lambda processing it throws an error. The `maxRetries` option configures how many times each job will be retried when failing.
+SQS retries messages when the Lambda processing it throws an error. The `maxRetries` option configures how many times each message will be retried in case of failure.
 
 Sidenote: errors should not be captured in the code of the `worker` function, else the retry mechanism will not be triggered.
 
-If the job still fails after reaching the max retry count, it will be moved to the dead letter queue for storage.
+If the message still fails after reaching the max retry count, it will be moved to the dead letter queue for storage.
 
 ### Retry delay
 
-When Lambda fails processing a SQS job (i.e. the code throws an error), the job will be retried after a delay. That delay is also called "**Visibility Timeout"** in SQS.
+When Lambda fails processing an SQS message (i.e. the code throws an error), the message will be retried after a delay. That delay is also called SQS "_Visibility Timeout_".
 
-By default, Lift configures the retry delay to 6 times the worker functions timeout, [per AWS' recommendation](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#events-sqs-queueconfig). Since Serverless deploy functions with a timeout of 6 seconds by default, that means that jobs will be retried every 36 seconds.
+By default, Lift configures the retry delay to 6 times the worker functions timeout, [per AWS' recommendation](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#events-sqs-queueconfig). Since Serverless deploy functions with a timeout of 6 seconds by default, that means that messages will be retried **every 36 seconds**.
 
-When the function's timeout is changed, the retry delay is configured accordingly:
+When the function's timeout is changed, the retry delay is automatically changed accordingly:
 
 ```yaml
 constructs:
@@ -267,11 +267,11 @@ constructs:
 
 *Default: 1*
 
-When the SQS queue contains more than 1 job to process, it can invoke Lambda with a batch of multiple messages at once.
+When the SQS queue contains more than 1 message to process, it can invoke Lambda with a batch of multiple messages at once.
 
-By default, Lambda will be invoked 1 messages at a time. The reason is to simplify error handling: in a batch, any failed message will fail the whole batch.
+By default, Lift configures Lambda to be invoked with 1 messages at a time. The reason is to simplify error handling: in a batch, any failed message will fail the whole batch.
 
-It is possible to change the batch size between 1 and 10.
+It is possible to set the batch size between 1 and 10.
 
 ### More options
 
