@@ -4,9 +4,14 @@ import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
+import chalk from "chalk";
+import { PurgeQueueRequest } from "aws-sdk/clients/sqs";
+import ora from "ora";
 import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
+import { pollMessages, retryMessages } from "./queue/sqs";
+import { sleep } from "../utils/sleep";
 
 export const QUEUE_DEFINITION = {
     type: "object",
@@ -116,7 +121,7 @@ export class Queue extends CdkConstruct implements Construct {
             value: this.queue.queueUrl,
         });
         this.dlqUrlOutput = new CfnOutput(this, "DlqUrl", {
-            description: `URL of the "${id}" SQS Dead Letter Queue.`,
+            description: `URL of the "${id}" SQS dead letter queue.`,
             value: dlq.queueUrl,
         });
 
@@ -124,7 +129,11 @@ export class Queue extends CdkConstruct implements Construct {
     }
 
     commands(): Record<string, () => void | Promise<void>> {
-        return {};
+        return {
+            failed: () => this.listDlq(),
+            "failed:purge": () => this.purgeDlq(),
+            "failed:retry": () => this.retryDlq(),
+        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
@@ -177,5 +186,150 @@ export class Queue extends CdkConstruct implements Construct {
 
     async getDlqUrl(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.dlqUrlOutput);
+    }
+
+    async listDlq(): Promise<void> {
+        const dlqUrl = await this.getDlqUrl();
+        if (dlqUrl === undefined) {
+            console.log(
+                chalk.red(
+                    'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?'
+                )
+            );
+
+            return;
+        }
+        const progress = ora("Polling failed messages from the dead letter queue").start();
+        const messages = await pollMessages({
+            aws: this.provider,
+            queueUrl: dlqUrl,
+            progressCallback: (numberOfMessagesFound) => {
+                progress.text = `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`;
+            },
+        });
+        if (messages.length === 0) {
+            progress.stopAndPersist({
+                symbol: "👌",
+                text: "No failed messages found in the dead letter queue",
+            });
+
+            return;
+        }
+        progress.warn(`${messages.length} messages found in the dead letter queue:`);
+        for (const message of messages) {
+            console.log(chalk.yellow(`Message #${message.MessageId ?? "?"}`));
+            console.log(this.formatMessageBody(message.Body ?? ""));
+            console.log();
+        }
+        const retryCommand = chalk.bold(`serverless ${this.id}:failed:retry`);
+        const purgeCommand = chalk.bold(`serverless ${this.id}:failed:purge`);
+        console.log(`Run ${retryCommand} to retry all messages, or ${purgeCommand} to delete those messages forever.`);
+    }
+
+    async purgeDlq(): Promise<void> {
+        const dlqUrl = await this.getDlqUrl();
+        if (dlqUrl === undefined) {
+            console.log(
+                chalk.red(
+                    'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?'
+                )
+            );
+
+            return;
+        }
+        const progress = ora("Purging the dead letter queue of failed messages").start();
+        await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
+            QueueUrl: dlqUrl,
+        });
+        /**
+         * Sometimes messages are still returned after the purge is issued.
+         * For a less confusing experience, we wait 500ms so that if the user re-runs `sls queue:failed` there
+         * are less chances that deleted messages show up again.
+         */
+        await sleep(500);
+        progress.succeed("The dead letter queue has been purged, failed messages are gone 🙈");
+    }
+
+    async retryDlq(): Promise<void> {
+        const queueUrl = await this.getQueueUrl();
+        const dlqUrl = await this.getDlqUrl();
+        if (queueUrl === undefined || dlqUrl === undefined) {
+            console.log(
+                chalk.red('Could not find the queue in the deployed stack. Try running "serverless deploy" first?')
+            );
+
+            return;
+        }
+        const progress = ora("Moving failed messages from DLQ to the main queue to be retried").start();
+        let shouldContinue = true;
+        let totalMessagesToRetry = 0;
+        let totalMessagesRetried = 0;
+        do {
+            const messages = await pollMessages({
+                aws: this.provider,
+                queueUrl: dlqUrl,
+                /**
+                 * Since we intend on deleting the messages, we'll reserve them for 10 seconds
+                 * That avoids having those message reappear in the `do` loop, because SQS sometimes
+                 * takes a while to actually delete messages.
+                 */
+                visibilityTimeout: 10,
+            });
+            totalMessagesToRetry += messages.length;
+            progress.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
+
+            const result = await retryMessages(this.provider, queueUrl, dlqUrl, messages);
+            totalMessagesRetried += result.numberOfMessagesRetried;
+            progress.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
+
+            // Stop if we have any failure (that simplifies the flow for now)
+            if (result.numberOfMessagesRetriedButNotDeleted > 0 || result.numberOfMessagesNotRetried > 0) {
+                progress.fail(`There were some errors:`);
+                if (totalMessagesRetried > 0) {
+                    console.log(
+                        `${totalMessagesRetried} failed messages have been successfully moved to the main queue to be retried.`
+                    );
+                }
+                if (result.numberOfMessagesNotRetried > 0) {
+                    console.log(
+                        `${result.numberOfMessagesNotRetried} failed messages could not be retried (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`
+                    );
+                }
+                if (result.numberOfMessagesRetriedButNotDeleted > 0) {
+                    console.log(
+                        `${result.numberOfMessagesRetriedButNotDeleted} failed messages were moved to the main queue, but were not successfully deleted from the dead letter queue. That means that these messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+                    );
+                }
+                console.log(
+                    "Stopping now because of the error above. Not all messages have been retried, run the command again to continue."
+                );
+
+                return;
+            }
+
+            shouldContinue = result.numberOfMessagesRetried > 0;
+        } while (shouldContinue);
+
+        if (totalMessagesToRetry === 0) {
+            progress.stopAndPersist({
+                symbol: "👌",
+                text: "No failed messages found in the dead letter queue",
+            });
+
+            return;
+        }
+        progress.succeed(`${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`);
+    }
+
+    private formatMessageBody(body: string): string {
+        try {
+            // If it's valid JSON, we'll format it nicely
+            const data = JSON.parse(body) as unknown;
+
+            return JSON.stringify(data, null, 2);
+        } catch (e) {
+            // If it's not valid JSON, we'll print the body as-is
+            return body;
+        }
     }
 }
