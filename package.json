@@ -44,7 +44,6 @@
     "@types/sinon": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^4.21.0",
     "@typescript-eslint/parser": "^4.21.0",
-    "aws-sdk-mock": "^5.1.0",
     "chai": "^4.2.0",
     "esbuild-node-tsc": "^1.4.0",
     "eslint": "^7.23.0",
