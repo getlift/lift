@@ -41,6 +41,6 @@ export default class AwsProvider {
      * Send a request to the AWS API.
      */
     request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
-        return awsRequest<Input, Output>(service, method, params, this.legacyProvider);
+        return awsRequest<Input, Output>(params, service, method, this.legacyProvider);
     }
 }
