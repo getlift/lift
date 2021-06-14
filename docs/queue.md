@@ -62,7 +62,7 @@ plugins:
 Our `publisher` function can send messages into the SQS queue using the AWS SDK:
 
 ```js
-// src/worker.js
+// src/publisher.js
 const AWS = require('aws-sdk');
 const sqs = new AWS.SQS({
     apiVersion: 'latest',
