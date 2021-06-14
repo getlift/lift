@@ -1,9 +1,9 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
+import { PolicyStatement } from "../CloudFormation";
 
 export const STORAGE_DEFINITION = {
     type: "object",

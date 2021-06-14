@@ -1,4 +1,4 @@
-import { PolicyStatement } from "../Stack";
+import { PolicyStatement } from "../CloudFormation";
 
 export default interface Construct {
     outputs(): Record<string, () => Promise<string | undefined>>;

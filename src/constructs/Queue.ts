@@ -7,11 +7,11 @@ import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
 import { PurgeQueueRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
-import { PolicyStatement } from "../Stack";
 import Construct from "../classes/Construct";
 import AwsProvider from "../classes/AwsProvider";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
+import { PolicyStatement } from "../CloudFormation";
 
 export const QUEUE_DEFINITION = {
     type: "object",
