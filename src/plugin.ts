@@ -1,49 +1,30 @@
-import { App, Stack } from "@aws-cdk/core";
-import { get, has, merge } from "lodash";
+import { get, has } from "lodash";
 import chalk from "chalk";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
 import { FromSchema } from "json-schema-to-ts";
-import type {
-    CloudformationTemplate,
-    CommandsDefinition,
-    Hook,
-    Serverless,
-    VariableResolver,
-} from "./types/serverless";
+import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
 import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
-import { constructs } from "./constructs";
 import { log } from "./utils/logger";
 
 const CONSTRUCTS_DEFINITION = {
     type: "object",
     patternProperties: {
         "^[a-zA-Z0-9-_]+$": {
-            allOf: [
-                {
-                    // Replacing with a map on constructs values generates type (A | B | C)[] instead of A, B, C
-                    anyOf: [
-                        constructs.storage.schema,
-                        constructs["static-website"].schema,
-                        constructs.webhook.schema,
-                        constructs.queue.schema,
-                    ],
-                },
-                {
-                    type: "object",
-                    properties: {
-                        type: { type: "string" },
-                    },
-                    required: ["type"],
-                },
-            ],
+            type: "object",
+            properties: {
+                type: { type: "string" },
+            },
+            required: ["type"],
         },
     },
     additionalProperties: false,
 } as const;
+
+const PROVIDERS = [AwsProvider];
 
 /**
  * Serverless plugin
@@ -51,18 +32,12 @@ const CONSTRUCTS_DEFINITION = {
 class LiftPlugin {
     private readonly constructs: Record<string, Construct> = {};
     private readonly serverless: Serverless;
-    private readonly app: App;
-    // Only public to be used in tests
-    public readonly stack: Stack;
+    private readonly providers: AwsProvider[] = [];
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
     public readonly configurationVariablesSources: Record<string, VariableResolver> = {};
 
     constructor(serverless: Serverless) {
-        this.app = new App();
-        this.stack = new Stack(this.app);
-        serverless.stack = this.stack;
-
         this.serverless = serverless;
 
         this.commands.lift = {
@@ -76,8 +51,8 @@ class LiftPlugin {
         this.hooks = {
             initialize: this.appendPermissions.bind(this),
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "after:package:compileEvents": this.appendCloudformationResources.bind(this),
             "after:deploy:deploy": this.postDeploy.bind(this),
+            "after:package:compileEvents": this.appendCloudformationResources.bind(this),
             "before:remove:remove": this.preRemove.bind(this),
             "lift:eject:eject": this.eject.bind(this),
         };
@@ -92,6 +67,7 @@ class LiftPlugin {
         };
 
         this.registerConfigSchema();
+        this.registerProviders();
         this.loadConstructs();
         this.registerCommands();
     }
@@ -100,16 +76,24 @@ class LiftPlugin {
         this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", CONSTRUCTS_DEFINITION);
     }
 
+    private registerProviders() {
+        this.providers.push(...PROVIDERS.map((Provider) => new Provider(this.serverless)));
+    }
+
     private loadConstructs() {
-        const awsProvider = new AwsProvider(this.serverless, this.stack);
         const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {}) as FromSchema<
             typeof CONSTRUCTS_DEFINITION
         >;
-        for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
-            const constructConstructor = constructs[configuration.type].class;
-            // Typescript cannot infer configuration specific to a type, thus computing intersetion of all configurations to never
-            this.constructs[id] = new constructConstructor(awsProvider.stack, id, configuration as never, awsProvider);
+        // Only AwsProvider yet.
+        const awsProvider = this.providers[0];
+        for (const id of Object.keys(constructsInputConfiguration)) {
+            this.constructs[id] = awsProvider.registerConstruct(id);
         }
+    }
+
+    // Only AwsProvider yet.
+    private appendCloudformationResources() {
+        this.providers[0].appendCloudformationResources();
     }
 
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
@@ -176,12 +160,6 @@ class LiftPlugin {
                 await construct.preRemove();
             }
         }
-    }
-
-    private appendCloudformationResources() {
-        merge(this.serverless.service, {
-            resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
-        });
     }
 
     private appendPermissions(): void {
