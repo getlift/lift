@@ -81,7 +81,7 @@ exports.handler = async function(event, context) {
 }
 ```
 
-When the `publisher` function is invoked, it will be push a message into SQS. SQS will then automatically trigger the `worker` function, which could be written like this:
+When the `publisher` function is invoked, it will push a message into SQS. SQS will then automatically trigger the `worker` function, which could be written like this:
 
 ```js
 // src/worker.js
