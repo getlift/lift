@@ -21,43 +21,18 @@ plugins:
     - serverless-lift
 ```
 
-On `serverless deploy`, a `my-queue` SQS queue will be created, and a Lambda function will be deployed to process jobs (aka "messages") from the queue.
-
 ## How it works
 
 The `queue` construct deploys the following resources:
 
-- An SQS queue: this is where jobs to process should be sent.
-- A "worker" Lambda function: this function will be processing each job sent to the SQS queue.
-- An SQS "[Dead Letter Queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)": this queue will contain all the jobs that failed to be processed.
-- Optionally, a CloudWatch alarm that sends an email if jobs land in the Dead Letter Queue.
+- An SQS queue: this is where messages to process should be sent.
+- A `worker` Lambda function: this function processes every message sent to the queue.
+- An SQS "[dead letter queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)": this queue stores all the messages that failed to be processed.
+- Optionally, a CloudWatch alarm that sends an email when the dead letter queue contains failed messages.
+
+<img src="img/queue.png" width="600"/>
 
 To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/serverless-queues-and-workers-designing-lift-d870afdba867).
-
-<img src="img/queue.png" width="500"/>
-
-## Variables
-
-All queue constructs expose the following variables:
-
-- `queueUrl`: the URL of the deployed SQS queue
-- `queueArn`: the ARN of the deployed SQS queue
-
-These can be used to reference the queue from other Lambda functions, for example:
-
-```yaml
-constructs:
-    my-queue:
-        type: queue
-
-functions:
-    otherFunction:
-        handler: src/publisher.handler
-        environment:
-            QUEUE_URL: ${construct:my-queue.queueUrl}
-```
-
-_How it works: the `${construct:my-queue.queueUrl}` variable will automatically be replaced with a CloudFormation reference to the SQS queue._
 
 ## Example
 
@@ -121,6 +96,29 @@ exports.handler = function(event, context) {
 }
 ```
 
+## Variables
+
+All queue constructs expose the following variables:
+
+- `queueUrl`: the URL of the deployed SQS queue
+- `queueArn`: the ARN of the deployed SQS queue
+
+These can be used to reference the queue from other Lambda functions, for example:
+
+```yaml
+constructs:
+    my-queue:
+        type: queue
+
+functions:
+    otherFunction:
+        handler: src/publisher.handler
+        environment:
+            QUEUE_URL: ${construct:my-queue.queueUrl}
+```
+
+_How it works: the `${construct:my-queue.queueUrl}` variable will automatically be replaced with a CloudFormation reference to the SQS queue._
+
 ## Permissions
 
 By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to push messages into the queue**.
@@ -139,6 +137,40 @@ functions:
         environment:
             QUEUE_URL: ${construct:my-queue.queueUrl}
 ```
+
+## Commands
+
+The following commands are available on `queue` constructs:
+
+```
+serverless <construct-name>:failed
+serverless <construct-name>:failed:purge
+serverless <construct-name>:failed:retry
+```
+
+- `serverless <construct-name>:failed`
+
+This command lists the failed messages stored in the dead letter queue.
+
+Use this command to investigate why these messages failed to be processed.
+
+Note: this command will only fetch the first messages available (it will not dump thousands of messages into the terminal).
+
+![](https://user-images.githubusercontent.com/720328/121541663-cbefbc00-ca07-11eb-854b-cb7cd21da49d.mp4)
+
+- `serverless <construct-name>:failed:purge`
+
+This command clears all messages from the dead letter queue.
+
+Use this command if you have failed messages and you don't want to retry them.
+
+- `serverless <construct-name>:failed:retry`
+
+This command retries all failed messages of the dead letter queue by moving them to the main queue.
+
+Use this command if you have failed messages and you want to retry them again.
+
+![](https://user-images.githubusercontent.com/720328/121541886-f5104c80-ca07-11eb-861c-3356c500ba3d.mp4)
 
 ## Configuration reference
 
