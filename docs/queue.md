@@ -15,13 +15,13 @@ constructs:
     my-queue:
         type: queue
         worker:
-            handler: src/report-generator.handler
+            handler: src/worker.handler
 
 plugins:
     - serverless-lift
 ```
 
-On `serverless deploy`, a `my-queue` queue will be created, and a Lambda function will be deployed to process jobs (aka "messages") from the queue.
+On `serverless deploy`, a `my-queue` SQS queue will be created, and a Lambda function will be deployed to process jobs (aka "messages") from the queue.
 
 ## How it works
 
@@ -59,6 +59,68 @@ functions:
 
 _How it works: the `${construct:my-queue.queueUrl}` variable will automatically be replaced with a CloudFormation reference to the SQS queue._
 
+## Example
+
+Let's deploy a queue called `jobs` (with its `worker` function), as well as a separate function (`publisher`) that publishes messages into the queue:
+
+```yaml
+service: my-app
+provider:
+    name: aws
+
+constructs:
+    jobs:
+        type: queue
+        worker:
+            handler: src/worker.handler
+
+functions:
+    publisher:
+        handler: src/publisher.handler
+        environment:
+            QUEUE_URL: ${construct:jobs.queueUrl}
+
+plugins:
+    - serverless-lift
+```
+
+Our `publisher` function can send messages into the SQS queue using the AWS SDK:
+
+```js
+// src/worker.js
+const AWS = require('aws-sdk');
+const sqs = new AWS.SQS({
+    apiVersion: 'latest',
+    region: process.env.AWS_REGION,
+});
+
+exports.handler = async function(event, context) {
+    // Send a message into SQS
+    await sqs.sendMessage({
+        QueueUrl: process.env.QUEUE_URL,
+        // Any message data we want to send
+        MessageBody: JSON.stringify({
+            fileName: 'foo/bar.mp4'
+        }),
+    }).promise();
+}
+```
+
+When the `publisher` function is invoked, it will be push a message into SQS. SQS will then automatically trigger the `worker` function, which could be written like this:
+
+```js
+// src/worker.js
+exports.handler = function(event, context) {
+    // SQS may invoke with multiple messages
+    for (const message of event.Records) {
+        const bodyData = JSON.parse(message.body);
+
+        const fileName = bodyData.fileName;
+        // do something with `fileName`
+    }
+}
+```
+
 ## Permissions
 
 By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to push messages into the queue**.
@@ -88,7 +150,7 @@ constructs:
         type: queue
         worker:
             # The Lambda function is configured here
-            handler: src/report-generator.handler
+            handler: src/worker.handler
 ```
 
 _Note: the Lambda "worker" function is configured in the `queue` construct, instead of being defined in the `functions` section._
@@ -110,7 +172,7 @@ constructs:
     my-queue:
         # ...
         worker:
-            handler: src/report-generator.handler
+            handler: src/worker.handler
             memorySize: 512
             timeout: 10
 ```
@@ -141,7 +203,9 @@ constructs:
 
 *Default: 3 retries.*
 
-The `maxRetries` option configures how many times each job will be retried when failing.
+SQS retries messages when the Lambda processing it throws an error. The `maxRetries` option configures how many times each job will be retried when failing.
+
+Sidenote: errors should not be captured in the code of the `worker` function, else the retry mechanism will not be triggered.
 
 If the job still fails after reaching the max retry count, it will be moved to the dead letter queue for storage.
 
@@ -158,7 +222,7 @@ constructs:
     my-queue:
         # ...
         worker:
-            handler: src/report-generator.handler
+            handler: src/worker.handler
             # We change the timeout to 10 seconds
             timeout: 10
             # The retry delay on the queue will be 10*6 => 60 seconds
