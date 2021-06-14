@@ -1,4 +1,4 @@
-import { PolicyStatement } from "../Stack";
+import { PolicyStatement } from "../CloudFormation";
 import AwsProvider from "./AwsProvider";
 
 export default interface Construct {
