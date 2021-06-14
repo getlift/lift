@@ -76,7 +76,7 @@ class LiftPlugin {
             initialize: () => {
                 this.loadConstructs();
                 this.appendPermissions();
-                this.resolveLazyTokens();
+                this.resolveLazyVariables();
             },
             "before:aws:info:displayStackOutputs": this.info.bind(this),
             "after:package:compileEvents": this.appendCloudformationResources.bind(this),
@@ -145,7 +145,7 @@ class LiftPlugin {
              *     (we can't resolve the actual values since we don't have the constructs yet)
              * - `initialize` hook
              *   - Lift builds the constructs
-             *   - CDK tokens are resolved into real value: we can now do that s
+             *   - CDK tokens are resolved into real value: we can now do that using the CDK "token resolver"
              */
             value: Lazy.any({
                 produce: () => {
@@ -197,6 +197,7 @@ class LiftPlugin {
         // For each construct
         for (const [id, constructConfig] of Object.entries(constructsConfiguration)) {
             const constructDefinition = constructDefinitions[constructConfig.type];
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (constructDefinition === undefined) {
                 throw new Error(`Construct ${id} has an unknown type ${constructConfig.type}`);
             }
@@ -236,27 +237,25 @@ class LiftPlugin {
         }
     }
 
-    private resolveLazyTokens() {
-        const options = {
-            resolver: new DefaultTokenResolver(new StringConcat()),
-            scope: this.stack,
+    private resolveLazyVariables() {
+        // Use the CDK token resolver to resolve all lazy variables in the template
+        const tokenResolver = new DefaultTokenResolver(new StringConcat());
+        const resolveTokens = <T>(input: T): T => {
+            if (input === undefined) {
+                return input;
+            }
+
+            return Tokenization.resolve(input, {
+                resolver: tokenResolver,
+                scope: this.stack,
+            }) as T;
         };
-        this.serverless.service.provider = Tokenization.resolve(this.serverless.service.provider, options);
-        if (this.serverless.service.functions !== undefined) {
-            this.serverless.service.functions = Tokenization.resolve(this.serverless.service.functions, options);
-        }
-        if (this.serverless.service.custom !== undefined) {
-            this.serverless.service.custom = Tokenization.resolve(this.serverless.service.custom, options);
-        }
-        if (this.serverless.service.resources !== undefined) {
-            this.serverless.service.resources = Tokenization.resolve(this.serverless.service.resources, options);
-        }
-        if (this.serverless.service.layers !== undefined) {
-            this.serverless.service.layers = Tokenization.resolve(this.serverless.service.layers, options);
-        }
-        if (this.serverless.service.outputs !== undefined) {
-            this.serverless.service.outputs = Tokenization.resolve(this.serverless.service.outputs, options);
-        }
+        this.serverless.service.provider = resolveTokens(this.serverless.service.provider);
+        this.serverless.service.functions = resolveTokens(this.serverless.service.functions);
+        this.serverless.service.custom = resolveTokens(this.serverless.service.custom);
+        this.serverless.service.resources = resolveTokens(this.serverless.service.resources);
+        this.serverless.service.layers = resolveTokens(this.serverless.service.layers);
+        this.serverless.service.outputs = resolveTokens(this.serverless.service.outputs);
     }
 
     private appendCloudformationResources() {

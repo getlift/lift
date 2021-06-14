@@ -25,7 +25,7 @@ export default interface Construct {
     permissions?(): PolicyStatement[];
 }
 
-export interface ConstructDefinition<C> {
+export interface ConstructDefinition<C = any> {
     type: string;
     create: (id: string, configuration: C, provider: AwsProvider) => Construct;
     schema: unknown;

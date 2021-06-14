@@ -4,7 +4,7 @@ import { StaticWebsiteDefinition } from "./StaticWebsite";
 import { WebhookDefinition } from "./Webhook";
 import { ConstructDefinition } from "../classes/Construct";
 
-export const constructDefinitions: Record<string, ConstructDefinition<any>> = {
+export const constructDefinitions: Record<string, ConstructDefinition> = {
     [StorageDefinition.type]: StorageDefinition,
     [QueueDefinition.type]: QueueDefinition,
     [StaticWebsiteDefinition.type]: StaticWebsiteDefinition,

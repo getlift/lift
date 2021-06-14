@@ -99,7 +99,9 @@
         "@typescript-eslint/no-unnecessary-condition": "error",
         "@typescript-eslint/no-unnecessary-type-arguments": "error",
         "@typescript-eslint/prefer-string-starts-ends-with": "error",
-        "@typescript-eslint/switch-exhaustiveness-check": "error"
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+        // We intentionally use this so that constructs can declare their command handlers
+        "@typescript-eslint/unbound-method": "off"
       }
     }
   ]
