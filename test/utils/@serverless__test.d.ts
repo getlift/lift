@@ -2,7 +2,8 @@ declare module "@serverless/test/run-serverless" {
     import type { AWS } from "@serverless/typescript";
 
     type RunServerlessBaseOptions = Partial<{
-        cliArgs: string[];
+        command: string;
+        options: Record<string, string>;
         configExt: Partial<AWS> | Record<string, unknown>;
         env: Record<string, string>;
         awsRequestStubMap: unknwon;

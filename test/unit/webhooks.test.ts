@@ -5,7 +5,7 @@ describe("webhooks", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "webhooks",
             configExt: pluginConfigExt,
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources[computeLogicalId("stripe", "Route")]).toMatchObject({
             Properties: {
@@ -17,7 +17,7 @@ describe("webhooks", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "webhooksInsecure",
             configExt: pluginConfigExt,
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources[computeLogicalId("github", "Route")]).toMatchObject({
             Properties: {

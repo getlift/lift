@@ -32,8 +32,8 @@
     "tslib": "^1.13.0"
   },
   "devDependencies": {
-    "@serverless/test": "^7.11.0",
-    "@serverless/typescript": "^2.35.0",
+    "@serverless/test": "^8.1.1",
+    "@serverless/typescript": "^2.45.2",
     "@types/chai": "^4.2.12",
     "@types/jest": "^26.0.22",
     "@types/js-yaml": "^3.12.5",
@@ -55,14 +55,14 @@
     "json-schema-to-ts": "^1.6.1",
     "nodemon": "^2.0.7",
     "prettier": "^2.2.1",
-    "serverless": "^2.35.0",
+    "serverless": "^2.45.2",
     "sinon": "^9.2.4",
     "stdout-stderr": "^0.1.13",
     "ts-jest": "^26.5.4",
     "typescript": "^4.2.4"
   },
   "peerDependencies": {
-    "serverless": "^2.35.0"
+    "serverless": "^2.45.2"
   },
   "engines": {
     "node": ">=15.14.0",
