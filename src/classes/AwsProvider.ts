@@ -1,22 +1,55 @@
 import { EventBus } from "@aws-cdk/aws-events";
-import { CfnOutput, Stack } from "@aws-cdk/core";
+import { App, Construct as CdkConstruct, CfnOutput, Stack } from "@aws-cdk/core";
+import { merge } from "lodash";
+import { FromSchema } from "json-schema-to-ts";
 import { getStackOutput } from "../CloudFormation";
-import { Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "./aws";
+import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import Construct from "./Construct";
+import { constructs } from "../constructs";
+
+type Constructor<N extends keyof typeof constructs> = new (
+    scope: CdkConstruct,
+    id: string,
+    configuration: FromSchema<typeof constructs[N]["schema"]>,
+    provider: AwsProvider
+) => InstanceType<typeof constructs[N]["class"]>;
+
+type Toto = Constructor<"storage">;
 
 export default class AwsProvider {
     public readonly region: string;
     public readonly stackName: string;
     private bus: EventBus | undefined;
+    private readonly app: App;
+    private readonly stack: Stack;
     private readonly legacyProvider: LegacyAwsProvider;
     public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
 
-    constructor(private readonly serverless: Serverless, public readonly stack: Stack) {
+    constructor(private readonly serverless: Serverless) {
         this.stackName = serverless.getProvider("aws").naming.getStackName();
 
         this.legacyProvider = serverless.getProvider("aws");
         this.naming = this.legacyProvider.naming;
         this.region = serverless.getProvider("aws").getRegion();
+        this.app = new App();
+        this.stack = new Stack(this.app);
+    }
+
+    registerConstruct<N extends keyof typeof constructs>(
+        id: string,
+        configuration: FromSchema<typeof constructs[N]["schema"]> & { type: N }
+    ): Construct {
+        const type = configuration.type;
+        const construct = constructs[type].class;
+
+        return new construct(this.app, id, configuration, this);
+    }
+
+    appendCloudformationResources(): void {
+        merge(this.serverless.service, {
+            resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
+        });
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
