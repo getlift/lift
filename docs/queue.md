@@ -156,7 +156,7 @@ Use this command to investigate why these messages failed to be processed.
 
 Note: this command will only fetch the first messages available (it will not dump thousands of messages into the terminal).
 
-![](https://user-images.githubusercontent.com/720328/121541663-cbefbc00-ca07-11eb-854b-cb7cd21da49d.mp4)
+https://user-images.githubusercontent.com/720328/121541663-cbefbc00-ca07-11eb-854b-cb7cd21da49d.mp4
 
 - `serverless <construct-name>:failed:purge`
 
@@ -170,7 +170,7 @@ This command retries all failed messages of the dead letter queue by moving them
 
 Use this command if you have failed messages and you want to retry them again.
 
-![](https://user-images.githubusercontent.com/720328/121541886-f5104c80-ca07-11eb-861c-3356c500ba3d.mp4)
+https://user-images.githubusercontent.com/720328/121541886-f5104c80-ca07-11eb-861c-3356c500ba3d.mp4
 
 ## Configuration reference
 
