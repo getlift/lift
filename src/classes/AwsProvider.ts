@@ -39,7 +39,11 @@ export class AwsProvider {
     public readonly region: string;
     public readonly stackName: string;
     private readonly legacyProvider: LegacyAwsProvider;
-    public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
+    public naming: {
+        getStackName: () => string;
+        getLambdaLogicalId: (functionName: string) => string;
+        getHttpApiLogicalId: () => string;
+    };
 
     constructor(private readonly serverless: Serverless) {
         this.app = new App();
