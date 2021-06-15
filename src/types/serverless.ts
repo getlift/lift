@@ -1,4 +1,3 @@
-import type { JSONSchema } from "json-schema-to-ts";
 import type { AWS } from "@serverless/typescript";
 import type { Stack } from "@aws-cdk/core";
 
@@ -42,9 +41,9 @@ export type Serverless = {
         spawn: (command: string) => Promise<void>;
     };
     configSchemaHandler: {
-        defineTopLevelProperty: (pluginName: string, schema: JSONSchema) => void;
+        defineTopLevelProperty: (pluginName: string, schema: Record<string, unknown>) => void;
     };
-    configurationInput: AWS;
+    configurationInput: AWS & { constructs?: Record<string, { type: string }> };
     service: AWS;
     getProvider: (provider: "aws") => Provider;
 };

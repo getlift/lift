@@ -1,8 +1,7 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import Construct from "../classes/Construct";
-import AwsProvider from "../classes/AwsProvider";
+import { AwsConstruct, AwsProvider } from "../classes";
 import { PolicyStatement } from "../CloudFormation";
 
 export const STORAGE_DEFINITION = {
@@ -22,17 +21,35 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     encryption: "s3",
 };
 
-export class Storage extends CdkConstruct implements Construct {
+type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
+
+const isValidStorageConfiguration = (
+    configuration: Record<string, unknown>
+): configuration is FromSchema<typeof STORAGE_DEFINITION> => {
+    return true;
+};
+
+export class Storage extends AwsConstruct<Configuration> {
+    public static type = "storage";
+    public static schema = STORAGE_DEFINITION;
+    public static create(
+        scope: CdkConstruct,
+        id: string,
+        configuration: Record<string, unknown>,
+        provider: AwsProvider
+    ): Storage {
+        if (!isValidStorageConfiguration(configuration)) {
+            throw new Error("Wrong configuration");
+        }
+
+        return new Storage(scope, id, configuration, provider);
+    }
+
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
-    constructor(
-        scope: CdkConstruct,
-        id: string,
-        configuration: FromSchema<typeof STORAGE_DEFINITION>,
-        private readonly provider: AwsProvider
-    ) {
-        super(scope, id);
+    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
+        super(scope, id, configuration, provider);
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
 

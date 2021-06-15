@@ -1,6 +1,6 @@
 import { PolicyStatement } from "../CloudFormation";
 
-export default interface Construct {
+export interface ConstructInterface {
     outputs(): Record<string, () => Promise<string | undefined>>;
 
     commands(): Record<string, () => void | Promise<void>>;

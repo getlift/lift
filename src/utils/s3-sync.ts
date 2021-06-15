@@ -14,7 +14,7 @@ import * as crypto from "crypto";
 import { lookup } from "mime-types";
 import { chunk } from "lodash";
 import chalk from "chalk";
-import AwsProvider from "../classes/AwsProvider";
+import { AwsProvider } from "../classes/AwsProvider";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);

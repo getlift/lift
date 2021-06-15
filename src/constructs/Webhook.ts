@@ -4,8 +4,7 @@ import { Function } from "@aws-cdk/aws-lambda";
 import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
-import AwsProvider from "../classes/AwsProvider";
-import Construct from "../classes/Construct";
+import { AwsConstruct, AwsProvider } from "../classes";
 
 export const WEBHOOK_DEFINITION = {
     type: "object",
@@ -30,18 +29,36 @@ const WEBHOOK_DEFAULTS = {
     insecure: false,
 };
 
-export class Webhook extends CdkConstruct implements Construct {
+type Configuration = FromSchema<typeof WEBHOOK_DEFINITION>;
+
+const isValidWebhookConfiguration = (
+    configuration: Record<string, unknown>
+): configuration is FromSchema<typeof WEBHOOK_DEFINITION> => {
+    return true;
+};
+
+export class Webhook extends AwsConstruct<Configuration> {
+    public static type = "webhook";
+    public static schema = WEBHOOK_DEFINITION;
+    public static create(
+        scope: CdkConstruct,
+        id: string,
+        configuration: Record<string, unknown>,
+        provider: AwsProvider
+    ): Webhook {
+        if (!isValidWebhookConfiguration(configuration)) {
+            throw new Error("Wrong configuration");
+        }
+
+        return new Webhook(scope, id, configuration, provider);
+    }
+
     private readonly bus: EventBus;
     private readonly apiEndpointOutput: CfnOutput;
     private readonly endpointPathOutput: CfnOutput;
 
-    constructor(
-        scope: CdkConstruct,
-        private readonly id: string,
-        private readonly configuration: FromSchema<typeof WEBHOOK_DEFINITION>,
-        private readonly provider: AwsProvider
-    ) {
-        super(scope, id);
+    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
+        super(scope, id, configuration, provider);
 
         const api = new HttpApi(this, "HttpApi");
         this.apiEndpointOutput = new CfnOutput(this, "HttpApiEndpoint", {
