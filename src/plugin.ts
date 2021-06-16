@@ -57,6 +57,7 @@ class LiftPlugin {
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
     public readonly configurationVariablesSources: Record<string, VariableResolver> = {};
+    public variableResolvers: any;
 
     constructor(serverless: Serverless) {
         this.app = new App();
@@ -82,12 +83,16 @@ class LiftPlugin {
             "lift:eject:eject": this.eject.bind(this),
         };
 
-        // TODO variables should be resolved just before deploying each provider
-        // else we might get outdated values
         this.configurationVariablesSources = {
-            // TODO these 2 variable sources should be merged eventually
             construct: {
                 resolve: this.resolveReference.bind(this),
+            },
+        };
+        this.variableResolvers = {
+            construct: (fullVariable: string) => {
+                const address = fullVariable.split(":")[1];
+
+                return Promise.resolve(this.resolveReference({ address }).value);
             },
         };
 
