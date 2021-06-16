@@ -9,6 +9,7 @@ import { FromSchema } from "json-schema-to-ts";
 import type {
     CloudformationTemplate,
     CommandsDefinition,
+    DeprecatedVariableResolver,
     Hook,
     Serverless,
     VariableResolver,
@@ -56,8 +57,8 @@ class LiftPlugin {
     public readonly stack: Stack;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
-    public readonly configurationVariablesSources: Record<string, VariableResolver> = {};
-    public variableResolvers: any;
+    public readonly configurationVariablesSources: Record<string, VariableResolver>;
+    public readonly variableResolvers: Record<string, DeprecatedVariableResolver>;
 
     constructor(serverless: Serverless) {
         this.app = new App();
@@ -89,7 +90,7 @@ class LiftPlugin {
             },
         };
         this.variableResolvers = {
-            construct: (fullVariable: string) => {
+            construct: (fullVariable) => {
                 const address = fullVariable.split(":")[1];
 
                 return Promise.resolve(this.resolveReference({ address }).value);
