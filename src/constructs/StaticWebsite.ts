@@ -25,6 +25,7 @@ import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import AwsProvider from "../classes/AwsProvider";
 import Construct from "../classes/Construct";
+import ServerlessError from "../utils/error";
 
 export const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -70,8 +71,10 @@ export class StaticWebsite extends CdkConstruct implements Construct {
         super(scope, id);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
-            throw new Error(
-                `Invalid configuration for the static website ${id}: if a domain is configured, then a certificate ARN must be configured as well.`
+            throw new ServerlessError(
+                `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
+                    "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
 
@@ -177,8 +180,9 @@ export class StaticWebsite extends CdkConstruct implements Construct {
 
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
-            throw new Error(
-                `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`
+            throw new ServerlessError(
+                `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`,
+                "LIFT_MISSING_STACK_OUTPUT"
             );
         }
 
