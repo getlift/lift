@@ -18,8 +18,11 @@ import { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { HttpOrigin, S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
+import { BehaviorOptions } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import * as path from "path";
+import * as fs from "fs";
 import { log } from "../utils/logger";
-import { s3Sync } from "../utils/s3-sync";
+import { s3Put, s3Sync } from "../utils/s3-sync";
 import AwsProvider from "../classes/AwsProvider";
 import Construct from "../classes/Construct";
 import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
@@ -28,7 +31,14 @@ export const SERVER_SIDE_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "server-side-website" },
-        assetsPath: { type: "string" },
+        assets: {
+            type: "object",
+            additionalProperties: { type: "string" },
+            propertyNames: {
+                pattern: "^/.*$",
+            },
+            minProperties: 1,
+        },
         domain: {
             anyOf: [
                 { type: "string" },
@@ -41,7 +51,7 @@ export const SERVER_SIDE_WEBSITE_DEFINITION = {
         certificate: { type: "string" },
     },
     additionalProperties: false,
-    required: ["assetsPath"],
+    required: ["assets"],
 } as const;
 
 type Configuration = FromSchema<typeof SERVER_SIDE_WEBSITE_DEFINITION>;
@@ -103,6 +113,9 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
             // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
             headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
         });
+        const s3Origin = new S3Origin(bucket, {
+            originAccessIdentity: cloudFrontOAI,
+        });
 
         // TODO support REST API
         const apiId = this.provider.naming.getHttpApiLogicalId();
@@ -131,19 +144,8 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
                 originRequestPolicy: backendOriginPolicy,
             },
-            additionalBehaviors: {
-                "assets/*": {
-                    // Origins are where CloudFront fetches content
-                    origin: new S3Origin(bucket, {
-                        originAccessIdentity: cloudFrontOAI,
-                    }),
-                    allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-                    // Use the "Managed-CachingOptimized" policy
-                    // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
-                    cachePolicy: CachePolicy.CACHING_OPTIMIZED,
-                    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                },
-            },
+            // All the assets paths are created in there
+            additionalBehaviors: this.createCacheBehaviors(s3Origin),
             // Disable caching of error responses
             errorResponses: [
                 {
@@ -187,7 +189,7 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
 
     commands(): Record<string, () => Promise<void>> {
         return {
-            upload: this.uploadAssets.bind(this),
+            "assets:upload": this.uploadAssets.bind(this),
         };
     }
 
@@ -218,13 +220,35 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
             );
         }
 
-        log(`Uploading directory '${this.configuration.assetsPath}' to bucket '${bucketName}'`);
-        const { hasChanges } = await s3Sync({
-            aws: this.provider,
-            localPath: this.configuration.assetsPath,
-            bucketName,
-        });
-        if (hasChanges) {
+        let invalidate = false;
+        for (const [pattern, filePath] of Object.entries(this.configuration.assets)) {
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`The file or directory '${filePath}' does not exist`);
+            }
+            let s3PathPrefix: string = path.dirname(pattern);
+            if (s3PathPrefix.startsWith("/")) {
+                s3PathPrefix = s3PathPrefix.slice(1);
+            }
+
+            if (fs.lstatSync(filePath).isDirectory()) {
+                // Directory
+                log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
+                const { hasChanges } = await s3Sync({
+                    aws: this.provider,
+                    localPath: filePath,
+                    targetPathPrefix: s3PathPrefix,
+                    bucketName,
+                });
+                invalidate = invalidate || hasChanges;
+            } else {
+                // File
+                const targetKey = path.join(s3PathPrefix, path.basename(filePath));
+                log(`Uploading '${filePath}' to 's3://${bucketName}/${targetKey}'`);
+                await s3Put(this.provider, bucketName, targetKey, fs.readFileSync(filePath));
+                invalidate = true;
+            }
+        }
+        if (invalidate) {
             await this.clearCDNCache();
         }
 
@@ -296,5 +320,22 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
 
         // In case of multiple domains, we take the first one
         return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
+    }
+
+    createCacheBehaviors(s3Origin: S3Origin): Record<string, BehaviorOptions> {
+        const behaviors: Record<string, BehaviorOptions> = {};
+        for (const [pattern] of Object.entries(this.configuration.assets)) {
+            behaviors[pattern] = {
+                // Origins are where CloudFront fetches content
+                origin: s3Origin,
+                allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+                // Use the "Managed-CachingOptimized" policy
+                // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
+                cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+                viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            };
+        }
+
+        return behaviors;
     }
 }

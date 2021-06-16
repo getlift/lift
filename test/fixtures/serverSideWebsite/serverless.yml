@@ -11,4 +11,5 @@ functions:
 constructs:
   backend:
     type: server-side-website
-    assetsPath: public
+    assets:
+      "/assets/*": public

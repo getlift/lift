@@ -18,7 +18,9 @@ describe("server-side website", () => {
                 constructs: {
                     backend: {
                         type: "server-side-website",
-                        assetsPath: ".",
+                        assets: {
+                            "/assets/*": "public",
+                        },
                     },
                 },
             }),
@@ -103,7 +105,7 @@ describe("server-side website", () => {
                             AllowedMethods: ["GET", "HEAD", "OPTIONS"],
                             CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
                             Compress: true,
-                            PathPattern: "assets/*",
+                            PathPattern: "/assets/*",
                             TargetOriginId: cfOriginId2,
                             ViewerProtocolPolicy: "redirect-to-https",
                         },
@@ -202,7 +204,9 @@ describe("server-side website", () => {
                 constructs: {
                     backend: {
                         type: "server-side-website",
-                        assetsPath: ".",
+                        assets: {
+                            "/assets/*": "public",
+                        },
                         domain: "example.com",
                         certificate:
                             "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
@@ -248,7 +252,9 @@ describe("server-side website", () => {
                 constructs: {
                     backend: {
                         type: "server-side-website",
-                        assetsPath: ".",
+                        assets: {
+                            "/assets/*": "public",
+                        },
                         domain: ["example.com", "www.example.com"],
                         certificate:
                             "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
@@ -286,22 +292,22 @@ describe("server-side website", () => {
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
         /*
          * This scenario simulates the following:
-         * - logo.png is up to date, it should be ignored
-         * - styles.css has changes, it should be updated to S3
-         * - scripts.js is new, it should be created in S3
-         * - image.jpg doesn't exist on disk, it should be removed from S3
+         * - assets/logo.png is up to date, it should be ignored
+         * - assets/styles.css has changes, it should be updated to S3
+         * - assets/scripts.js is new, it should be created in S3
+         * - assets/image.jpg doesn't exist on disk, it should be removed from S3
          */
         awsMock.mockService("S3", "listObjectsV2").resolves({
             IsTruncated: false,
             Contents: [
                 {
-                    Key: "logo.png",
+                    Key: "assets/logo.png",
                     ETag: computeS3ETag(
                         fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/logo.png"))
                     ),
                 },
-                { Key: "styles.css" },
-                { Key: "image.jpg" },
+                { Key: "assets/styles.css" },
+                { Key: "assets/image.jpg" },
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
@@ -311,20 +317,20 @@ describe("server-side website", () => {
         await runServerless({
             fixture: "ServerSideWebsite",
             configExt: pluginConfigExt,
-            cliArgs: ["backend:upload"],
+            cliArgs: ["backend:assets:upload"],
         });
 
         // scripts.js and styles.css were updated
         sinon.assert.callCount(putObjectSpy, 2);
         expect(putObjectSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
-            Key: "scripts.js",
+            Key: "assets/scripts.js",
             Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/scripts.js")),
             ContentType: "application/javascript",
         });
         expect(putObjectSpy.secondCall.firstArg).toEqual({
             Bucket: "bucket-name",
-            Key: "styles.css",
+            Key: "assets/styles.css",
             Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/styles.css")),
             ContentType: "text/css",
         });
@@ -335,7 +341,7 @@ describe("server-side website", () => {
             Delete: {
                 Objects: [
                     {
-                        Key: "image.jpg",
+                        Key: "assets/image.jpg",
                     },
                 ],
             },
