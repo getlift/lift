@@ -315,7 +315,7 @@ describe("server-side website", () => {
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
         await runServerless({
-            fixture: "ServerSideWebsite",
+            fixture: "serverSideWebsite",
             configExt: pluginConfigExt,
             cliArgs: ["backend:assets:upload"],
         });
