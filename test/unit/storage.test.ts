@@ -5,7 +5,7 @@ describe("storage", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "storage",
             configExt: pluginConfigExt,
-            command: "package",
+            cliArgs: ["package"],
         });
         expect(cfTemplate.Resources[computeLogicalId("avatars", "Bucket")]).toMatchObject({
             Type: "AWS::S3::Bucket",

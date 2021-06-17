@@ -6,7 +6,7 @@ describe("common", () => {
         const { cfTemplate } = await runServerless({
             fixture: "common",
             configExt: pluginConfigExt,
-            command: "package",
+            cliArgs: ["package"],
         });
         expect(cfTemplate.Resources).toMatchObject({
             UserDefinedResource: {},
