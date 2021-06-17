@@ -6,7 +6,7 @@ import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import { AwsConstruct, AwsProvider } from "../classes";
 
-export const WEBHOOK_DEFINITION = {
+const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "webhook" },
@@ -31,34 +31,21 @@ const WEBHOOK_DEFAULTS = {
 
 type Configuration = FromSchema<typeof WEBHOOK_DEFINITION>;
 
-const isValidWebhookConfiguration = (
-    configuration: Record<string, unknown>
-): configuration is FromSchema<typeof WEBHOOK_DEFINITION> => {
-    return true;
-};
-
-export class Webhook extends AwsConstruct<Configuration> {
+export class Webhook extends AwsConstruct {
     public static type = "webhook";
     public static schema = WEBHOOK_DEFINITION;
-    public static create(
-        scope: CdkConstruct,
-        id: string,
-        configuration: Record<string, unknown>,
-        provider: AwsProvider
-    ): Webhook {
-        if (!isValidWebhookConfiguration(configuration)) {
-            throw new Error("Wrong configuration");
-        }
-
-        return new Webhook(scope, id, configuration, provider);
-    }
 
     private readonly bus: EventBus;
     private readonly apiEndpointOutput: CfnOutput;
     private readonly endpointPathOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
-        super(scope, id, configuration, provider);
+    constructor(
+        scope: CdkConstruct,
+        private readonly id: string,
+        private readonly configuration: Configuration,
+        private readonly provider: AwsProvider
+    ) {
+        super(scope, id);
 
         const api = new HttpApi(this, "HttpApi");
         this.apiEndpointOutput = new CfnOutput(this, "HttpApiEndpoint", {

@@ -12,7 +12,7 @@ import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
 import { PolicyStatement } from "../CloudFormation";
 
-export const QUEUE_DEFINITION = {
+const QUEUE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "queue" },
@@ -38,35 +38,22 @@ export const QUEUE_DEFINITION = {
 } as const;
 type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
 
-const isValidQueueConfiguration = (
-    configuration: Record<string, unknown>
-): configuration is FromSchema<typeof QUEUE_DEFINITION> => {
-    return true;
-};
-
-export class Queue extends AwsConstruct<Configuration> {
+export class Queue extends AwsConstruct {
     public static type = "queue";
     public static schema = QUEUE_DEFINITION;
-    public static create(
-        scope: CdkConstruct,
-        id: string,
-        configuration: Record<string, unknown>,
-        provider: AwsProvider
-    ): Queue {
-        if (!isValidQueueConfiguration(configuration)) {
-            throw new Error("Wrong configuration");
-        }
-
-        return new Queue(scope, id, configuration, provider);
-    }
 
     private readonly queue: CdkQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
-        super(scope, id, configuration, provider);
+    constructor(
+        scope: CdkConstruct,
+        private readonly id: string,
+        private readonly configuration: Configuration,
+        private readonly provider: AwsProvider
+    ) {
+        super(scope, id);
 
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;

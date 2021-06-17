@@ -4,7 +4,7 @@ import { FromSchema } from "json-schema-to-ts";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { PolicyStatement } from "../CloudFormation";
 
-export const STORAGE_DEFINITION = {
+const STORAGE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "storage" },
@@ -23,33 +23,15 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
 
 type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
 
-const isValidStorageConfiguration = (
-    configuration: Record<string, unknown>
-): configuration is FromSchema<typeof STORAGE_DEFINITION> => {
-    return true;
-};
-
-export class Storage extends AwsConstruct<Configuration> {
+export class Storage extends AwsConstruct {
     public static type = "storage";
     public static schema = STORAGE_DEFINITION;
-    public static create(
-        scope: CdkConstruct,
-        id: string,
-        configuration: Record<string, unknown>,
-        provider: AwsProvider
-    ): Storage {
-        if (!isValidStorageConfiguration(configuration)) {
-            throw new Error("Wrong configuration");
-        }
-
-        return new Storage(scope, id, configuration, provider);
-    }
 
     private readonly bucket: Bucket;
     private readonly bucketNameOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
-        super(scope, id, configuration, provider);
+    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
+        super(scope, id);
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
 

@@ -2,16 +2,26 @@ import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { ConstructInterface } from ".";
 import { AwsProvider } from "./AwsProvider";
 
-export abstract class AwsConstruct<T extends Record<string, unknown>>
-    extends CdkConstruct
-    implements ConstructInterface {
-    constructor(
-        protected readonly scope: CdkConstruct,
-        protected readonly id: string,
-        protected readonly configuration: T,
-        protected readonly provider: AwsProvider
-    ) {
-        super(scope, id);
+export abstract class AwsConstruct extends CdkConstruct implements ConstructInterface {
+    static create<T = AwsConstruct>(
+        this: {
+            new (scope: CdkConstruct, id: string, configuration: Record<string, unknown>, provider: AwsProvider): T;
+        },
+        provider: AwsProvider,
+        id: string,
+        configuration: Record<string, unknown>
+    ): T {
+        /**
+         * We are passing a `configuration` of type `Record<string, unknown>` to a parameter
+         * of stricter type. This is theoretically invalid.
+         *
+         * In practice however, `configuration` has been validated with the exact JSON schema
+         * of the construct. And that construct has generated the type for `configuration` based
+         * on that schema.
+         * As such, we _know_ that `configuration` has the correct type, it is just not validated
+         * by TypeScript's compiler.
+         */
+        return new this(provider.stack, id, configuration, provider);
     }
 
     abstract outputs(): Record<string, () => Promise<string | undefined>>;

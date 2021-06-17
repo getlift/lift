@@ -7,7 +7,11 @@ import { dump } from "js-yaml";
 import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
 import { AwsProvider, ConstructInterface } from "./classes";
 import { log } from "./utils/logger";
-import { Constructs } from "./constructs";
+import { StaticConstructInterface } from "./classes/Construct";
+import { Storage } from "./constructs/Storage";
+import { Queue } from "./constructs/Queue";
+import { Webhook } from "./constructs/Webhook";
+import { StaticWebsite } from "./constructs/StaticWebsite";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 const CONSTRUCTS_DEFINITION = {
@@ -69,16 +73,30 @@ class LiftPlugin {
             },
         };
 
-        this.registerConstructs();
-        this.registerConfigSchema();
         this.registerProviders();
+        /**
+         * This is representative of a possible public API to register constructs. How it would work:
+         * - 3rd party developers create a custom construct
+         * - they also create a plugin that calls:
+         *       const awsProvider = serverless.lift.getProvider("aws");
+         *       awsProvider.registerConstructs(Foo, Bar);
+         *  If they use TypeScript, `registerConstructs()` will validate that the construct class
+         *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
+         */
+        this.providers[0].registerConstructs(Storage, Queue, Webhook, StaticWebsite);
+        this.registerConstructsSchema();
+        this.registerConfigSchema();
         this.loadConstructs();
         this.registerCommands();
     }
 
-    private registerConstructs() {
+    private getAllConstructClasses(): StaticConstructInterface<never>[] {
+        return this.providers.map((provider) => provider.getAllConstructClasses()).flat(1);
+    }
+
+    private registerConstructsSchema() {
         this.schema.patternProperties[CONSTRUCT_ID_PATTERN].allOf.push({
-            oneOf: Object.values(Constructs).map((Construct) => {
+            oneOf: this.getAllConstructClasses().map((Construct) => {
                 return this.defineConstructSchema(Construct.type, Construct.schema);
             }),
         });

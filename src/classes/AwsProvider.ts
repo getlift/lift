@@ -1,14 +1,15 @@
 import { App, CfnOutput, Stack } from "@aws-cdk/core";
 import { get, merge } from "lodash";
 import { getStackOutput } from "../CloudFormation";
-import { Constructs } from "../constructs";
 import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "./aws";
-import { AwsConstruct } from ".";
+import { ConstructInterface } from ".";
+import { StaticConstructInterface } from "./Construct";
 
 export class AwsProvider {
+    private readonly constructClasses: StaticConstructInterface<AwsProvider>[] = [];
     private readonly app: App;
-    private readonly stack: Stack;
+    public readonly stack: Stack;
     public readonly region: string;
     public readonly stackName: string;
     private readonly legacyProvider: LegacyAwsProvider;
@@ -25,11 +26,19 @@ export class AwsProvider {
         this.region = serverless.getProvider("aws").getRegion();
     }
 
-    create(type: string, id: string): AwsConstruct<Record<string, unknown>> {
+    registerConstructs(...constructClasses: StaticConstructInterface<AwsProvider>[]): void {
+        this.constructClasses.push(...constructClasses);
+    }
+
+    getAllConstructClasses(): StaticConstructInterface<AwsProvider>[] {
+        return this.constructClasses;
+    }
+
+    create(type: string, id: string): ConstructInterface {
         const configuration = get(this.serverless.configurationInput.constructs, id, {});
-        for (const Construct of Object.values(Constructs)) {
+        for (const Construct of this.constructClasses) {
             if (Construct.type === type) {
-                return Construct.create(this.stack, id, configuration, this);
+                return Construct.create(this, id, configuration);
             }
         }
         throw new Error(`Construct ${id} has unsupported construct type: ${type}`);

@@ -25,7 +25,7 @@ import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import { AwsConstruct, AwsProvider } from "../classes";
 
-export const STATIC_WEBSITE_DEFINITION = {
+const STATIC_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "static-website" },
@@ -54,35 +54,22 @@ export const STATIC_WEBSITE_DEFINITION = {
 
 type Configuration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
 
-const isValidStaticWebsiteConfiguration = (
-    configuration: Record<string, unknown>
-): configuration is FromSchema<typeof STATIC_WEBSITE_DEFINITION> => {
-    return true;
-};
-
-export class StaticWebsite extends AwsConstruct<Configuration> {
+export class StaticWebsite extends AwsConstruct {
     public static type = "static-website";
     public static schema = STATIC_WEBSITE_DEFINITION;
-    public static create(
-        scope: CdkConstruct,
-        id: string,
-        configuration: Record<string, unknown>,
-        provider: AwsProvider
-    ): StaticWebsite {
-        if (!isValidStaticWebsiteConfiguration(configuration)) {
-            throw new Error("Wrong configuration");
-        }
-
-        return new StaticWebsite(scope, id, configuration, provider);
-    }
 
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, provider: AwsProvider) {
-        super(scope, id, configuration, provider);
+    constructor(
+        scope: CdkConstruct,
+        private readonly id: string,
+        readonly configuration: Configuration,
+        private readonly provider: AwsProvider
+    ) {
+        super(scope, id);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
