@@ -35,7 +35,7 @@ describe("common", () => {
             Properties: {
                 Environment: {
                     Variables: {
-                        VAR2: "dev",
+                        VAR2: "bar",
                     },
                 },
             },

@@ -4,6 +4,9 @@ configValidationMode: error
 provider:
   name: aws
 
+custom:
+  foo: bar
+
 functions:
   foo:
     handler: worker.handler
@@ -16,7 +19,7 @@ constructs:
     worker:
       handler: worker.handler
       environment:
-        VAR2: ${sls:stage}
+        VAR2: ${self:custom.foo}
 
 resources:
   Resources:
