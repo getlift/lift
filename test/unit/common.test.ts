@@ -35,7 +35,21 @@ describe("common", () => {
             Properties: {
                 Environment: {
                     Variables: {
-                        VAR2: "bar",
+                        VAR1: "bar",
+                        CUSTOM_VAR1: "Custom variable 1",
+                        CUSTOM_VAR2: "Custom variable 2",
+                        CUSTOM_VAR3: "Custom variable 3",
+                        CUSTOM_VAR4: "Custom variable 4",
+                    },
+                },
+            },
+        });
+        expect(cfTemplate.Resources.appCDN7AD2C001).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    Aliases: ["Custom variable 1"],
+                    ViewerCertificate: {
+                        AcmCertificateArn: "Custom variable 2",
                     },
                 },
             },
