@@ -12,6 +12,7 @@ provider:
 
 constructs:
     stripe:
+        type: webhook
         authorizer:
             handler: myAuthorizer.main
         path: /my-webhook-endpoint

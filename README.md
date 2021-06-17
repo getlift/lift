@@ -103,6 +103,7 @@ Deploy webhooks to receive notifications from 3rd party applications.
 ```yaml
 constructs:
     stripe-webhook:
+        type: webhook
         path: /my-webhook-endpoint
         authorizer:
             handler: myAuthorizer.main
