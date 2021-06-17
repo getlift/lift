@@ -82,6 +82,21 @@ npm run build
 serverless deploy
 ```
 
+## Commands
+
+`serverless deploy` deploys everything configured in `serverless.yml` and uploads website files.
+
+It is possible to skip the CloudFormation deployment and directly publish website changes via:
+
+```
+serverless <construct-name>:upload
+
+# For example:
+serverless landing:upload
+```
+
+This command only takes seconds: it directly uploads files to S3 and clears the CloudFront cache.
+
 ## Configuration reference
 
 ### Path
