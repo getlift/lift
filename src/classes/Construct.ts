@@ -7,8 +7,6 @@ import { AwsProvider } from "./AwsProvider";
 export interface ConstructInterface {
     outputs(): Record<string, () => Promise<string | undefined>>;
 
-    commands(): Record<string, () => void | Promise<void>>;
-
     /**
      * CloudFormation references
      */
@@ -39,5 +37,19 @@ export interface StaticConstructInterface {
         type: "object";
         [k: string]: unknown;
     };
+    commands?(): ConstructCommands;
     create(provider: AwsProvider, id: string, configuration: Record<string, unknown>): ConstructInterface;
 }
+
+export type ConstructCommands = Record<string, ConstructCommandDefinition>;
+type ConstructCommandDefinition = {
+    usage: string;
+    handler: (opt: Record<string, string>) => void | Promise<void>;
+    options?: {
+        [name: string]: {
+            usage: string;
+            required: boolean;
+            shortcut?: string;
+        };
+    };
+};

@@ -85,10 +85,6 @@ export class Storage extends AwsConstruct {
         ];
     }
 
-    commands(): Record<string, () => void | Promise<void>> {
-        return {};
-    }
-
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             bucketName: () => this.getBucketName(),

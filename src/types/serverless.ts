@@ -18,7 +18,7 @@ export type VariableResolver = {
         options: Record<string, string>;
     }) => { value: string | Record<string, unknown> } | Promise<{ value: string | Record<string, unknown> }>;
 };
-export type DeprecatedVariableResolver = (variable: string) => Promise<Record<string, unknown>>;
+export type DeprecatedVariableResolver = (variable: string) => Promise<string | Record<string, unknown>>;
 
 export type Provider = {
     naming: {
@@ -51,4 +51,18 @@ export type Serverless = {
 
 export type CloudformationTemplate = AWS["resources"];
 
-export type CommandsDefinition = Record<string, { lifecycleEvents?: string[]; commands?: CommandsDefinition }>;
+export type CommandsDefinition = Record<
+    string,
+    {
+        lifecycleEvents?: string[];
+        commands?: CommandsDefinition;
+        usage?: string;
+        options?: {
+            [name: string]: {
+                usage: string;
+                required: boolean;
+                shortcut?: string;
+            };
+        };
+    }
+>;
