@@ -19,6 +19,7 @@ export type VariableResolver = {
         options: Record<string, string>;
     }) => { value: string | Record<string, unknown> } | Promise<{ value: string | Record<string, unknown> }>;
 };
+export type DeprecatedVariableResolver = (variable: string) => Promise<Record<string, unknown>>;
 
 export type Provider = {
     naming: {
