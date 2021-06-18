@@ -1,5 +1,5 @@
 import { App, Stack } from "@aws-cdk/core";
-import { get, has, merge } from "lodash";
+import { flatten, get, has, merge } from "lodash";
 import chalk from "chalk";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
@@ -191,11 +191,11 @@ class LiftPlugin {
     }
 
     private appendPermissions(): void {
-        const statements = Object.entries(this.constructs)
-            .map(([, construct]) => {
+        const statements = flatten(
+            Object.entries(this.constructs).map(([, construct]) => {
                 return ((construct.permissions ? construct.permissions() : []) as unknown) as AwsIamPolicyStatements;
             })
-            .flat(1);
+        );
         if (statements.length === 0) {
             return;
         }
