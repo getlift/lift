@@ -73,6 +73,7 @@
   "scripts": {
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
+    "check-format": "prettier --check .",
     "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",

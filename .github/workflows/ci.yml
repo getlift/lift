@@ -46,6 +46,7 @@ jobs:
                     path: ~/.npm
                     key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
             -   run: npm i
+            -   run: npm run check-format
             -   run: npm run lint
     type:
         name: Type
