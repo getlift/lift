@@ -21,6 +21,7 @@ import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
+import { flatten } from "lodash";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import AwsProvider from "../classes/AwsProvider";
@@ -86,7 +87,7 @@ export class StaticWebsite extends CdkConstruct implements Construct {
         bucket.grantRead(cloudFrontOAI);
 
         // Cast the domains to an array
-        const domains = configuration.domain !== undefined ? [configuration.domain].flat() : undefined;
+        const domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)

@@ -6,7 +6,7 @@
     "outDir": "dist",
     "strict": true,
     "target": "es2017",
-    "lib": ["ESNext"],
+    "lib": ["es2017"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
