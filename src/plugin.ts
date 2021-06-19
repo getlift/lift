@@ -199,6 +199,13 @@ class LiftPlugin {
         if (statements.length === 0) {
             return;
         }
+
+        if (this.serverless.service.provider.iam?.role?.statements !== undefined) {
+            this.serverless.service.provider.iam.role.statements.push(...statements);
+
+            return;
+        }
+
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
         this.serverless.service.provider.iamRoleStatements.push(...statements);
     }
