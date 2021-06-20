@@ -1,0 +1,13 @@
+service: storage
+configValidationMode: error
+
+provider:
+  name: aws
+
+functions:
+  foo:
+    handler: worker.handler
+
+constructs:
+  testStorage:
+    type: storage
