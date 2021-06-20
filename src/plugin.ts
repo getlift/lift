@@ -200,10 +200,10 @@ class LiftPlugin {
             return;
         }
 
-        if (this.serverless.service.provider.iam?.role?.statements !== undefined) {
-            this.serverless.service.provider.iam.role.statements.push(...statements);
+        const role = this.serverless.service.provider.iam?.role;
 
-            return;
+        if (typeof role === "object" && "statements" in role) {
+            role.statements?.push(...statements);
         }
 
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
