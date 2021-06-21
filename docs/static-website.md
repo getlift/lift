@@ -162,6 +162,23 @@ constructs:
             - app.mywebsite.com
 ```
 
+### Error page
+
+By default, all 404 requests are redirected to `index.html` with a 200 response status. This behavior is optimized for Single-Page Applications: it allows doing client-side URL routing with JavaScript frameworks.
+
+For static websites that _are not SPA_, it is possible to serve a custom "Not found" error page:
+
+```yaml
+constructs:
+    landing:
+        # ...
+        errorPage: error.html # can be any HTML file in your project
+```
+
+When a browser requests the URL of a non-existing file, the `error.html` file will be served with a 404 response status.
+
+Do not use this setting when doing JavaScript URL routing: this will break URL routing.
+
 ### Allow iframes
 
 By default, as recommended [for security reasons](https://scotthelme.co.uk/hardening-your-http-response-headers/#x-frame-options), the static website cannot be embedded in an iframe.
