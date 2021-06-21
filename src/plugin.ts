@@ -204,6 +204,8 @@ class LiftPlugin {
 
         if (typeof role === "object" && "statements" in role) {
             role.statements?.push(...statements);
+
+            return;
         }
 
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
