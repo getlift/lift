@@ -1,11 +1,11 @@
 service: storage
 
 provider:
-  name: aws
+    name: aws
 
 constructs:
-  stripe:
-    type: webhook
-    authorizer:
-      handler: authorizer.main
-    path: /webhook
+    stripe:
+        type: webhook
+        authorizer:
+            handler: authorizer.main
+        path: /webhook

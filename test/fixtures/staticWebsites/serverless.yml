@@ -2,9 +2,9 @@ service: storage
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 constructs:
-  landing:
-    type: static-website
-    path: public
+    landing:
+        type: static-website
+        path: public
