@@ -209,6 +209,15 @@ class LiftPlugin {
         if (statements.length === 0) {
             return;
         }
+
+        const role = this.serverless.service.provider.iam?.role;
+
+        if (typeof role === "object" && "statements" in role) {
+            role.statements?.push(...statements);
+
+            return;
+        }
+
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
         this.serverless.service.provider.iamRoleStatements.push(...statements);
     }
