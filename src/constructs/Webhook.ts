@@ -6,6 +6,7 @@ import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import AwsProvider from "../classes/AwsProvider";
 import Construct from "../classes/Construct";
+import ServerlessError from "../utils/error";
 
 export const WEBHOOK_DEFINITION = {
     type: "object",
@@ -65,17 +66,21 @@ export class Webhook extends CdkConstruct implements Construct {
 
         const resolvedConfiguration = Object.assign({}, WEBHOOK_DEFAULTS, configuration);
         if (resolvedConfiguration.insecure && resolvedConfiguration.authorizer !== undefined) {
-            throw new Error(
+            throw new ServerlessError(
                 `Webhook ${id} is specified as insecure, however an authorizer is configured for this webhook. ` +
                     "Either declare this webhook as secure by removing `insecure: true` property (recommended), " +
-                    "or specify the webhook as insecure and remove the authorizer property altogether."
+                    "or specify the webhook as insecure and remove the authorizer property altogether.\n" +
+                    "See https://github.com/getlift/lift/blob/master/docs/webhook.md#authorizer",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
         if (!resolvedConfiguration.insecure && resolvedConfiguration.authorizer === undefined) {
-            throw new Error(
+            throw new ServerlessError(
                 `Webhook ${id} is specified as secure, however no authorizer is configured for this webhook. ` +
                     "Please provide an authorizer property for this webhook (recommended), " +
-                    "or specify the webhook as insecure by adding `insecure: true` property."
+                    "or specify the webhook as insecure by adding `insecure: true` property.\n" +
+                    "See https://github.com/getlift/lift/blob/master/docs/webhook.md#authorizer",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
 

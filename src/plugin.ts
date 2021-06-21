@@ -18,6 +18,7 @@ import Construct from "./classes/Construct";
 import AwsProvider from "./classes/AwsProvider";
 import { constructs } from "./constructs";
 import { log } from "./utils/logger";
+import ServerlessError from "./utils/error";
 
 const CONSTRUCTS_DEFINITION = {
     type: "object",
@@ -112,6 +113,13 @@ class LiftPlugin {
             typeof CONSTRUCTS_DEFINITION
         >;
         for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
+            if (!has(constructs, configuration.type)) {
+                throw new ServerlessError(
+                    `The construct '${id}' has an unknown type '${configuration.type}'\n` +
+                        "Find all construct types available here: https://github.com/getlift/lift#constructs",
+                    "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+                );
+            }
             const constructConstructor = constructs[configuration.type].class;
             // Typescript cannot infer configuration specific to a type, thus computing intersetion of all configurations to never
             this.constructs[id] = new constructConstructor(awsProvider.stack, id, configuration as never, awsProvider);
@@ -121,18 +129,20 @@ class LiftPlugin {
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
         if (!has(this.constructs, id)) {
-            throw new Error(
-                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`
+            throw new ServerlessError(
+                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`,
+                "LIFT_VARIABLE_UNKNOWN_CONSTRUCT"
             );
         }
         const construct = this.constructs[id];
 
         const properties = construct.references();
         if (!has(properties, property)) {
-            throw new Error(
+            throw new ServerlessError(
                 `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
                     properties
-                ).join(", ")}.`
+                ).join(", ")}.`,
+                "LIFT_VARIABLE_UNKNOWN_PROPERTY"
             );
         }
 
