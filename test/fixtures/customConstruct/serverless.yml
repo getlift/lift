@@ -1,0 +1,13 @@
+service: custom
+configValidationMode: error
+
+provider:
+    name: aws
+
+constructs:
+    foo:
+        type: ./construct
+        retention: 4
+
+plugins:
+    - ../../../dist/src/plugin.js
