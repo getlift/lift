@@ -29,7 +29,7 @@ constructs:
     type: static-website
     path: dist
     domain: ${custom-var-1:foo}
-    certificate: ${custom-var-2:foo}
+    certificate: ${custom-arn:foo}
 
 resources:
   Resources:

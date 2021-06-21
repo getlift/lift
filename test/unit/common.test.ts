@@ -49,7 +49,8 @@ describe("common", () => {
                 DistributionConfig: {
                     Aliases: ["Custom variable 1"],
                     ViewerCertificate: {
-                        AcmCertificateArn: "Custom variable 2",
+                        AcmCertificateArn:
+                            "arn:aws:acm:us-east-1:123466615250:certificate/abcdef-b896-4725-96e3-6f143d06ac0b",
                     },
                 },
             },
