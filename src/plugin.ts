@@ -14,10 +14,6 @@ import type {
 import { AwsProvider, ConstructInterface } from "./classes";
 import { log } from "./utils/logger";
 import { StaticConstructInterface } from "./classes/Construct";
-import { Storage } from "./constructs/Storage";
-import { Queue } from "./constructs/Queue";
-import { Webhook } from "./constructs/Webhook";
-import { StaticWebsite } from "./constructs/StaticWebsite";
 import ServerlessError from "./utils/error";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
@@ -45,6 +41,7 @@ const CONSTRUCTS_DEFINITION = {
 class LiftPlugin {
     private readonly constructs: Record<string, ConstructInterface> = {};
     private readonly serverless: Serverless;
+    private readonly providerClasses: typeof AwsProvider[] = [];
     private readonly providers: AwsProvider[] = [];
     private readonly schema = CONSTRUCTS_DEFINITION;
     public readonly hooks: Record<string, Hook>;
@@ -86,16 +83,6 @@ class LiftPlugin {
         };
 
         this.registerProviders();
-        /**
-         * This is representative of a possible public API to register constructs. How it would work:
-         * - 3rd party developers create a custom construct
-         * - they also create a plugin that calls:
-         *       const awsProvider = serverless.lift.getProvider("aws");
-         *       awsProvider.registerConstructs(Foo, Bar);
-         *  If they use TypeScript, `registerConstructs()` will validate that the construct class
-         *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
-         */
-        this.providers[0].registerConstructs(Storage, Queue, Webhook, StaticWebsite);
         this.registerConstructsSchema();
         this.registerConfigSchema();
         this.loadConstructs();
@@ -103,7 +90,7 @@ class LiftPlugin {
     }
 
     private getAllConstructClasses(): StaticConstructInterface[] {
-        return flatten(this.providers.map((provider) => provider.getAllConstructClasses()));
+        return flatten(this.providerClasses.map((providerClass) => providerClass.getAllConstructClasses()));
     }
 
     private registerConstructsSchema() {
@@ -126,6 +113,7 @@ class LiftPlugin {
     }
 
     private registerProviders() {
+        this.providerClasses.push(AwsProvider);
         this.providers.push(new AwsProvider(this.serverless));
     }
 

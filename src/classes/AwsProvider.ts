@@ -6,9 +6,34 @@ import { awsRequest } from "./aws";
 import { ConstructInterface } from ".";
 import { StaticConstructInterface } from "./Construct";
 import ServerlessError from "../utils/error";
+import { Storage } from "../constructs/Storage";
+import { Queue } from "../constructs/Queue";
+import { Webhook } from "../constructs/Webhook";
+import { StaticWebsite } from "../constructs/StaticWebsite";
 
 export class AwsProvider {
-    private readonly constructClasses: StaticConstructInterface[] = [];
+    private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
+
+    static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
+        for (const constructClass of constructClasses) {
+            if (constructClass.type in this.constructClasses) {
+                throw new ServerlessError(
+                    `The construct type '${constructClass.type}' was registered twice`,
+                    "LIFT_CONSTRUCT_TYPE_CONFLICT"
+                );
+            }
+            this.constructClasses[constructClass.type] = constructClass;
+        }
+    }
+
+    static getConstructClass(type: string): StaticConstructInterface | undefined {
+        return this.constructClasses[type];
+    }
+
+    static getAllConstructClasses(): StaticConstructInterface[] {
+        return Object.values(this.constructClasses);
+    }
+
     private readonly app: App;
     public readonly stack: Stack;
     public readonly region: string;
@@ -27,26 +52,18 @@ export class AwsProvider {
         this.region = serverless.getProvider("aws").getRegion();
     }
 
-    registerConstructs(...constructClasses: StaticConstructInterface[]): void {
-        this.constructClasses.push(...constructClasses);
-    }
-
-    getAllConstructClasses(): StaticConstructInterface[] {
-        return this.constructClasses;
-    }
-
     create(type: string, id: string): ConstructInterface {
-        const configuration = get(this.serverless.configurationInput.constructs, id, {});
-        for (const Construct of this.constructClasses) {
-            if (Construct.type === type) {
-                return Construct.create(this, id, configuration);
-            }
+        const Construct = AwsProvider.getConstructClass(type);
+        if (Construct === undefined) {
+            throw new ServerlessError(
+                `The construct '${id}' has an unknown type '${type}'\n` +
+                    "Find all construct types available here: https://github.com/getlift/lift#constructs",
+                "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+            );
         }
-        throw new ServerlessError(
-            `The construct '${id}' has an unknown type '${type}'\n` +
-                "Find all construct types available here: https://github.com/getlift/lift#constructs",
-            "LIFT_UNKNOWN_CONSTRUCT_TYPE"
-        );
+        const configuration = get(this.serverless.configurationInput.constructs, id, {});
+
+        return Construct.create(this, id, configuration);
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
@@ -82,3 +99,13 @@ export class AwsProvider {
         });
     }
 }
+
+/**
+ * This is representative of a possible public API to register constructs. How it would work:
+ * - 3rd party developers create a custom construct
+ * - they also create a plugin that calls:
+ *       AwsProvider.registerConstructs(Foo, Bar);
+ *  If they use TypeScript, `registerConstructs()` will validate that the construct class
+ *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
+ */
+AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite);
