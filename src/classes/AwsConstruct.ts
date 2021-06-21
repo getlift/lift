@@ -3,14 +3,14 @@ import { ConstructInterface } from ".";
 import { AwsProvider } from "./AwsProvider";
 
 export abstract class AwsConstruct extends CdkConstruct implements ConstructInterface {
-    static create<T = AwsConstruct>(
+    static create<C extends AwsConstruct = AwsConstruct>(
         this: {
-            new (scope: CdkConstruct, id: string, configuration: Record<string, unknown>, provider: AwsProvider): T;
+            new (scope: CdkConstruct, id: string, configuration: Record<string, unknown>, provider: AwsProvider): C;
         },
         provider: AwsProvider,
         id: string,
         configuration: Record<string, unknown>
-    ): T {
+    ): C {
         /**
          * We are passing a `configuration` of type `Record<string, unknown>` to a parameter
          * of stricter type. This is theoretically invalid.

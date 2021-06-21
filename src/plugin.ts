@@ -90,7 +90,7 @@ class LiftPlugin {
         this.registerCommands();
     }
 
-    private getAllConstructClasses(): StaticConstructInterface<never>[] {
+    private getAllConstructClasses(): StaticConstructInterface[] {
         return this.providers.map((provider) => provider.getAllConstructClasses()).flat(1);
     }
 

@@ -1,4 +1,5 @@
 import { PolicyStatement } from "../CloudFormation";
+import { AwsProvider } from "./AwsProvider";
 
 /**
  * Defines which methods a Lift construct must expose.
@@ -32,11 +33,11 @@ export interface ConstructInterface {
 /**
  * Defines which static properties and methods a Lift construct must expose.
  */
-export interface StaticConstructInterface<Provider> {
+export interface StaticConstructInterface {
     type: string;
     schema: {
         type: "object";
         [k: string]: unknown;
     };
-    create(provider: Provider, id: string, configuration: Record<string, unknown>): ConstructInterface;
+    create(provider: AwsProvider, id: string, configuration: Record<string, unknown>): ConstructInterface;
 }

@@ -7,7 +7,7 @@ import { ConstructInterface } from ".";
 import { StaticConstructInterface } from "./Construct";
 
 export class AwsProvider {
-    private readonly constructClasses: StaticConstructInterface<AwsProvider>[] = [];
+    private readonly constructClasses: StaticConstructInterface[] = [];
     private readonly app: App;
     public readonly stack: Stack;
     public readonly region: string;
@@ -26,11 +26,11 @@ export class AwsProvider {
         this.region = serverless.getProvider("aws").getRegion();
     }
 
-    registerConstructs(...constructClasses: StaticConstructInterface<AwsProvider>[]): void {
+    registerConstructs(...constructClasses: StaticConstructInterface[]): void {
         this.constructClasses.push(...constructClasses);
     }
 
-    getAllConstructClasses(): StaticConstructInterface<AwsProvider>[] {
+    getAllConstructClasses(): StaticConstructInterface[] {
         return this.constructClasses;
     }
 

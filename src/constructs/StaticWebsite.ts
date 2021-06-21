@@ -66,7 +66,7 @@ export class StaticWebsite extends AwsConstruct {
     constructor(
         scope: CdkConstruct,
         private readonly id: string,
-        readonly configuration: Configuration,
+        private readonly configuration: Configuration,
         private readonly provider: AwsProvider
     ) {
         super(scope, id);
