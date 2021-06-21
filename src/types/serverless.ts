@@ -45,7 +45,13 @@ export type Serverless = {
         defineTopLevelProperty: (pluginName: string, schema: Record<string, unknown>) => void;
     };
     configurationInput: AWS & { constructs?: Record<string, { type: string }> };
-    service: AWS;
+    service: AWS & {
+        setFunctionNames(rawOptions: Record<string, unknown>): void;
+    };
+    processedInput: {
+        commands: unknown;
+        options: Record<string, unknown>;
+    };
     getProvider: (provider: "aws") => Provider;
 };
 
