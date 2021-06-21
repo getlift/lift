@@ -37,7 +37,7 @@ export interface StaticConstructInterface {
         type: "object";
         [k: string]: unknown;
     };
-    commands?(): ConstructCommands;
+    commands?: ConstructCommands;
     create(provider: AwsProvider, id: string, configuration: Record<string, unknown>): ConstructInterface;
 }
 

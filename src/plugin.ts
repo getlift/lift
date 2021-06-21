@@ -225,7 +225,7 @@ class LiftPlugin {
                 continue;
             }
             // For each command of the construct
-            for (const [command, commandDefinition] of Object.entries(constructClass.commands())) {
+            for (const [command, commandDefinition] of Object.entries(constructClass.commands)) {
                 this.commands[`${id}:${command}`] = {
                     lifecycleEvents: [command],
                     usage: commandDefinition.usage,
