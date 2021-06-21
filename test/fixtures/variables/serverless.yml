@@ -1,0 +1,32 @@
+service: app
+configValidationMode: error
+
+provider:
+  name: aws
+
+custom:
+  foo: bar
+
+functions:
+  foo:
+    handler: worker.handler
+    environment:
+      VAR1: ${construct:bar.queueUrl}
+
+constructs:
+  bar:
+    type: queue
+    worker:
+      handler: worker.handler
+      environment:
+        VAR2: ${self:custom.foo}
+
+resources:
+  Resources:
+    UserDefinedResource:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${construct:bar.queueUrl}
+
+plugins:
+  - ../../../dist/src/plugin.js

@@ -5,6 +5,7 @@ import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } fro
 import { awsRequest } from "./aws";
 import { ConstructInterface } from ".";
 import { StaticConstructInterface } from "./Construct";
+import ServerlessError from "../utils/error";
 
 export class AwsProvider {
     private readonly constructClasses: StaticConstructInterface[] = [];
@@ -41,7 +42,11 @@ export class AwsProvider {
                 return Construct.create(this, id, configuration);
             }
         }
-        throw new Error(`Construct ${id} has unsupported construct type: ${type}`);
+        throw new ServerlessError(
+            `The construct '${id}' has an unknown type '${type}'\n` +
+                "Find all construct types available here: https://github.com/getlift/lift#constructs",
+            "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+        );
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {

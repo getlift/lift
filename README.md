@@ -21,6 +21,8 @@ serverless plugin install -n serverless-lift
 
 If you prefer, you can install via `npm` directly: `npm install --save-dev serverless-lift`.
 
+Watch out: Lift requires **Node 12**. Check your Node version by running `node --version`. We are working on a Node 10-compatible release.
+
 ## Quick start
 
 Once installed, start using Lift constructs in `serverless.yml`:
@@ -101,6 +103,7 @@ Deploy webhooks to receive notifications from 3rd party applications.
 ```yaml
 constructs:
     stripe-webhook:
+        type: webhook
         path: /my-webhook-endpoint
         authorizer:
             handler: myAuthorizer.main

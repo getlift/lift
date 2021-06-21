@@ -21,9 +21,11 @@ import chalk from "chalk";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
+import { flatten } from "lodash";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import { AwsConstruct, AwsProvider } from "../classes";
+import ServerlessError from "../utils/error";
 
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -72,8 +74,10 @@ export class StaticWebsite extends AwsConstruct {
         super(scope, id);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
-            throw new Error(
-                `Invalid configuration for the static website ${id}: if a domain is configured, then a certificate ARN must be configured as well.`
+            throw new ServerlessError(
+                `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
+                    "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
 
@@ -88,7 +92,7 @@ export class StaticWebsite extends AwsConstruct {
         bucket.grantRead(cloudFrontOAI);
 
         // Cast the domains to an array
-        const domains = configuration.domain !== undefined ? [configuration.domain].flat() : undefined;
+        const domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
@@ -179,8 +183,9 @@ export class StaticWebsite extends AwsConstruct {
 
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
-            throw new Error(
-                `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`
+            throw new ServerlessError(
+                `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`,
+                "LIFT_MISSING_STACK_OUTPUT"
             );
         }
 

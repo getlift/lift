@@ -12,7 +12,7 @@ import * as util from "util";
 import * as path from "path";
 import * as crypto from "crypto";
 import { lookup } from "mime-types";
-import { chunk } from "lodash";
+import { chunk, flatten } from "lodash";
 import chalk from "chalk";
 import { AwsProvider } from "../classes/AwsProvider";
 
@@ -96,7 +96,7 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
         })
     );
 
-    return files.flat(1);
+    return flatten(files);
 }
 
 async function s3ListAll(aws: AwsProvider, bucketName: string): Promise<S3Objects> {

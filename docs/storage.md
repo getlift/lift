@@ -47,10 +47,10 @@ functions:
     myFunction:
         handler: src/index.handler
         environment:
-            BUCKET_NAME: ${constructs:avatars.bucketName}
+            BUCKET_NAME: ${construct:avatars.bucketName}
 ```
 
-_How it works: the `${constructs:avatars.bucketName}` variable will automatically be replaced with a CloudFormation reference to the S3 bucket._
+_How it works: the `${construct:avatars.bucketName}` variable will automatically be replaced with a CloudFormation reference to the S3 bucket._
 
 ## Permissions
 
@@ -67,7 +67,7 @@ functions:
     myFunction:
         handler: src/index.handler
         environment:
-            BUCKET_NAME: ${constructs:avatars.bucketName}
+            BUCKET_NAME: ${construct:avatars.bucketName}
 ```
 
 ## Configuration reference

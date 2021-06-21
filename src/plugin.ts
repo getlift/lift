@@ -1,10 +1,16 @@
-import { get, has, merge } from "lodash";
+import { flatten, get, has, merge } from "lodash";
 import chalk from "chalk";
 import { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
-import type { CommandsDefinition, Hook, Serverless, VariableResolver } from "./types/serverless";
+import type {
+    CommandsDefinition,
+    DeprecatedVariableResolver,
+    Hook,
+    Serverless,
+    VariableResolver,
+} from "./types/serverless";
 import { AwsProvider, ConstructInterface } from "./classes";
 import { log } from "./utils/logger";
 import { StaticConstructInterface } from "./classes/Construct";
@@ -12,6 +18,7 @@ import { Storage } from "./constructs/Storage";
 import { Queue } from "./constructs/Queue";
 import { Webhook } from "./constructs/Webhook";
 import { StaticWebsite } from "./constructs/StaticWebsite";
+import ServerlessError from "./utils/error";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 const CONSTRUCTS_DEFINITION = {
@@ -42,7 +49,8 @@ class LiftPlugin {
     private readonly schema = CONSTRUCTS_DEFINITION;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
-    public readonly configurationVariablesSources: Record<string, VariableResolver> = {};
+    public readonly configurationVariablesSources: Record<string, VariableResolver>;
+    public readonly variableResolvers: Record<string, DeprecatedVariableResolver>;
 
     constructor(serverless: Serverless) {
         this.serverless = serverless;
@@ -64,12 +72,16 @@ class LiftPlugin {
             "lift:eject:eject": this.eject.bind(this),
         };
 
-        // TODO variables should be resolved just before deploying each provider
-        // else we might get outdated values
         this.configurationVariablesSources = {
-            // TODO these 2 variable sources should be merged eventually
             construct: {
                 resolve: this.resolveReference.bind(this),
+            },
+        };
+        this.variableResolvers = {
+            construct: (fullVariable) => {
+                const address = fullVariable.split(":")[1];
+
+                return Promise.resolve(this.resolveReference({ address }).value);
             },
         };
 
@@ -91,7 +103,7 @@ class LiftPlugin {
     }
 
     private getAllConstructClasses(): StaticConstructInterface[] {
-        return this.providers.map((provider) => provider.getAllConstructClasses()).flat(1);
+        return flatten(this.providers.map((provider) => provider.getAllConstructClasses()));
     }
 
     private registerConstructsSchema() {
@@ -128,18 +140,20 @@ class LiftPlugin {
     resolveReference({ address }: { address: string }): { value: Record<string, unknown> } {
         const [id, property] = address.split(".", 2);
         if (!has(this.constructs, id)) {
-            throw new Error(
-                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`
+            throw new ServerlessError(
+                `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`,
+                "LIFT_VARIABLE_UNKNOWN_CONSTRUCT"
             );
         }
         const construct = this.constructs[id];
 
         const properties = construct.references();
         if (!has(properties, property)) {
-            throw new Error(
+            throw new ServerlessError(
                 `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
                     properties
-                ).join(", ")}.`
+                ).join(", ")}.`,
+                "LIFT_VARIABLE_UNKNOWN_PROPERTY"
             );
         }
 
@@ -196,14 +210,23 @@ class LiftPlugin {
     }
 
     private appendPermissions(): void {
-        const statements = Object.entries(this.constructs)
-            .map(([, construct]) => {
+        const statements = flatten(
+            Object.entries(this.constructs).map(([, construct]) => {
                 return ((construct.permissions ? construct.permissions() : []) as unknown) as AwsIamPolicyStatements;
             })
-            .flat(1);
+        );
         if (statements.length === 0) {
             return;
         }
+
+        const role = this.serverless.service.provider.iam?.role;
+
+        if (typeof role === "object" && "statements" in role) {
+            role.statements?.push(...statements);
+
+            return;
+        }
+
         this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
         this.serverless.service.provider.iamRoleStatements.push(...statements);
     }
