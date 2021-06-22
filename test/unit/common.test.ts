@@ -53,7 +53,7 @@ describe("common", () => {
                     },
                 }),
             })
-        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported configuration format");
+        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported value");
     });
 
     it("should resolve variables", async () => {
