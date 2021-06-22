@@ -14,7 +14,7 @@ describe("queues", () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
@@ -138,7 +138,7 @@ describe("queues", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
@@ -162,7 +162,7 @@ describe("queues", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
@@ -183,7 +183,7 @@ describe("queues", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
             Properties: {
@@ -202,7 +202,7 @@ describe("queues", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
@@ -271,7 +271,7 @@ describe("queues", () => {
         await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
-            cliArgs: ["emails:failed:purge"],
+            command: "emails:failed:purge",
         });
 
         expect(purgeSpy.firstCall.firstArg).toStrictEqual({
@@ -291,7 +291,7 @@ describe("queues", () => {
         await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
-            cliArgs: ["emails:failed:retry"],
+            command: "emails:failed:retry",
         });
 
         expect(sendSpy.callCount).toBe(0);
@@ -345,7 +345,7 @@ describe("queues", () => {
         await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
-            cliArgs: ["emails:failed:retry"],
+            command: "emails:failed:retry",
         });
 
         // The failed message should have been "sent" to the main queue

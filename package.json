@@ -32,7 +32,7 @@
     "tslib": "^1.13.0"
   },
   "devDependencies": {
-    "@serverless/test": "^7.11.0",
+    "@serverless/test": "^8.2.0",
     "@serverless/typescript": "^2.35.0",
     "@types/chai": "^4.2.12",
     "@types/jest": "^26.0.22",
