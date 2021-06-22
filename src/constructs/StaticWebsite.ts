@@ -276,6 +276,13 @@ export class StaticWebsite extends AwsConstruct {
         // Custom error page
         if (this.configuration.errorPage !== undefined) {
             let errorPath = this.configuration.errorPage;
+            if (errorPath.startsWith("./") || errorPath.startsWith("../")) {
+                throw new ServerlessError(
+                    `The 'errorPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
+                        `(it cannot be a relative path).`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
             if (!errorPath.startsWith("/")) {
                 errorPath = `/${errorPath}`;
             }

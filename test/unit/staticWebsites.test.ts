@@ -339,6 +339,41 @@ describe("static websites", () => {
         });
     });
 
+    it("should validate the error page path", async () => {
+        await expect(() => {
+            return runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        landing: {
+                            type: "static-website",
+                            path: ".",
+                            errorPage: "./error.html",
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
+        );
+        await expect(() => {
+            return runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        landing: {
+                            type: "static-website",
+                            path: ".",
+                            errorPage: "../error.html",
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
+        );
+    });
+
     it("should synchronize files to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
