@@ -1,4 +1,4 @@
-import { pluginConfigExt, runServerless } from "../utils/runServerless";
+import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import { runServerlessCli } from "../utils/runServerlessCli";
 
 describe("common", () => {
@@ -11,6 +11,49 @@ describe("common", () => {
         expect(cfTemplate.Resources).toMatchObject({
             UserDefinedResource: {},
         });
+    });
+
+    it("should validate construct configuration", async () => {
+        // Valid config: should not throw
+        await runServerless({
+            cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    avatars: {
+                        type: "storage",
+                    },
+                },
+            }),
+        });
+        // Invalid config: invalid property
+        await expect(
+            runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        avatars: {
+                            type: "storage",
+                            foo: "bar",
+                        },
+                    },
+                }),
+            })
+        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported configuration format");
+        // Invalid config: valid property, but in the wrong construct
+        await expect(
+            runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        avatars: {
+                            type: "storage",
+                            // "path" is a valid property in the `static-website` construct
+                            path: ".",
+                        },
+                    },
+                }),
+            })
+        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported configuration format");
     });
 
     it("should resolve variables", async () => {
