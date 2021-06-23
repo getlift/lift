@@ -67,7 +67,12 @@ export class AwsProvider {
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
-        Object.assign(this.serverless.service.functions, {
+        if (!this.serverless.configurationInput.functions) {
+            // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
+            this.serverless.configurationInput.functions = {};
+        }
+
+        Object.assign(this.serverless.configurationInput.functions, {
             [functionName]: functionConfig,
         });
         /**

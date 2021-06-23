@@ -13,7 +13,7 @@ describe("static websites", () => {
 
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     landing: {
@@ -183,7 +183,7 @@ describe("static websites", () => {
 
     it("should support a custom domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     landing: {
@@ -229,7 +229,7 @@ describe("static websites", () => {
 
     it("should support multiple custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     landing: {
@@ -269,7 +269,7 @@ describe("static websites", () => {
 
     it("should allow to customize security HTTP headers", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     landing: {
@@ -336,7 +336,7 @@ describe("static websites", () => {
         await runServerless({
             fixture: "staticWebsites",
             configExt: pluginConfigExt,
-            cliArgs: ["landing:upload"],
+            command: "landing:upload",
         });
 
         // scripts.js and styles.css were updated
