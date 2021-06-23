@@ -79,7 +79,7 @@
     "build": "etsc",
     "watch": "nodemon",
     "test": "jest",
-    "prepare": "etsc"
+    "prepare": "npm run build"
   },
   "types": "lib/index.d.ts"
 }
