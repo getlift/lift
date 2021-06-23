@@ -176,10 +176,16 @@ class LiftPlugin {
 
                     const properties = construct.references();
                     if (!has(properties, property)) {
+                        if (Object.keys(properties).length === 0) {
+                            throw new ServerlessError(
+                                `\${construct:${id}.${property}} does not exist. The construct '${id}' does not expose any property`,
+                                "LIFT_VARIABLE_UNKNOWN_PROPERTY"
+                            );
+                        }
                         throw new ServerlessError(
                             `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
                                 properties
-                            ).join(", ")}.`,
+                            ).join(", ")}`,
                             "LIFT_VARIABLE_UNKNOWN_PROPERTY"
                         );
                     }
