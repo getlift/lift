@@ -274,9 +274,10 @@ class LiftPlugin {
             }) as T;
         };
         this.serverless.service.provider = resolveTokens(this.serverless.service.provider);
-        this.serverless.service.functions = resolveTokens(this.serverless.service.functions);
+        this.serverless.service.package = resolveTokens(this.serverless.service.package);
         this.serverless.service.custom = resolveTokens(this.serverless.service.custom);
         this.serverless.service.resources = resolveTokens(this.serverless.service.resources);
+        this.serverless.service.functions = resolveTokens(this.serverless.service.functions);
         this.serverless.service.layers = resolveTokens(this.serverless.service.layers);
         this.serverless.service.outputs = resolveTokens(this.serverless.service.outputs);
     }
