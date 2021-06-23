@@ -286,6 +286,8 @@ class LiftPlugin {
         this.serverless.service.functions = resolveTokens(this.serverless.service.functions);
         this.serverless.service.layers = resolveTokens(this.serverless.service.layers);
         this.serverless.service.outputs = resolveTokens(this.serverless.service.outputs);
+        // Also resolve tokens in `configurationInput` because they also appear in there
+        this.serverless.configurationInput = resolveTokens(this.serverless.configurationInput);
     }
 
     private appendCloudformationResources() {
