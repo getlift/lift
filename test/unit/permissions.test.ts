@@ -38,7 +38,7 @@ describe("permissions", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources.FooLambdaFunction).toMatchObject({
             Properties: {
@@ -65,7 +65,7 @@ describe("permissions", () => {
                     },
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
 
         expectUserDynamoStatementIsAdded(cfTemplate);
@@ -86,7 +86,7 @@ describe("permissions", () => {
                     ],
                 },
             }),
-            cliArgs: ["package"],
+            command: "package",
         });
 
         expectUserDynamoStatementIsAdded(cfTemplate);
@@ -97,7 +97,7 @@ describe("permissions", () => {
         const { cfTemplate } = await runServerless({
             fixture: "permissions",
             configExt: pluginConfigExt,
-            cliArgs: ["package"],
+            command: "package",
         });
 
         expectLiftStorageStatementIsAdded(cfTemplate);

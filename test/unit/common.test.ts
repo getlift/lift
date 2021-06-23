@@ -6,7 +6,7 @@ describe("common", () => {
         const { cfTemplate } = await runServerless({
             fixture: "common",
             configExt: pluginConfigExt,
-            cliArgs: ["package"],
+            command: "package",
         });
         expect(cfTemplate.Resources).toMatchObject({
             UserDefinedResource: {},
@@ -16,7 +16,7 @@ describe("common", () => {
     it("should validate construct configuration", async () => {
         // Valid config: should not throw
         await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     avatars: {
@@ -28,7 +28,7 @@ describe("common", () => {
         // Invalid config: invalid property
         await expect(
             runServerless({
-                cliArgs: ["package"],
+                command: "package",
                 config: Object.assign(baseConfig, {
                     constructs: {
                         avatars: {
@@ -42,7 +42,7 @@ describe("common", () => {
         // Invalid config: valid property, but in the wrong construct
         await expect(
             runServerless({
-                cliArgs: ["package"],
+                command: "package",
                 config: Object.assign(baseConfig, {
                     constructs: {
                         avatars: {
@@ -53,7 +53,7 @@ describe("common", () => {
                     },
                 }),
             })
-        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported configuration format");
+        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported value");
     });
 
     it("should resolve variables", async () => {
