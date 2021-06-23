@@ -35,6 +35,5 @@ jobs:
                     path: ~/.npm
                     key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
             -   run: npm ci
-            -   run: npm run build
             -   run: npm run lint
             -   run: npm test
