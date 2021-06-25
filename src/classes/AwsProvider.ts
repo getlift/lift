@@ -72,9 +72,16 @@ export class AwsProvider {
             this.serverless.configurationInput.functions = {};
         }
 
-        Object.assign(this.serverless.service.functions, {
-            [functionName]: functionConfig,
-        });
+        if (Array.isArray(this.serverless.service.functions)) {
+            this.serverless.service.functions.push({
+                [functionName]: functionConfig,
+            });
+        } else {
+            Object.assign(this.serverless.service.functions, {
+                [functionName]: functionConfig,
+            });
+        }
+
         /**
          * We must manually call `setFunctionNames()`: this is a function that normalizes functions.
          * This function is called by the Framework, but we have to call it again because we add new
