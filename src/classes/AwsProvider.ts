@@ -72,9 +72,6 @@ export class AwsProvider {
             this.serverless.configurationInput.functions = {};
         }
 
-        Object.assign(this.serverless.configurationInput.functions, {
-            [functionName]: functionConfig,
-        });
         Object.assign(this.serverless.service.functions, {
             [functionName]: functionConfig,
         });
