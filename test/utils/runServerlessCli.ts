@@ -4,7 +4,8 @@ import * as path from "path";
 
 export async function runServerlessCli({ command, fixture }: RunServerlessCliOptions): Promise<RunServerlessCliReturn> {
     return new Promise((resolve, reject) => {
-        const process = spawn(`serverless ${command}`, {
+        const serverlessCmd = path.join(__dirname, "../../node_modules/.bin/serverless");
+        const process = spawn(`${serverlessCmd} ${command}`, {
             shell: true,
             cwd: path.join(__dirname, "../fixtures", fixture),
         });
