@@ -141,10 +141,6 @@ export class Webhook extends AwsConstruct {
         this.appendFunctions();
     }
 
-    commands(): Record<string, () => void | Promise<void>> {
-        return {};
-    }
-
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             httpMethod: () => this.getHttpMethod(),

@@ -72,9 +72,16 @@ export class AwsProvider {
             this.serverless.configurationInput.functions = {};
         }
 
-        Object.assign(this.serverless.configurationInput.functions, {
+        Object.assign(this.serverless.service.functions, {
             [functionName]: functionConfig,
         });
+        /**
+         * We must manually call `setFunctionNames()`: this is a function that normalizes functions.
+         * This function is called by the Framework, but we have to call it again because we add new
+         * functions after this function has already run. So our new function (that we add here)
+         * will not have been normalized.
+         */
+        this.serverless.service.setFunctionNames(this.serverless.processedInput.options);
     }
 
     /**

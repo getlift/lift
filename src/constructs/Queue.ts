@@ -11,6 +11,7 @@ import { AwsConstruct, AwsProvider } from "../classes";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
 import { PolicyStatement } from "../CloudFormation";
+import { ConstructCommands } from "../classes/Construct";
 
 const QUEUE_DEFINITION = {
     type: "object",
@@ -41,6 +42,20 @@ type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
 export class Queue extends AwsConstruct {
     public static type = "queue";
     public static schema = QUEUE_DEFINITION;
+    public static commands: ConstructCommands = {
+        failed: {
+            usage: "List failed messages from the dead letter queue.",
+            handler: Queue.prototype.listDlq,
+        },
+        "failed:purge": {
+            usage: "Purge failed messages from the dead letter queue.",
+            handler: Queue.prototype.purgeDlq,
+        },
+        "failed:retry": {
+            usage: "Retry failed messages from the dead letter queue by moving them to the main queue.",
+            handler: Queue.prototype.retryDlq,
+        },
+    };
 
     private readonly queue: CdkQueue;
     private readonly queueArnOutput: CfnOutput;
@@ -128,14 +143,6 @@ export class Queue extends AwsConstruct {
         });
 
         this.appendFunctions();
-    }
-
-    commands(): Record<string, () => void | Promise<void>> {
-        return {
-            failed: () => this.listDlq(),
-            "failed:purge": () => this.purgeDlq(),
-            "failed:retry": () => this.retryDlq(),
-        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {

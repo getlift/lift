@@ -25,6 +25,7 @@ import { flatten } from "lodash";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import { AwsConstruct, AwsProvider } from "../classes";
+import { ConstructCommands } from "../classes/Construct";
 import ServerlessError from "../utils/error";
 
 const STATIC_WEBSITE_DEFINITION = {
@@ -59,6 +60,12 @@ type Configuration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
 export class StaticWebsite extends AwsConstruct {
     public static type = "static-website";
     public static schema = STATIC_WEBSITE_DEFINITION;
+    public static commands: ConstructCommands = {
+        upload: {
+            usage: "Upload files directly to S3 without going through a CloudFormation deployment.",
+            handler: StaticWebsite.prototype.uploadWebsite,
+        },
+    };
 
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
@@ -155,12 +162,6 @@ export class StaticWebsite extends AwsConstruct {
             description: "ID of the CloudFront distribution.",
             value: distribution.distributionId,
         });
-    }
-
-    commands(): Record<string, () => Promise<void>> {
-        return {
-            upload: this.uploadWebsite.bind(this),
-        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {

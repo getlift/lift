@@ -26,8 +26,6 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
 
     abstract outputs(): Record<string, () => Promise<string | undefined>>;
 
-    abstract commands(): Record<string, () => void | Promise<void>>;
-
     /**
      * CloudFormation references
      */

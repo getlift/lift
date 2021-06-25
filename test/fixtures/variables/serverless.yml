@@ -6,12 +6,14 @@ provider:
 
 custom:
   foo: bar
+  variable: ${construct:bucket.bucketName}
 
 functions:
   foo:
     handler: worker.handler
     environment:
       VAR1: ${construct:bar.queueUrl}
+      CUSTOM_VAR: ${self:custom.variable}
 
 constructs:
   bar:
@@ -19,7 +21,21 @@ constructs:
     worker:
       handler: worker.handler
       environment:
-        VAR2: ${self:custom.foo}
+        VAR1: ${self:custom.foo}
+        # Test custom variables defined by plugin registered _after_ Lift
+        CUSTOM_VAR1: ${custom-var-1:foo}
+        CUSTOM_VAR2: ${custom-var-2:foo}
+        CUSTOM_VAR3: ${custom-var-3:foo}
+        CUSTOM_VAR4: ${custom-var-4:foo}
+    # Test a variable of another construct
+    alarm: ${construct:bucket.bucketName}
+  app:
+    type: static-website
+    path: dist
+    domain: ${custom-var-1:foo}
+    certificate: ${custom-arn:foo}
+  bucket:
+    type: storage
 
 resources:
   Resources:
@@ -30,3 +46,4 @@ resources:
 
 plugins:
   - ../../../dist/src/plugin.js
+  - ./extra-plugin.js
