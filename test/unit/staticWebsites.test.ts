@@ -306,6 +306,74 @@ describe("static websites", () => {
         });
     });
 
+    it("should allow to customize the error page", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            cliArgs: ["package"],
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        // We do not set a leading `/` on purpose: we want to check
+                        // that Lift will add it
+                        errorPage: "my/custom/error.html",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    CustomErrorResponses: [
+                        {
+                            // The response code is forced to 404 and changed to /error.html
+                            ErrorCachingMinTTL: 0,
+                            ErrorCode: 404,
+                            ResponseCode: 404,
+                            ResponsePagePath: "/my/custom/error.html",
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it("should validate the error page path", async () => {
+        await expect(() => {
+            return runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        landing: {
+                            type: "static-website",
+                            path: ".",
+                            errorPage: "./error.html",
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
+        );
+        await expect(() => {
+            return runServerless({
+                cliArgs: ["package"],
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        landing: {
+                            type: "static-website",
+                            path: ".",
+                            errorPage: "../error.html",
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
+        );
+    });
+
     it("should synchronize files to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");

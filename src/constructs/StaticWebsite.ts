@@ -22,6 +22,7 @@ import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/cli
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
+import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import { AwsConstruct, AwsProvider } from "../classes";
@@ -50,6 +51,7 @@ const STATIC_WEBSITE_DEFINITION = {
             },
             additionalProperties: false,
         },
+        errorPage: { type: "string" },
     },
     additionalProperties: false,
     required: ["path"],
@@ -125,15 +127,7 @@ export class StaticWebsite extends AwsConstruct {
                     },
                 ],
             },
-            // For SPA we need dynamic pages to be served by index.html
-            errorResponses: [
-                {
-                    httpStatus: 404,
-                    ttl: Duration.seconds(0),
-                    responseHttpStatus: 200,
-                    responsePagePath: "/index.html",
-                },
-            ],
+            errorResponses: [this.errorResponse()],
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
@@ -277,6 +271,41 @@ export class StaticWebsite extends AwsConstruct {
 
     async getDistributionId(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.distributionIdOutput);
+    }
+
+    private errorResponse(): ErrorResponse {
+        // Custom error page
+        if (this.configuration.errorPage !== undefined) {
+            let errorPath = this.configuration.errorPage;
+            if (errorPath.startsWith("./") || errorPath.startsWith("../")) {
+                throw new ServerlessError(
+                    `The 'errorPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
+                        `(it cannot be a relative path).`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            if (!errorPath.startsWith("/")) {
+                errorPath = `/${errorPath}`;
+            }
+
+            return {
+                httpStatus: 404,
+                ttl: Duration.seconds(0),
+                responseHttpStatus: 404,
+                responsePagePath: errorPath,
+            };
+        }
+
+        /**
+         * The default behavior is optimized for SPA: all unknown URLs are served
+         * by index.html so that routing can be done client-side.
+         */
+        return {
+            httpStatus: 404,
+            ttl: Duration.seconds(0),
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+        };
     }
 
     private createResponseFunction(): cloudfront.Function {
