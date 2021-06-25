@@ -1,0 +1,2 @@
+foo:
+    handler: worker.handler

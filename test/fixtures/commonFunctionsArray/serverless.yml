@@ -1,0 +1,16 @@
+service: app
+configValidationMode: error
+
+provider:
+    name: aws
+    # To avoid versions with random names (easier diffs)
+    versionFunctions: false
+
+functions:
+    - ${file(functions.yml)}
+
+constructs:
+    emails:
+        type: queue
+        worker:
+            handler: worker.handler

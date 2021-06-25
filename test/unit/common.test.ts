@@ -54,4 +54,14 @@ describe("common", () => {
             })
         ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported value");
     });
+
+    it("should support constructs adding functions in case `functions:` is an array", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "commonFunctionsArray",
+            configExt: pluginConfigExt,
+            command: "package",
+        });
+        expect(cfTemplate.Resources).toHaveProperty("FooLambdaFunction");
+        expect(cfTemplate.Resources).toHaveProperty("EmailsWorkerLambdaFunction");
+    });
 });

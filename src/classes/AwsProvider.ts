@@ -73,6 +73,13 @@ export class AwsProvider {
         }
 
         if (Array.isArray(this.serverless.service.functions)) {
+            /**
+             * `functions` can be an array, for example in that case:
+             *
+             *     functions:
+             *       - ${file(foo-functions.yml)}
+             *       - ${file(bar-functions.yml)}
+             */
             this.serverless.service.functions.push({
                 [functionName]: functionConfig,
             });
