@@ -308,7 +308,7 @@ describe("static websites", () => {
 
     it("should allow to customize the error page", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     landing: {
@@ -342,7 +342,7 @@ describe("static websites", () => {
     it("should validate the error page path", async () => {
         await expect(() => {
             return runServerless({
-                cliArgs: ["package"],
+                command: "package",
                 config: Object.assign(baseConfig, {
                     constructs: {
                         landing: {
@@ -358,7 +358,7 @@ describe("static websites", () => {
         );
         await expect(() => {
             return runServerless({
-                cliArgs: ["package"],
+                command: "package",
                 config: Object.assign(baseConfig, {
                     constructs: {
                         landing: {
