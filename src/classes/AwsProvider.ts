@@ -72,9 +72,13 @@ export class AwsProvider {
             this.serverless.configurationInput.functions = {};
         }
 
-        Object.assign(this.serverless.configurationInput.functions, {
-            [functionName]: functionConfig,
-        });
+        if (Array.isArray(this.serverless.configurationInput.functions)) {
+            this.serverless.configurationInput.functions.push({ [functionName]: functionConfig });
+        } else {
+            Object.assign(this.serverless.configurationInput.functions, {
+                [functionName]: functionConfig,
+            });
+        }
     }
 
     /**
