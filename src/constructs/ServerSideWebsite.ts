@@ -4,6 +4,7 @@ import {
     CacheHeaderBehavior,
     CachePolicy,
     Distribution,
+    FunctionEventType,
     HttpVersion,
     OriginAccessIdentity,
     OriginProtocolPolicy,
@@ -22,6 +23,7 @@ import { BehaviorOptions } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import * as path from "path";
 import * as fs from "fs";
 import { flatten } from "lodash";
+import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import { log } from "../utils/logger";
 import { s3Put, s3Sync } from "../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
@@ -112,7 +114,14 @@ export class ServerSideWebsite extends AwsConstruct {
              * - `Authorization` because it must be configured on the cache policy
              *   (see https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-authorization-header/?nc1=h_ls)
              */
-            headerBehavior: OriginRequestHeaderBehavior.allowList("Accept", "Accept-Language", "Origin", "Referer"),
+            headerBehavior: OriginRequestHeaderBehavior.allowList(
+                "Accept",
+                "Accept-Language",
+                "Origin",
+                "Referer",
+                // This header is set by our CloudFront Function
+                "X-Forwarded-Host"
+            ),
         });
         const backendCachePolicy = new CachePolicy(this, "BackendCachePolicy", {
             cachePolicyName: `${this.provider.stackName}-${id}`,
@@ -138,18 +147,6 @@ export class ServerSideWebsite extends AwsConstruct {
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
 
-        let customHeaders: Record<string, string> | undefined = undefined;
-        if (typeof configuration.domain === "string") {
-            customHeaders = {
-                // CloudFront does not forward the original `Host` header. We use this
-                // to forward the website domain name to the backend app via the `X-Forwarded-Host` header.
-                // Learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-                "X-Forwarded-Host": configuration.domain,
-            };
-        } else if (Array.isArray(configuration.domain)) {
-            // TODO use CloudFront functions to forward the real host header?
-        }
-
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
@@ -157,7 +154,6 @@ export class ServerSideWebsite extends AwsConstruct {
                 origin: new HttpOrigin(apiGatewayDomain, {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-                    customHeaders,
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,
@@ -166,6 +162,12 @@ export class ServerSideWebsite extends AwsConstruct {
                 // Forward all values (query strings, headers, and cookies) to the backend app
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
                 originRequestPolicy: backendOriginPolicy,
+                functionAssociations: [
+                    {
+                        function: this.createRequestFunction(),
+                        eventType: FunctionEventType.VIEWER_REQUEST,
+                    },
+                ],
             },
             // All the assets paths are created in there
             additionalBehaviors: this.createCacheBehaviors(s3Origin),
@@ -354,5 +356,25 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         return behaviors;
+    }
+
+    private createRequestFunction(): cloudfront.Function {
+        /**
+         * CloudFront function that forwards the real `Host` header into `X-Forwarded-Host`
+         *
+         * CloudFront does not forward the original `Host` header. We use this
+         * to forward the website domain name to the backend app via the `X-Forwarded-Host` header.
+         * Learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+         */
+        const code = `function handler(event) {
+    var request = event.request;
+    request.headers["x-forwarded-host"] = request.headers["host"];
+    return request;
+}`;
+
+        return new cloudfront.Function(this, "RequestFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
     }
 }

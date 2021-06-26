@@ -33,6 +33,7 @@ describe("server-side website", () => {
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
         const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
         const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
+        const requestFunction = computeLogicalId("backend", "RequestFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -41,6 +42,7 @@ describe("server-side website", () => {
             originAccessIdentityLogicalId,
             originPolicyId,
             cachePolicyId,
+            requestFunction,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -93,6 +95,14 @@ describe("server-side website", () => {
                         OriginRequestPolicyId: { Ref: originPolicyId },
                         TargetOriginId: cfOriginId1,
                         ViewerProtocolPolicy: "redirect-to-https",
+                        FunctionAssociations: [
+                            {
+                                EventType: "viewer-request",
+                                FunctionARN: {
+                                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
+                                },
+                            },
+                        ],
                     },
                     CacheBehaviors: [
                         {
@@ -144,7 +154,7 @@ describe("server-side website", () => {
                     QueryStringsConfig: { QueryStringBehavior: "all" },
                     HeadersConfig: {
                         HeaderBehavior: "whitelist",
-                        Headers: ["Accept", "Accept-Language", "Origin", "Referer"],
+                        Headers: ["Accept", "Accept-Language", "Origin", "Referer", "X-Forwarded-Host"],
                     },
                 },
             },
@@ -209,7 +219,6 @@ describe("server-side website", () => {
             }),
         });
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
-        const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
@@ -222,14 +231,6 @@ describe("server-side website", () => {
                         MinimumProtocolVersion: "TLSv1.2_2019",
                         SslSupportMethod: "sni-only",
                     },
-                    // Check that the domain is forwarded to Lambda in a `X-Forwarded-Host` header
-                    Origins: [
-                        {
-                            Id: cfOriginId1,
-                            OriginCustomHeaders: [{ HeaderName: "X-Forwarded-Host", HeaderValue: "example.com" }],
-                        },
-                        {},
-                    ],
                 },
             },
         });
