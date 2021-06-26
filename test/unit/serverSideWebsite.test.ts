@@ -13,7 +13,7 @@ describe("server-side website", () => {
 
     it("should create all required resources", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     backend: {
@@ -199,7 +199,7 @@ describe("server-side website", () => {
 
     it("should support a custom domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     backend: {
@@ -247,7 +247,7 @@ describe("server-side website", () => {
 
     it("should support multiple custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
-            cliArgs: ["package"],
+            command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     backend: {
@@ -317,7 +317,7 @@ describe("server-side website", () => {
         await runServerless({
             fixture: "serverSideWebsite",
             configExt: pluginConfigExt,
-            cliArgs: ["backend:assets:upload"],
+            command: "backend:assets:upload",
         });
 
         // scripts.js and styles.css were updated

@@ -13,7 +13,7 @@ import {
     OriginRequestQueryStringBehavior,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { Construct as CdkConstruct, CfnOutput, Duration, Fn, RemovalPolicy } from "@aws-cdk/core";
+import { CfnOutput, Construct, Duration, Fn, RemovalPolicy } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { HttpOrigin, S3Origin } from "@aws-cdk/aws-cloudfront-origins";
@@ -21,13 +21,14 @@ import * as acm from "@aws-cdk/aws-certificatemanager";
 import { BehaviorOptions } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import * as path from "path";
 import * as fs from "fs";
+import { flatten } from "lodash";
 import { log } from "../utils/logger";
 import { s3Put, s3Sync } from "../utils/s3-sync";
-import AwsProvider from "../classes/AwsProvider";
-import Construct from "../classes/Construct";
 import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
+import { AwsConstruct, AwsProvider } from "../classes";
+import { ConstructCommands } from "../classes/Construct";
 
-export const SERVER_SIDE_WEBSITE_DEFINITION = {
+const SCHEMA = {
     type: "object",
     properties: {
         type: { const: "server-side-website" },
@@ -54,9 +55,18 @@ export const SERVER_SIDE_WEBSITE_DEFINITION = {
     required: ["assets"],
 } as const;
 
-type Configuration = FromSchema<typeof SERVER_SIDE_WEBSITE_DEFINITION>;
+type Configuration = FromSchema<typeof SCHEMA>;
 
-export class ServerSideWebsite extends CdkConstruct implements Construct {
+export class ServerSideWebsite extends AwsConstruct {
+    public static type = "server-side-website";
+    public static schema = SCHEMA;
+    public static commands: ConstructCommands = {
+        "assets:upload": {
+            usage: "Upload assets directly to S3 without going through a CloudFormation deployment.",
+            handler: ServerSideWebsite.prototype.uploadAssets,
+        },
+    };
+
     private readonly distribution: Distribution;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
@@ -64,7 +74,7 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
     private readonly distributionIdOutput: CfnOutput;
 
     constructor(
-        scope: CdkConstruct,
+        scope: Construct,
         private readonly id: string,
         readonly configuration: Configuration,
         private readonly provider: AwsProvider
@@ -122,7 +132,7 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
         const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
 
         // Cast the domains to an array
-        const domains = configuration.domain !== undefined ? [configuration.domain].flat() : undefined;
+        const domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
@@ -185,12 +195,6 @@ export class ServerSideWebsite extends CdkConstruct implements Construct {
             description: "ID of the CloudFront distribution.",
             value: this.distribution.distributionId,
         });
-    }
-
-    commands(): Record<string, () => Promise<void>> {
-        return {
-            "assets:upload": this.uploadAssets.bind(this),
-        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {

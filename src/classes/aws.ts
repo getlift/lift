@@ -6,7 +6,7 @@ import {
 } from "aws-sdk/clients/s3";
 import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { Provider as LegacyAwsProvider } from "../types/serverless";
-import AwsProvider from "./AwsProvider";
+import { AwsProvider } from "./AwsProvider";
 
 // This is defined as a separate function to allow mocking in tests
 export async function awsRequest<Input, Output>(
