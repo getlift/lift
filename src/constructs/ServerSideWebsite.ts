@@ -137,7 +137,19 @@ export class ServerSideWebsite extends AwsConstruct {
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
-        // TODO use CloudFront functions to forward the real host header?
+
+        let customHeaders: Record<string, string> | undefined = undefined;
+        if (typeof configuration.domain === "string") {
+            customHeaders = {
+                // CloudFront does not forward the original `Host` header. We use this
+                // to forward the website domain name to the backend app via the `X-Forwarded-Host` header.
+                // Learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+                "X-Forwarded-Host": configuration.domain,
+            };
+        } else if (Array.isArray(configuration.domain)) {
+            // TODO use CloudFront functions to forward the real host header?
+        }
+
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
@@ -145,6 +157,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 origin: new HttpOrigin(apiGatewayDomain, {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+                    customHeaders,
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,

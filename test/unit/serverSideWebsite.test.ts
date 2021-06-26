@@ -57,17 +57,11 @@ describe("server-side website", () => {
                             Action: ["s3:GetObject*", "s3:GetBucket*", "s3:List*"],
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: {
-                                    "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
-                                },
+                                CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"] },
                             },
                             Resource: [
-                                {
-                                    "Fn::GetAtt": [bucketLogicalId, "Arn"],
-                                },
-                                {
-                                    "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]],
-                                },
+                                { "Fn::GetAtt": [bucketLogicalId, "Arn"] },
+                                { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                             ],
                         },
                     ],
@@ -215,11 +209,12 @@ describe("server-side website", () => {
             }),
         });
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
-        // Check that CloudFront uses the custom ACM certificate and custom domain
+        const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
+                    // Check that CloudFront uses the custom ACM certificate and custom domain
                     Aliases: ["example.com"],
                     ViewerCertificate: {
                         AcmCertificateArn:
@@ -227,6 +222,14 @@ describe("server-side website", () => {
                         MinimumProtocolVersion: "TLSv1.2_2019",
                         SslSupportMethod: "sni-only",
                     },
+                    // Check that the domain is forwarded to Lambda in a `X-Forwarded-Host` header
+                    Origins: [
+                        {
+                            Id: cfOriginId1,
+                            OriginCustomHeaders: [{ HeaderName: "X-Forwarded-Host", HeaderValue: "example.com" }],
+                        },
+                        {},
+                    ],
                 },
             },
         });
