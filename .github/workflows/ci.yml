@@ -6,8 +6,48 @@ on:
     pull_request:
 
 jobs:
-    build:
-        name: Build
+    unit-tests:
+        name: Unit tests
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node:
+                    - 10
+                    - 12
+                    - 14
+                    - 15
+                serverless:
+                    - 2.36.0
+                    - latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v2
+                with:
+                    node-version: ${{ matrix.node }}
+            -   uses: actions/cache@v2
+                with:
+                    path: ~/.npm
+                    key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+            -   run: rm package-lock.json
+            -   run: npm i
+            -   run: npm i serverless@${{ matrix.serverless }}
+            -   run: npm test
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-node@v2
+                with:
+                    node-version: '15'
+            -   uses: actions/cache@v2
+                with:
+                    path: ~/.npm
+                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+            -   run: npm ci
+            -   run: npm run lint
+    type:
+        name: Type
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v2
@@ -21,19 +61,3 @@ jobs:
             -   run: npm ci
             -   name: Typescript checks
                 run: tsc --noEmit
-
-    tests:
-        name: Tests
-        runs-on: ubuntu-latest
-        steps:
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v2
-                with:
-                    node-version: '15'
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-            -   run: npm ci
-            -   run: npm run lint
-            -   run: npm test
