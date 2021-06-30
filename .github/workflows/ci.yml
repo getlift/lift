@@ -28,7 +28,6 @@ jobs:
                 with:
                     path: ~/.npm
                     key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
-            -   run: rm package-lock.json
             -   run: npm i
             -   run: npm i serverless@${{ matrix.serverless }}
             -   run: npm test
@@ -44,7 +43,7 @@ jobs:
                 with:
                     path: ~/.npm
                     key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-            -   run: npm ci
+            -   run: npm i
             -   run: npm run lint
     type:
         name: Type
@@ -58,6 +57,6 @@ jobs:
                 with:
                     path: ~/.npm
                     key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-            -   run: npm ci
+            -   run: npm i
             -   name: Typescript checks
                 run: tsc --noEmit
