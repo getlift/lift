@@ -11,6 +11,7 @@
     "@aws-cdk/aws-cloudfront": "^1.110.1",
     "@aws-cdk/aws-cloudfront-origins": "^1.110.1",
     "@aws-cdk/aws-cloudwatch": "^1.110.1",
+    "@aws-cdk/aws-ec2": "^1.110.1",
     "@aws-cdk/aws-events": "^1.110.1",
     "@aws-cdk/aws-iam": "^1.110.1",
     "@aws-cdk/aws-lambda": "^1.110.1",

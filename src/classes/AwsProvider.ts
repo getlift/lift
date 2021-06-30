@@ -1,5 +1,6 @@
 import { App, CfnOutput, Stack } from "@aws-cdk/core";
 import { get, merge } from "lodash";
+import { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import { getStackOutput } from "../CloudFormation";
 import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "./aws";
@@ -8,6 +9,7 @@ import { StaticConstructInterface } from "./Construct";
 import ServerlessError from "../utils/error";
 import { Storage } from "../constructs/Storage";
 import { Queue } from "../constructs/Queue";
+import { VPC } from "../constructs/VPC";
 import { Webhook } from "../constructs/Webhook";
 import { StaticWebsite } from "../constructs/StaticWebsite";
 
@@ -42,14 +44,13 @@ export class AwsProvider {
     public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
 
     constructor(private readonly serverless: Serverless) {
+        this.stackName = serverless.getProvider("aws").naming.getStackName();
         this.app = new App();
         this.stack = new Stack(this.app);
-        serverless.stack = this.stack;
-        this.stackName = serverless.getProvider("aws").naming.getStackName();
-
         this.legacyProvider = serverless.getProvider("aws");
         this.naming = this.legacyProvider.naming;
         this.region = serverless.getProvider("aws").getRegion();
+        serverless.stack = this.stack;
     }
 
     create(type: string, id: string): ConstructInterface {
@@ -85,6 +86,35 @@ export class AwsProvider {
     }
 
     /**
+     * @internal
+     */
+    setVpcConfig(securityGroup: AwsCfInstruction, subnets: AwsCfInstruction[]): void {
+        if (this.getVpcConfig() !== null) {
+            throw new ServerlessError(
+                "Can't register more than one VPC.\n" +
+                    'Either you have several "vpc" constructs \n' +
+                    'or you already defined "provider.vpc" in serverless.yml',
+                "LIFT_ONLY_ONE_VPC"
+            );
+        }
+
+        this.serverless.service.provider.vpc = {
+            securityGroupIds: [securityGroup], // TODO : merge with existing groups ?
+            subnetIds: subnets,
+        };
+    }
+
+    /**
+     * This function can be used by other constructs to reference
+     * global subnets or security groups in their resources
+     *
+     * @internal
+     */
+    getVpcConfig(): AwsLambdaVpcConfig | null {
+        return this.serverless.service.provider.vpc ?? null;
+    }
+
+    /**
      * Resolves the value of a CloudFormation stack output.
      */
     async getStackOutput(output: CfnOutput): Promise<string | undefined> {
@@ -94,8 +124,8 @@ export class AwsProvider {
     /**
      * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
      */
-    getCloudFormationReference(value: string): Record<string, unknown> {
-        return Stack.of(this.stack).resolve(value) as Record<string, unknown>;
+    getCloudFormationReference(value: string): AwsCfInstruction {
+        return Stack.of(this.stack).resolve(value) as AwsCfInstruction;
     }
 
     /**
@@ -120,4 +150,4 @@ export class AwsProvider {
  *  If they use TypeScript, `registerConstructs()` will validate that the construct class
  *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
  */
-AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite);
+AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, VPC);

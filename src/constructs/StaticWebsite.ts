@@ -23,6 +23,7 @@ import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
 import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import { AwsCfInstruction } from "@serverless/typescript";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
 import { AwsConstruct, AwsProvider } from "../classes";
@@ -165,7 +166,7 @@ export class StaticWebsite extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    references(): Record<string, AwsCfInstruction> {
         return {};
     }
 

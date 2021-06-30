@@ -4,6 +4,7 @@ import { Function } from "@aws-cdk/aws-lambda";
 import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
+import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 import ServerlessError from "../utils/error";
 
@@ -148,7 +149,7 @@ export class Webhook extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    references(): Record<string, AwsCfInstruction> {
         return {
             busName: this.referenceBusName(),
         };
@@ -190,7 +191,7 @@ export class Webhook extends AwsConstruct {
         return apiEndpoint + path;
     }
 
-    private referenceBusName(): Record<string, unknown> {
+    private referenceBusName(): AwsCfInstruction {
         return this.provider.getCloudFormationReference(this.bus.eventBusName);
     }
 }

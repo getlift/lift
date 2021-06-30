@@ -1,6 +1,7 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
+import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { PolicyStatement } from "../CloudFormation";
 
@@ -65,7 +66,7 @@ export class Storage extends AwsConstruct {
         });
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    references(): Record<string, AwsCfInstruction> {
         return {
             bucketArn: this.referenceBucketArn(),
             bucketName: this.referenceBucketName(),
@@ -91,11 +92,11 @@ export class Storage extends AwsConstruct {
         };
     }
 
-    referenceBucketName(): Record<string, unknown> {
+    referenceBucketName(): AwsCfInstruction {
         return this.provider.getCloudFormationReference(this.bucket.bucketName);
     }
 
-    referenceBucketArn(): Record<string, unknown> {
+    referenceBucketArn(): AwsCfInstruction {
         return this.provider.getCloudFormationReference(this.bucket.bucketArn);
     }
 

@@ -9,6 +9,7 @@ import { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
 import { spawnSync } from "child_process";
 import * as inquirer from "inquirer";
+import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
@@ -188,7 +189,7 @@ export class Queue extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    references(): Record<string, AwsCfInstruction> {
         return {
             queueUrl: this.referenceQueueUrl(),
             queueArn: this.referenceQueueArn(),
@@ -218,11 +219,11 @@ export class Queue extends AwsConstruct {
         this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
     }
 
-    private referenceQueueArn(): Record<string, unknown> {
+    private referenceQueueArn(): AwsCfInstruction {
         return this.provider.getCloudFormationReference(this.queue.queueArn);
     }
 
-    private referenceQueueUrl(): Record<string, unknown> {
+    private referenceQueueUrl(): AwsCfInstruction {
         return this.provider.getCloudFormationReference(this.queue.queueUrl);
     }
 
