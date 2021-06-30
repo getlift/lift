@@ -37,7 +37,7 @@ describe("common", () => {
                     },
                 }),
             })
-        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported configuration format");
+        ).rejects.toThrow(/Configuration error at 'constructs\.avatars'.*/g);
         // Invalid config: valid property, but in the wrong construct
         await expect(
             runServerless({
@@ -52,6 +52,6 @@ describe("common", () => {
                     },
                 }),
             })
-        ).rejects.toThrow("Configuration error at 'constructs.avatars': unsupported value");
+        ).rejects.toThrow(/Configuration error at 'constructs\.avatars'.*/g);
     });
 });
