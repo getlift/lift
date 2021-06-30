@@ -27,7 +27,7 @@ jobs:
             -   uses: actions/cache@v2
                 with:
                     path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+                    key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
             -   run: npm i
             -   run: npm i serverless@${{ matrix.serverless }}
             -   run: npm test
@@ -42,7 +42,7 @@ jobs:
             -   uses: actions/cache@v2
                 with:
                     path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                    key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
             -   run: npm i
             -   run: npm run lint
     type:
@@ -56,7 +56,7 @@ jobs:
             -   uses: actions/cache@v2
                 with:
                     path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                    key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
             -   run: npm i
             -   name: Typescript checks
                 run: tsc --noEmit
