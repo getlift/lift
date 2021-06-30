@@ -61,6 +61,7 @@ export class Queue extends AwsConstruct {
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
+    private readonly dlqArnOutput: CfnOutput;
 
     constructor(
         scope: CdkConstruct,
@@ -141,6 +142,10 @@ export class Queue extends AwsConstruct {
             description: `URL of the "${id}" SQS dead letter queue.`,
             value: dlq.queueUrl,
         });
+        this.dlqArnOutput = new CfnOutput(this, "DlqUrl", {
+            description: `ARN of the "${id}" SQS dead letter queue.`,
+            value: dlq.queueArn,
+        });
 
         this.appendFunctions();
     }
@@ -155,6 +160,8 @@ export class Queue extends AwsConstruct {
         return {
             queueUrl: this.referenceQueueUrl(),
             queueArn: this.referenceQueueArn(),
+            dlqUrl: this.getDlqUrl(),
+            dlqArn: thus.getDlqArn(),
         };
     }
 
@@ -195,6 +202,10 @@ export class Queue extends AwsConstruct {
 
     async getDlqUrl(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.dlqUrlOutput);
+    }
+
+    async getDlqArn(): Promise<string | undefined> {
+        return this.provider.getStackOutput(this.dlqArnOutput);
     }
 
     async listDlq(): Promise<void> {
