@@ -55,9 +55,21 @@ The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) is extreme
 
 Lift provides components, aka "**constructs**", specifically selected for serverless applications. They are all built using the CDK and its best practices, with unique features to provide an awesome developer experience.
 
+### [React website](docs/react-website.md)
+
+Deploy React websites.
+
+```yaml
+constructs:
+    landing:
+        type: react-website
+```
+
+[Read more...](docs/react-website.md)
+
 ### [Static website](docs/static-website.md)
 
-Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
+Deploy static websites and single-page applications, for example VueJS or Angular apps.
 
 ```yaml
 constructs:

@@ -5,6 +5,8 @@ The `static-website` construct deploys:
 - **single-page applications**, for example React or VueJS applications
 - **plain static websites** composed of HTML files and assets (CSS, JS…)
 
+Note: a [`react-website` construct](react-website.md) exists specifically for React applications.
+
 ## Quick start
 
 ```bash
@@ -52,21 +54,8 @@ _Note: the S3 bucket is public and entirely managed by Lift. Do not store or upl
 
 ## React
 
-To deploy a [React](https://reactjs.org/) app, use the following configuration:
-
-```yaml
-constructs:
-    react:
-        type: static-website
-        path: build
-```
-
-To deploy, run:
-
-```
-npm run build
-serverless deploy
-```
+Deploy React applications with [the `react-website` construct](react-website.md).
+It is based on `static-website` and optimized for React applications.
 
 ## Vue
 

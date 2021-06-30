@@ -7,6 +7,7 @@ import type { ConstructInterface, StaticConstructInterface } from "@lift/constru
 import {
     DatabaseDynamoDBSingleTable,
     Queue,
+    ReactWebsite,
     ServerSideWebsite,
     StaticWebsite,
     Storage,
@@ -172,5 +173,6 @@ AwsProvider.registerConstructs(
     StaticWebsite,
     Vpc,
     DatabaseDynamoDBSingleTable,
-    ServerSideWebsite
+    ServerSideWebsite,
+    ReactWebsite
 );

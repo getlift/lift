@@ -15,6 +15,11 @@ export interface ConstructInterface {
     variables?(): Record<string, unknown>;
 
     /**
+     * Pre-CloudFormation deployment
+     */
+    preDeploy?(): Promise<void>;
+
+    /**
      * Post-CloudFormation deployment
      */
     postDeploy?(): Promise<void>;

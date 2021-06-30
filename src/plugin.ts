@@ -108,6 +108,7 @@ class LiftPlugin {
             },
             "before:aws:info:displayStackOutputs": this.info.bind(this),
             "after:package:compileEvents": this.appendCloudformationResources.bind(this),
+            "before:deploy:deploy": this.preDeploy.bind(this),
             "after:deploy:deploy": this.postDeploy.bind(this),
             "before:remove:remove": this.preRemove.bind(this),
             "lift:eject:eject": this.eject.bind(this),
@@ -359,6 +360,15 @@ class LiftPlugin {
 
                     return commandDefinition.handler.call(construct, this.cliOptions);
                 };
+            }
+        }
+    }
+
+    private async preDeploy(): Promise<void> {
+        const constructs = this.getConstructs();
+        for (const [, construct] of Object.entries(constructs)) {
+            if (construct.preDeploy !== undefined) {
+                await construct.preDeploy();
             }
         }
     }
