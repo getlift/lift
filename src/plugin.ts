@@ -298,7 +298,7 @@ class LiftPlugin {
         const constructs = this.getConstructs();
         const statements = flatten(
             Object.entries(constructs).map(([, construct]) => {
-                return ((construct.permissions ? construct.permissions() : []) as unknown) as AwsIamPolicyStatements;
+                return (construct.permissions ? construct.permissions() : []) as unknown as AwsIamPolicyStatements;
             })
         );
         if (statements.length === 0) {
