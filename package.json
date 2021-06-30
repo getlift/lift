@@ -51,14 +51,14 @@
     "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-prettier": "^3.4.0",
     "globby": "^10.0.2",
-    "jest": "^26.6.3",
+    "jest": "^27.0.6",
     "json-schema-to-ts": "^1.6.4",
     "nodemon": "^2.0.8",
     "prettier": "^2.3.2",
     "serverless": "2.49.0",
-    "sinon": "^9.2.4",
+    "sinon": "^11.1.1",
     "stdout-stderr": "^0.1.13",
-    "ts-jest": "^26.5.4",
+    "ts-jest": "^27.0.3",
     "typescript": "^4.3.4"
   },
   "engines": {
