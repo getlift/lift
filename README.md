@@ -19,7 +19,7 @@ Lift is a [Serverless Framework plugin](https://www.serverless.com/plugins/), in
 serverless plugin install -n serverless-lift
 ```
 
-If you prefer, you can install via `npm` directly: `npm install --save-dev serverless-lift`.
+> If you prefer, you can install Lift via NPM: `npm install --save-dev serverless-lift`. Then, register the `serverless-lift` plugin in `serverless.yml` (see the example below).
 
 ## Quick start
 
