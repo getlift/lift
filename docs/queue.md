@@ -32,7 +32,15 @@ The `queue` construct deploys the following resources:
 
 <img src="img/queue.png" width="600"/>
 
-To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/serverless-queues-and-workers-designing-lift-d870afdba867).
+### Production ready
+
+Lift constructs are production-ready:
+
+- Failed messages are retried up to 3 times ([configurable](#retries)) instead of "infinitely" by default
+- Messages that still fail to be processed are stored in the SQS dead letter queue
+- Failed messages in the dead letter queue are stored for 14 days (the maximum) to give developers time to deal with them
+- The SQS "Visibility Timeout" setting is configured per AWS recommendations ([more details](#retry-delay))
+- Batch processing is disabled by default ([configurable](#batch-size)): errors are tricky to handle with batching
 
 ## Example
 
