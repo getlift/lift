@@ -7,6 +7,7 @@ import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
 import { PurgeQueueRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
+import { spawnSync } from "child_process";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
@@ -43,6 +44,30 @@ export class Queue extends AwsConstruct {
     public static type = "queue";
     public static schema = QUEUE_DEFINITION;
     public static commands: ConstructCommands = {
+        logs: {
+            usage: "Output the logs of the queue's worker function",
+            handler: Queue.prototype.displayLogs,
+            options: {
+                tail: {
+                    usage: "Tail the log output",
+                    shortcut: "t",
+                    type: "boolean",
+                },
+                startTime: {
+                    usage: "Logs before this time will not be displayed. Default: `10m` (last 10 minutes logs only)",
+                    type: "string",
+                },
+                filter: {
+                    usage: "A filter pattern",
+                    type: "string",
+                },
+                interval: {
+                    usage: "Tail polling interval in milliseconds. Default: `1000`",
+                    shortcut: "i",
+                    type: "string",
+                },
+            },
+        },
         failed: {
             usage: "List failed messages from the dead letter queue.",
             handler: Queue.prototype.listDlq,
@@ -328,6 +353,22 @@ export class Queue extends AwsConstruct {
             return;
         }
         progress.succeed(`${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`);
+    }
+
+    displayLogs(options: Record<string, string | boolean | string[]>): void {
+        const args = ["logs", "--function", `${this.id}Worker`];
+        for (const [option, value] of Object.entries(options)) {
+            args.push(option.length === 1 ? `-${option}` : `--${option}`);
+            if (typeof value === "string") {
+                args.push(value);
+            }
+        }
+        console.log(chalk.gray(`serverless ${args.join(" ")}`));
+        args.unshift(process.argv[1]);
+        spawnSync(process.argv[0], args, {
+            cwd: process.cwd(),
+            stdio: "inherit",
+        });
     }
 
     private formatMessageBody(body: string): string {

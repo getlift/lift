@@ -48,7 +48,8 @@ type ConstructCommandDefinition = {
     options?: {
         [name: string]: {
             usage: string;
-            required: boolean;
+            type: string;
+            required?: boolean;
             shortcut?: string;
         };
     };
