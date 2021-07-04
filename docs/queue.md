@@ -152,6 +152,7 @@ The following commands are available on `queue` constructs:
 
 ```
 serverless <construct-name>:logs
+serverless <construct-name>:send
 serverless <construct-name>:failed
 serverless <construct-name>:failed:purge
 serverless <construct-name>:failed:retry
@@ -162,6 +163,14 @@ serverless <construct-name>:failed:retry
 This command displays the logs of the Lambda "worker" function.
 
 It is an alias to `serverless logs --function <construct-name>Worker` and supports the same options, for example `--tail` to tail logs live.
+
+- `serverless <construct-name>:send`
+
+Send a message into the SQS queue.
+
+This command can be useful while developing to push sample messages into the queue.
+
+When the command runs, it will prompt for the body of the SQS message. It is also possible to provide the body via the `--body="message body here"` option.
 
 - `serverless <construct-name>:failed`
 

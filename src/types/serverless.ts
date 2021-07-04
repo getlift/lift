@@ -72,3 +72,5 @@ export type CommandsDefinition = Record<
         };
     }
 >;
+
+export type CliOptions = Record<string, string | boolean | string[]>;

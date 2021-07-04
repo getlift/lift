@@ -5,14 +5,16 @@ import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
 import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
 import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
-import { PurgeQueueRequest } from "aws-sdk/clients/sqs";
+import { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
 import { spawnSync } from "child_process";
+import * as inquirer from "inquirer";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
 import { PolicyStatement } from "../CloudFormation";
 import { ConstructCommands } from "../classes/Construct";
+import { CliOptions } from "../types/serverless";
 
 const QUEUE_DEFINITION = {
     type: "object",
@@ -68,16 +70,26 @@ export class Queue extends AwsConstruct {
                 },
             },
         },
+        send: {
+            usage: "Send a new message to the SQS queue",
+            handler: Queue.prototype.sendMessage,
+            options: {
+                body: {
+                    usage: "Body of the SQS message",
+                    type: "string",
+                },
+            },
+        },
         failed: {
-            usage: "List failed messages from the dead letter queue.",
+            usage: "List failed messages from the dead letter queue",
             handler: Queue.prototype.listDlq,
         },
         "failed:purge": {
-            usage: "Purge failed messages from the dead letter queue.",
+            usage: "Purge failed messages from the dead letter queue",
             handler: Queue.prototype.purgeDlq,
         },
         "failed:retry": {
-            usage: "Retry failed messages from the dead letter queue by moving them to the main queue.",
+            usage: "Retry failed messages from the dead letter queue by moving them to the main queue",
             handler: Queue.prototype.retryDlq,
         },
     };
@@ -355,7 +367,25 @@ export class Queue extends AwsConstruct {
         progress.succeed(`${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`);
     }
 
-    displayLogs(options: Record<string, string | boolean | string[]>): void {
+    async sendMessage(options: CliOptions): Promise<void> {
+        const queueUrl = await this.getQueueUrl();
+        if (queueUrl === undefined) {
+            console.log(
+                chalk.red("Could not find the queue in the deployed stack. Try running 'serverless deploy' first?")
+            );
+
+            return;
+        }
+
+        const body = typeof options.body === "string" ? options.body : await this.askMessageBody();
+
+        await this.provider.request<SendMessageRequest, never>("SQS", "sendMessage", {
+            QueueUrl: queueUrl,
+            MessageBody: body,
+        });
+    }
+
+    displayLogs(options: CliOptions): void {
         const args = ["logs", "--function", `${this.id}Worker`];
         for (const [option, value] of Object.entries(options)) {
             args.push(option.length === 1 ? `-${option}` : `--${option}`);
@@ -381,5 +411,18 @@ export class Queue extends AwsConstruct {
             // If it's not valid JSON, we'll print the body as-is
             return body;
         }
+    }
+
+    private async askMessageBody(): Promise<string> {
+        const responses = await inquirer.prompt({
+            message: "What is the body of the SQS message to send (can be JSON or any string)",
+            type: "editor",
+            name: "body",
+            validate: (input: string) => {
+                return input.length > 0 ? true : "The message body cannot be empty";
+            },
+        });
+
+        return (responses.body as string).trim();
     }
 }
