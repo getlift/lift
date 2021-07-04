@@ -13,3 +13,4 @@ constructs:
     type: server-side-website
     assets:
       "/assets/*": public
+    errorPage: error.html

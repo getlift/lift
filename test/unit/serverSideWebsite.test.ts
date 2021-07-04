@@ -291,6 +291,57 @@ describe("server-side website", () => {
         });
     });
 
+    it("should allow to customize the error page", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        errorPage: "my/custom/error-page.html",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    CustomErrorResponses: [
+                        {
+                            ErrorCode: 500,
+                            ErrorCachingMinTTL: 0,
+                            ResponsePagePath: "/error-page.html",
+                        },
+                        {
+                            ErrorCode: 504,
+                            ErrorCachingMinTTL: 0,
+                            ResponsePagePath: "/error-page.html",
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it("should validate the error page path", async () => {
+        await expect(() => {
+            return runServerless({
+                command: "package",
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        backend: {
+                            type: "server-side-website",
+                            errorPage: "/error.css",
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "Invalid configuration in 'constructs.backend.errorPage': the custom error page must be a static HTML file. '/error.css' does not end with '.html'."
+        );
+    });
+
     it("should synchronize files to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
@@ -325,7 +376,7 @@ describe("server-side website", () => {
         });
 
         // scripts.js and styles.css were updated
-        sinon.assert.callCount(putObjectSpy, 2);
+        sinon.assert.callCount(putObjectSpy, 3);
         expect(putObjectSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
             Key: "assets/scripts.js",
@@ -337,6 +388,13 @@ describe("server-side website", () => {
             Key: "assets/styles.css",
             Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/styles.css")),
             ContentType: "text/css",
+        });
+        // It should upload the custom error page
+        expect(putObjectSpy.thirdCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "error.html",
+            Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
+            ContentType: "text/html",
         });
         // image.jpg was deleted
         sinon.assert.calledOnce(deleteObjectsSpy);

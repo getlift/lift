@@ -19,7 +19,7 @@ import { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { HttpOrigin, S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
-import { BehaviorOptions } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import { BehaviorOptions, ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import * as path from "path";
 import * as fs from "fs";
 import { flatten } from "lodash";
@@ -42,6 +42,7 @@ const SCHEMA = {
             },
             minProperties: 1,
         },
+        errorPage: { type: "string" },
         domain: {
             anyOf: [
                 { type: "string" },
@@ -54,7 +55,6 @@ const SCHEMA = {
         certificate: { type: "string" },
     },
     additionalProperties: false,
-    required: ["assets"],
 } as const;
 
 type Configuration = FromSchema<typeof SCHEMA>;
@@ -85,7 +85,12 @@ export class ServerSideWebsite extends AwsConstruct {
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new Error(
-                `Invalid configuration for the website '${id}': if a domain is configured, then a certificate ARN must be configured as well.`
+                `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`
+            );
+        }
+        if (configuration.errorPage !== undefined && !configuration.errorPage.endsWith(".html")) {
+            throw new Error(
+                `Invalid configuration in 'constructs.${id}.errorPage': the custom error page must be a static HTML file. '${configuration.errorPage}' does not end with '.html'.`
             );
         }
 
@@ -171,17 +176,7 @@ export class ServerSideWebsite extends AwsConstruct {
             },
             // All the assets paths are created in there
             additionalBehaviors: this.createCacheBehaviors(s3Origin),
-            // Disable caching of error responses
-            errorResponses: [
-                {
-                    httpStatus: 500,
-                    ttl: Duration.seconds(0),
-                },
-                {
-                    httpStatus: 504,
-                    ttl: Duration.seconds(0),
-                },
-            ],
+            errorResponses: this.createErrorResponses(),
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
@@ -240,9 +235,9 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         let invalidate = false;
-        for (const [pattern, filePath] of Object.entries(this.configuration.assets)) {
+        for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
             if (!fs.existsSync(filePath)) {
-                throw new Error(`The file or directory '${filePath}' does not exist`);
+                throw new Error(`Error in 'constructs.${this.id}': the file or directory '${filePath}' does not exist`);
             }
             let s3PathPrefix: string = path.dirname(pattern);
             if (s3PathPrefix.startsWith("/")) {
@@ -341,9 +336,9 @@ export class ServerSideWebsite extends AwsConstruct {
         return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
     }
 
-    createCacheBehaviors(s3Origin: S3Origin): Record<string, BehaviorOptions> {
+    private createCacheBehaviors(s3Origin: S3Origin): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
-        for (const [pattern] of Object.entries(this.configuration.assets)) {
+        for (const pattern of Object.keys(this.getAssetPatterns())) {
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
                 origin: s3Origin,
@@ -376,5 +371,41 @@ export class ServerSideWebsite extends AwsConstruct {
             functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
             code: cloudfront.FunctionCode.fromInline(code),
         });
+    }
+
+    private createErrorResponses(): ErrorResponse[] {
+        let responsePagePath = undefined;
+        if (this.configuration.errorPage !== undefined) {
+            responsePagePath = `/${this.getErrorPageFileName()}`;
+        }
+
+        return [
+            {
+                httpStatus: 500,
+                // Disable caching of error responses
+                ttl: Duration.seconds(0),
+                responsePagePath,
+            },
+            {
+                httpStatus: 504,
+                // Disable caching of error responses
+                ttl: Duration.seconds(0),
+                responsePagePath,
+            },
+        ];
+    }
+
+    private getAssetPatterns(): Record<string, string> {
+        const assetPatterns = this.configuration.assets ?? {};
+        // If a custom error page is provided, we upload it to S3
+        if (this.configuration.errorPage !== undefined) {
+            assetPatterns[`/${this.getErrorPageFileName()}`] = this.configuration.errorPage;
+        }
+
+        return assetPatterns;
+    }
+
+    private getErrorPageFileName(): string {
+        return this.configuration.errorPage !== undefined ? path.basename(this.configuration.errorPage) : "";
     }
 }
