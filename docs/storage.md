@@ -17,7 +17,7 @@ plugins:
     - serverless-lift
 ```
 
-On `serverless deploy`, a properly configured S3 bucket will be created.
+On `serverless deploy`, a preconfigured S3 bucket will be created.
 
 ## How it works
 
