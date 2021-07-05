@@ -109,6 +109,16 @@ constructs:
 
 [Read more...](docs/webhook.md)
 
+### [Database - DynamoDB Single Table](docs/database-dynamodb-single-table.md)
+
+Deploy databases leveraging DynamoDB Single Table Design principles.
+
+```yaml
+constructs:
+    database:
+        type: database/dynamodb-single-table
+```
+
 More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
 ## Ejecting
