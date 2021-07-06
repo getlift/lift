@@ -8,7 +8,7 @@ const DATABASE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "database/dynamodb-single-table" },
-        gsiQuantity: { type: "integer", minimum: 1, maximum: 20 },
+        gsiCount: { type: "integer", minimum: 1, maximum: 20 },
     },
     additionalProperties: false,
 } as const;
@@ -43,10 +43,10 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
             });
         }
 
-        if (resolvedConfiguration.gsiQuantity !== undefined) {
+        if (resolvedConfiguration.gsiCount !== undefined) {
             for (
                 let globalSecondaryIndex = 1;
-                globalSecondaryIndex <= resolvedConfiguration.gsiQuantity;
+                globalSecondaryIndex <= resolvedConfiguration.gsiCount;
                 globalSecondaryIndex++
             ) {
                 this.table.addGlobalSecondaryIndex({

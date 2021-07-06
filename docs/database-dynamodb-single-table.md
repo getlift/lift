@@ -21,7 +21,7 @@ On `serverless deploy`, a preconfigured DynamoDB table will be created.
 
 ## How it works
 
-The `database/dynamodb-single-table` construct creates and configures the table for production:
+The `database/dynamodb-single-table` construct creates and configures the table for production following [Single Table Design](https://www.alexdebrie.com/posts/dynamodb-single-table/) principles:
 
 - a composite primary index with generic attributes names - `PK` for the partition key and `SK` for the sort key
 - 5 local secondary indexes, the maximum allowed, with generic names - `LSI-1` to `LSI-5` for the index names and `LSI-1-SK` to `LSI-5-SK` for the sort keys. Those indexes have no impact on pricing as long as their indexes are not populated with data. Modifying a table local secondary indexes configuration requires table re-creation, thus enabling all of them by default at table creation.
@@ -76,16 +76,16 @@ functions:
 
 Global secondary indexes have a direct impact on the cost of a DynamoDB table. There is no GSI configured by default on the database construct.
 
-You can specify the amount of GSI you'd like to enable on a DynamoDB table using the `gsiQuantity` property.
+You can specify the amount of GSI you'd like to enable on a DynamoDB table using the `gsiCount` property.
 
 ```yaml
 constructs:
     myTable:
         # ...
-        gsiQuantity: 3
+        gsiCount: 3
 ```
 
-The first time you deploy your construct using `serverless deploy`, you can specify any amount of GSI between `1` and `20`. On subsequent deploys, any modification made to an already deployed construct cannot add or remove more than 1 GSI at a time. If you need 2 additional GSI after initial deployment of the exemple above, you must first update the `gsiQuantity` to `4`, deploy, and then finally update it to the final desired quantity of `5`.
+The first time you deploy your construct using `serverless deploy`, you can specify any amount of GSI between `1` and `20`. On subsequent deploys, any modification made to an already deployed construct cannot add or remove more than 1 GSI at a time. If you need 2 additional GSI after initial deployment of the exemple above, you must first update the `gsiCount` to `4`, deploy, and then finally update it to the final desired quantity of `5`.
 
 ### More options
 
