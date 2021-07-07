@@ -34,6 +34,7 @@ const SCHEMA = {
     type: "object",
     properties: {
         type: { const: "server-side-website" },
+        apiGateway: { enum: ["http", "rest"] },
         assets: {
             type: "object",
             additionalProperties: { type: "string" },
@@ -141,8 +142,10 @@ export class ServerSideWebsite extends AwsConstruct {
             originAccessIdentity: cloudFrontOAI,
         });
 
-        // TODO support REST API
-        const apiId = this.provider.naming.getHttpApiLogicalId();
+        const apiId =
+            configuration.apiGateway === "rest"
+                ? this.provider.naming.getRestApiLogicalId()
+                : this.provider.naming.getHttpApiLogicalId();
         const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
 
         // Cast the domains to an array

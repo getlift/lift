@@ -201,6 +201,40 @@ describe("server-side website", () => {
         });
     });
 
+    it("should support REST APIs", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        apiGateway: "rest",
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "CDN")]).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    Origins: [
+                        {
+                            CustomOriginConfig: {
+                                OriginProtocolPolicy: "https-only",
+                                OriginSSLProtocols: ["TLSv1.2"],
+                            },
+                            DomainName: {
+                                "Fn::Join": [
+                                    ".",
+                                    [{ Ref: "ApiGatewayRestApi" }, "execute-api.us-east-1.amazonaws.com"],
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
     it("should support a custom domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
@@ -342,7 +376,7 @@ describe("server-side website", () => {
         );
     });
 
-    it("should synchronize files to S3", async () => {
+    it("should synchronize assets to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
         /*

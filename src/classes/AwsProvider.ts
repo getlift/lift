@@ -43,6 +43,7 @@ export class AwsProvider {
     public naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
+        getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
     };
 
