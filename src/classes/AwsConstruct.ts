@@ -24,10 +24,5 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
         return new this(provider.stack, id, configuration, provider);
     }
 
-    abstract outputs(): Record<string, () => Promise<string | undefined>>;
-
-    /**
-     * CloudFormation references
-     */
-    abstract references(): Record<string, Record<string, unknown>>;
+    abstract outputs?(): Record<string, () => Promise<string | undefined>>;
 }

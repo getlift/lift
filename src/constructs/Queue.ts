@@ -188,15 +188,15 @@ export class Queue extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    variables(): Record<string, unknown> {
         return {
-            queueUrl: this.referenceQueueUrl(),
-            queueArn: this.referenceQueueArn(),
+            queueUrl: this.queue.queueUrl,
+            queueArn: this.queue.queueArn,
         };
     }
 
     permissions(): PolicyStatement[] {
-        return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];
+        return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
     }
 
     private appendFunctions(): void {
@@ -208,7 +208,7 @@ export class Queue extends AwsConstruct {
             // Subscribe the worker to the SQS queue
             {
                 sqs: {
-                    arn: this.referenceQueueArn(),
+                    arn: this.queue.queueArn,
                     batchSize: batchSize,
                     // TODO add setting
                     maximumBatchingWindow: 60,
@@ -216,14 +216,6 @@ export class Queue extends AwsConstruct {
             },
         ];
         this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
-    }
-
-    private referenceQueueArn(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.queue.queueArn);
-    }
-
-    private referenceQueueUrl(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.queue.queueUrl);
     }
 
     private async getQueueUrl(): Promise<string | undefined> {
