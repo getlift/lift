@@ -449,6 +449,80 @@ describe("server-side website", () => {
         );
     });
 
+    it("should allow to customize the forwarded headers", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        forwardedHeaders: ["X-My-Custom-Header", "X-My-Other-Custom-Header"],
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "BackendOriginPolicy")]).toMatchObject({
+            Properties: {
+                OriginRequestPolicyConfig: {
+                    HeadersConfig: {
+                        HeaderBehavior: "whitelist",
+                        Headers: [
+                            "Accept",
+                            "Accept-Language",
+                            "Origin",
+                            "Referer",
+                            "X-Forwarded-Host",
+                            "X-My-Custom-Header",
+                            "X-My-Other-Custom-Header",
+                        ],
+                    },
+                },
+            },
+        });
+    });
+
+    it("should not forward the Authorization header in the Origin Policy", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        forwardedHeaders: ["Authorization"],
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "BackendOriginPolicy")]).toMatchObject({
+            Properties: {
+                OriginRequestPolicyConfig: {
+                    HeadersConfig: {
+                        // Should not contain "Authorization"
+                        Headers: ["Accept", "Accept-Language", "Origin", "Referer", "X-Forwarded-Host"],
+                    },
+                },
+            },
+        });
+    });
+
+    it("should forbid to force forwarding the Host header", async () => {
+        await expect(() => {
+            return runServerless({
+                command: "package",
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        backend: {
+                            type: "server-side-website",
+                            forwardedHeaders: ["Host"],
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "Invalid value in 'constructs.backend.forwardedHeaders': the 'Host' header cannot be forwarded (this is an API Gateway limitation). Use the 'X-Forwarded-Host' header in your code instead (it contains the value of the original 'Host' header)."
+        );
+    });
+
     it("should synchronize assets to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");

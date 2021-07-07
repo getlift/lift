@@ -29,6 +29,7 @@ import { s3Put, s3Sync } from "../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { ConstructCommands } from "../classes/Construct";
+import ServerlessError from "../utils/error";
 
 const SCHEMA = {
     type: "object",
@@ -54,6 +55,7 @@ const SCHEMA = {
             ],
         },
         certificate: { type: "string" },
+        forwardedHeaders: { type: "array", items: { type: "string" } },
     },
     additionalProperties: false,
 } as const;
@@ -114,20 +116,7 @@ export class ServerSideWebsite extends AwsConstruct {
             comment: `Origin request policy for the ${id} website.`,
             cookieBehavior: OriginRequestCookieBehavior.all(),
             queryStringBehavior: OriginRequestQueryStringBehavior.all(),
-            /**
-             * We forward everything except:
-             * - `Host` because it messes up API Gateway (that uses the Host to identify which API Gateway to invoke)
-             * - `Authorization` because it must be configured on the cache policy
-             *   (see https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-authorization-header/?nc1=h_ls)
-             */
-            headerBehavior: OriginRequestHeaderBehavior.allowList(
-                "Accept",
-                "Accept-Language",
-                "Origin",
-                "Referer",
-                // This header is set by our CloudFront Function
-                "X-Forwarded-Host"
-            ),
+            headerBehavior: this.headersToForward(),
         });
         const backendCachePolicy = new CachePolicy(this, "BackendCachePolicy", {
             cachePolicyName: `${this.provider.stackName}-${id}`,
@@ -337,6 +326,39 @@ export class ServerSideWebsite extends AwsConstruct {
 
         // In case of multiple domains, we take the first one
         return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
+    }
+
+    private headersToForward(): OriginRequestHeaderBehavior {
+        let additionalHeadersToForward = this.configuration.forwardedHeaders ?? [];
+        if (additionalHeadersToForward.includes("Host")) {
+            throw new ServerlessError(
+                `Invalid value in 'constructs.${this.id}.forwardedHeaders': the 'Host' header cannot be forwarded (this is an API Gateway limitation). Use the 'X-Forwarded-Host' header in your code instead (it contains the value of the original 'Host' header).`,
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
+        if (additionalHeadersToForward.includes("Authorization")) {
+            // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
+            additionalHeadersToForward = additionalHeadersToForward.filter(
+                (header: string) => header !== "Authorization"
+            );
+        }
+
+        /**
+         * We forward everything except:
+         * - `Host` because it messes up API Gateway (that uses the Host to identify which API Gateway to invoke)
+         * - `Authorization` because it must be configured on the cache policy
+         *   (see https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-authorization-header/?nc1=h_ls)
+         */
+        return OriginRequestHeaderBehavior.allowList(
+            "Accept",
+            "Accept-Language",
+            "Origin",
+            "Referer",
+            // This header is set by our CloudFront Function
+            "X-Forwarded-Host",
+            // We merge the user-provided list in the hardcoded list
+            ...additionalHeadersToForward
+        );
     }
 
     private createCacheBehaviors(s3Origin: S3Origin): Record<string, BehaviorOptions> {
