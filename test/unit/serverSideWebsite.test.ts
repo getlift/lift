@@ -201,6 +201,79 @@ describe("server-side website", () => {
         });
     });
 
+    it("assets should be optional", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                    },
+                },
+            }),
+        });
+        const bucketLogicalId = computeLogicalId("backend", "Assets");
+        const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
+        const originAccessIdentityLogicalId = computeLogicalId("backend", "OriginAccessIdentity");
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
+        const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
+        const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
+        const requestFunction = computeLogicalId("backend", "RequestFunction");
+        expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
+            "ServerlessDeploymentBucket",
+            "ServerlessDeploymentBucketPolicy",
+            bucketLogicalId,
+            bucketPolicyLogicalId,
+            originAccessIdentityLogicalId,
+            originPolicyId,
+            cachePolicyId,
+            requestFunction,
+            cfDistributionLogicalId,
+        ]);
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toStrictEqual({
+            Type: "AWS::CloudFront::Distribution",
+            Properties: {
+                DistributionConfig: {
+                    Comment: "app-dev backend website CDN",
+                    CustomErrorResponses: [
+                        { ErrorCachingMinTTL: 0, ErrorCode: 500 },
+                        { ErrorCachingMinTTL: 0, ErrorCode: 504 },
+                    ],
+                    DefaultCacheBehavior: {
+                        AllowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"],
+                        Compress: true,
+                        CachePolicyId: { Ref: cachePolicyId },
+                        OriginRequestPolicyId: { Ref: originPolicyId },
+                        TargetOriginId: cfOriginId1,
+                        ViewerProtocolPolicy: "redirect-to-https",
+                        FunctionAssociations: [
+                            {
+                                EventType: "viewer-request",
+                                FunctionARN: { "Fn::GetAtt": [requestFunction, "FunctionARN"] },
+                            },
+                        ],
+                    },
+                    Enabled: true,
+                    HttpVersion: "http2",
+                    IPV6Enabled: true,
+                    Origins: [
+                        {
+                            Id: cfOriginId1,
+                            CustomOriginConfig: {
+                                OriginProtocolPolicy: "https-only",
+                                OriginSSLProtocols: ["TLSv1.2"],
+                            },
+                            DomainName: {
+                                "Fn::Join": [".", [{ Ref: "HttpApi" }, "execute-api.us-east-1.amazonaws.com"]],
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
     it("should support REST APIs", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
