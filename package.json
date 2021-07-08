@@ -53,8 +53,10 @@
     "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-prettier": "^3.4.0",
     "globby": "^10.0.2",
+    "husky": "^6.0.0",
     "jest": "^27.0.6",
     "json-schema-to-ts": "^1.6.4",
+    "lint-staged": "^11.0.0",
     "nodemon": "^2.0.8",
     "prettier": "^2.3.2",
     "serverless": "2.49.0",
@@ -73,11 +75,20 @@
   "scripts": {
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
+    "check-format": "prettier --check .",
     "type": "tsc --noEmit",
     "build": "etsc",
     "watch": "nodemon",
     "test": "jest",
-    "prepare": "npm run build"
+    "prepare": "husky install && npm run build"
+  },
+  "lint-staged": {
+    "*.{md,json,yml}": [
+      "prettier --write"
+    ],
+    "*.{js,ts}": [
+      "eslint --fix"
+    ]
   },
   "types": "lib/index.d.ts",
   "peerDependencies": {

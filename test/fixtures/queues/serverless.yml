@@ -2,12 +2,12 @@ service: app
 configValidationMode: error
 
 provider:
-  name: aws
-  # To avoid versions with random names (easier diffs)
-  versionFunctions: false
+    name: aws
+    # To avoid versions with random names (easier diffs)
+    versionFunctions: false
 
 constructs:
-  emails:
-    type: queue
-    worker:
-      handler: worker.handler
+    emails:
+        type: queue
+        worker:
+            handler: worker.handler

@@ -2,10 +2,10 @@ service: storage
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 constructs:
-  github:
-    type: webhook
-    insecure: true
-    path: /webhook
+    github:
+        type: webhook
+        insecure: true
+        path: /webhook
