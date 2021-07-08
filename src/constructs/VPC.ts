@@ -1,4 +1,4 @@
-import { SecurityGroup, Vpc } from "@aws-cdk/aws-ec2";
+import { Peer, Port, SecurityGroup, Vpc } from "@aws-cdk/aws-ec2";
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsCfInstruction } from "@serverless/typescript";
@@ -20,6 +20,7 @@ export class VPC extends AwsConstruct {
     public static schema = VPC_DEFINITION;
 
     private readonly vpc: Vpc;
+    private readonly appSecurityGroup: SecurityGroup;
 
     constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
         super(scope, id);
@@ -30,13 +31,15 @@ export class VPC extends AwsConstruct {
 
         const privateSubnets = this.vpc.privateSubnets;
 
-        const lambdaSecurityGroup = new SecurityGroup(this, "AppSecurityGroup", {
+        this.appSecurityGroup = new SecurityGroup(this, "AppSecurityGroup", {
             vpc: this.vpc,
         });
 
+        this.appSecurityGroup.addEgressRule(Peer.anyIpv4(), Port.allTraffic());
+
         provider.setVpcConfig(
-            provider.getCloudFormationReference(lambdaSecurityGroup.securityGroupName),
-            privateSubnets.map((subnet) => provider.getCloudFormationReference(subnet.subnetId))
+            [this.appSecurityGroup.securityGroupName],
+            privateSubnets.map((subnet) => subnet.subnetId)
         );
     }
 

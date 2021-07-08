@@ -2,12 +2,12 @@ service: vpc
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 functions:
-  foo:
-    handler: worker.handler
+    foo:
+        handler: worker.handler
 
 constructs:
-  vpc:
-    type: vpc
+    vpc:
+        type: vpc

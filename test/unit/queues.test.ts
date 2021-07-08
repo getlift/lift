@@ -16,6 +16,7 @@ describe("queues", () => {
             configExt: pluginConfigExt,
             command: "package",
         });
+
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",

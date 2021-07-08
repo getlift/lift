@@ -88,7 +88,7 @@ export class AwsProvider {
     /**
      * @internal
      */
-    setVpcConfig(securityGroup: AwsCfInstruction, subnets: AwsCfInstruction[]): void {
+    setVpcConfig(securityGroups: AwsCfInstruction[], subnets: AwsCfInstruction[]): void {
         if (this.getVpcConfig() !== null) {
             throw new ServerlessError(
                 "Can't register more than one VPC.\n" +
@@ -99,7 +99,7 @@ export class AwsProvider {
         }
 
         this.serverless.service.provider.vpc = {
-            securityGroupIds: [securityGroup], // TODO : merge with existing groups ?
+            securityGroupIds: securityGroups, // TODO : merge with existing groups ?
             subnetIds: subnets,
         };
     }
