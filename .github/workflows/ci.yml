@@ -2,8 +2,10 @@ name: CI
 
 on:
     push:
-        branches: [ master ]
+        branches: [master]
     pull_request:
+    schedule:
+        - cron: "0 0 * * *"
 
 jobs:
     unit-tests:
@@ -20,43 +22,44 @@ jobs:
                     - 2.36.0
                     - latest
         steps:
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v2
-                with:
-                    node-version: ${{ matrix.node }}
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
-            -   run: npm i
-            -   run: npm i serverless@${{ matrix.serverless }}
-            -   run: npm test
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: ${{ matrix.node }}
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
+            - run: npm i
+            - run: npm i serverless@${{ matrix.serverless }}
+            - run: npm test
     lint:
         name: Lint
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v2
-                with:
-                    node-version: '15'
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-            -   run: npm i
-            -   run: npm run lint
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: "15"
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+            - run: npm i
+            - run: npm run check-format
+            - run: npm run lint
     type:
         name: Type
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v2
-            -   uses: actions/setup-node@v2
-                with:
-                    node-version: '15'
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.npm
-                    key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-            -   run: npm i
-            -   name: Typescript checks
-                run: tsc --noEmit
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: "15"
+            - uses: actions/cache@v2
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+            - run: npm i
+            - name: Typescript checks
+              run: tsc --noEmit

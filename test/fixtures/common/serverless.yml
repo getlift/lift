@@ -2,14 +2,13 @@ service: storage
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 constructs:
-  testStorage:
-    type: storage
+    testStorage:
+        type: storage
 
 resources:
-  Resources:
-    UserDefinedResource:
-      Type: AWS::S3::Bucket
-
+    Resources:
+        UserDefinedResource:
+            Type: AWS::S3::Bucket

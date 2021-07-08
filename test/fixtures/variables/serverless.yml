@@ -2,48 +2,48 @@ service: app
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 custom:
-  foo: bar
-  variable: ${construct:bucket.bucketName}
+    foo: bar
+    variable: ${construct:bucket.bucketName}
 
 functions:
-  foo:
-    handler: worker.handler
-    environment:
-      VAR1: ${construct:bar.queueUrl}
-      CUSTOM_VAR: ${self:custom.variable}
+    foo:
+        handler: worker.handler
+        environment:
+            VAR1: ${construct:bar.queueUrl}
+            CUSTOM_VAR: ${self:custom.variable}
 
 constructs:
-  bar:
-    type: queue
-    worker:
-      handler: worker.handler
-      environment:
-        VAR1: ${self:custom.foo}
-        # Test custom variables defined by plugin registered _after_ Lift
-        CUSTOM_VAR1: ${custom-var-1:foo}
-        CUSTOM_VAR2: ${custom-var-2:foo}
-        CUSTOM_VAR3: ${custom-var-3:foo}
-        CUSTOM_VAR4: ${custom-var-4:foo}
-    # Test a variable of another construct
-    alarm: ${construct:bucket.bucketName}
-  app:
-    type: static-website
-    path: dist
-    domain: ${custom-var-1:foo}
-    certificate: ${custom-arn:foo}
-  bucket:
-    type: storage
+    bar:
+        type: queue
+        worker:
+            handler: worker.handler
+            environment:
+                VAR1: ${self:custom.foo}
+                # Test custom variables defined by plugin registered _after_ Lift
+                CUSTOM_VAR1: ${custom-var-1:foo}
+                CUSTOM_VAR2: ${custom-var-2:foo}
+                CUSTOM_VAR3: ${custom-var-3:foo}
+                CUSTOM_VAR4: ${custom-var-4:foo}
+        # Test a variable of another construct
+        alarm: ${construct:bucket.bucketName}
+    app:
+        type: static-website
+        path: dist
+        domain: ${custom-var-1:foo}
+        certificate: ${custom-arn:foo}
+    bucket:
+        type: storage
 
 resources:
-  Resources:
-    UserDefinedResource:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${construct:bar.queueUrl}
+    Resources:
+        UserDefinedResource:
+            Type: AWS::S3::Bucket
+            Properties:
+                BucketName: ${construct:bar.queueUrl}
 
 plugins:
-  - ../../../dist/src/plugin.js
-  - ./extra-plugin.js
+    - ../../../dist/src/plugin.js
+    - ./extra-plugin.js

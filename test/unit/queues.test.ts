@@ -372,4 +372,25 @@ describe("queues", () => {
             ],
         });
     });
+
+    it("should send a message to the queue", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("queue-url");
+        const sendSpy = awsMock.mockService("SQS", "sendMessage").resolves();
+
+        await runServerless({
+            fixture: "queues",
+            configExt: pluginConfigExt,
+            command: "emails:send",
+            options: {
+                body: "Message body",
+            },
+        });
+
+        expect(sendSpy.callCount).toBe(1);
+        expect(sendSpy.firstCall.firstArg).toStrictEqual({
+            QueueUrl: "queue-url",
+            MessageBody: "Message body",
+        });
+    });
 });

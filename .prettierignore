@@ -1,0 +1,8 @@
+/demo
+/lib
+/dist
+/utils
+package.json
+package-lock.json
+*.md
+**/.serverless

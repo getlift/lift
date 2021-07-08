@@ -1,21 +1,18 @@
 {
-  "compilerOptions": {
-    "declaration": true,
-    "importHelpers": true,
-    "module": "commonjs",
-    "outDir": "dist",
-    "strict": true,
-    "target": "es2017",
-    "lib": ["es2017"],
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
-  },
-  "include": [
-    "src",
-    "test"
-, "dist/Monitoring.ts"  ]
+    "compilerOptions": {
+        "declaration": true,
+        "importHelpers": true,
+        "module": "commonjs",
+        "outDir": "dist",
+        "strict": true,
+        "target": "es2017",
+        "lib": ["es2017"],
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "experimentalDecorators": true,
+        "isolatedModules": true,
+        "skipLibCheck": true,
+        "sourceMap": true
+    },
+    "include": ["src", "test", "dist/Monitoring.ts"]
 }

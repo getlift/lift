@@ -68,9 +68,11 @@ export type CommandsDefinition = Record<
         options?: {
             [name: string]: {
                 usage: string;
-                required: boolean;
+                required?: boolean;
                 shortcut?: string;
             };
         };
     }
 >;
+
+export type CliOptions = Record<string, string | boolean | string[]>;

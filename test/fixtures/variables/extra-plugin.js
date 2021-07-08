@@ -26,7 +26,9 @@ module.exports = class ExtraPlugin {
                 async resolve() {
                     return {
                         value: await (async () => {
-                            return Promise.resolve("arn:aws:acm:us-east-1:123466615250:certificate/abcdef-b896-4725-96e3-6f143d06ac0b");
+                            return Promise.resolve(
+                                "arn:aws:acm:us-east-1:123466615250:certificate/abcdef-b896-4725-96e3-6f143d06ac0b"
+                            );
                         })(),
                     };
                 },
