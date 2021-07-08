@@ -2,15 +2,15 @@ service: website
 configValidationMode: error
 
 provider:
-  name: aws
+    name: aws
 
 functions:
-  http:
-    handler: handler.handler
+    http:
+        handler: handler.handler
 
 constructs:
-  backend:
-    type: server-side-website
-    assets:
-      "/assets/*": public
-    errorPage: error.html
+    backend:
+        type: server-side-website
+        assets:
+            "/assets/*": public
+        errorPage: error.html
