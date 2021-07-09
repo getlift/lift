@@ -1,7 +1,7 @@
 import { Vpc as CdkVpc, Peer, Port, SecurityGroup } from "@aws-cdk/aws-ec2";
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsConstruct, AwsProvider } from "../classes";
+import { AwsProvider, ConstructInterface } from "../classes";
 
 const VPC_DEFINITION = {
     type: "object",
@@ -14,31 +14,32 @@ const VPC_DEFINITION = {
 
 type Configuration = FromSchema<typeof VPC_DEFINITION>;
 
-export class Vpc extends AwsConstruct {
+export class Vpc extends CdkVpc implements ConstructInterface {
     public static type = "vpc";
     public static schema = VPC_DEFINITION;
 
-    private readonly vpc: CdkVpc;
+    static create(provider: AwsProvider, id: string, configuration: Configuration): Vpc {
+        return new this(provider.stack, id, configuration, provider);
+    }
+
     private readonly appSecurityGroup: SecurityGroup;
 
     constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
-        super(scope, id);
-
-        this.vpc = new CdkVpc(this, "VPC", {
+        super(scope, id, {
             maxAzs: 2,
         });
 
-        const privateSubnets = this.vpc.privateSubnets;
-
+        // Add a security group for the Lambda functions
         this.appSecurityGroup = new SecurityGroup(this, "AppSecurityGroup", {
-            vpc: this.vpc,
+            vpc: this,
         });
-
+        // Lambda is allowed to reach out to the whole internet
         this.appSecurityGroup.addEgressRule(Peer.anyIpv4(), Port.allTraffic());
 
+        // Auto-register the VPC
         provider.setVpcConfig(
             [this.appSecurityGroup.securityGroupName],
-            privateSubnets.map((subnet) => subnet.subnetId)
+            this.privateSubnets.map((subnet) => subnet.subnetId)
         );
     }
 
