@@ -27,8 +27,7 @@
     "lodash": "^4.17.21",
     "mime-types": "^2.1.31",
     "ora": "^5.4.1",
-    "pascal-case": "^3.1.2",
-    "tslib": "^1.14.1"
+    "pascal-case": "^3.1.2"
   },
   "devDependencies": {
     "@serverless/test": "^8.3.0",
