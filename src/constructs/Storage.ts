@@ -65,10 +65,10 @@ export class Storage extends AwsConstruct {
         });
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    variables(): Record<string, unknown> {
         return {
-            bucketArn: this.referenceBucketArn(),
-            bucketName: this.referenceBucketName(),
+            bucketArn: this.bucket.bucketArn,
+            bucketName: this.bucket.bucketName,
         };
     }
 
@@ -76,11 +76,7 @@ export class Storage extends AwsConstruct {
         return [
             new PolicyStatement(
                 ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
-                [
-                    this.referenceBucketArn(),
-                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
-                    Stack.of(this).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
-                ]
+                [this.bucket.bucketArn, Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"]))]
             ),
         ];
     }
@@ -89,14 +85,6 @@ export class Storage extends AwsConstruct {
         return {
             bucketName: () => this.getBucketName(),
         };
-    }
-
-    referenceBucketName(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.bucket.bucketName);
-    }
-
-    referenceBucketArn(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.bucket.bucketArn);
     }
 
     async getBucketName(): Promise<string | undefined> {

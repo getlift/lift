@@ -148,9 +148,9 @@ export class Webhook extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    variables(): Record<string, unknown> {
         return {
-            busName: this.referenceBusName(),
+            busName: this.bus.eventBusName,
         };
     }
 
@@ -188,9 +188,5 @@ export class Webhook extends AwsConstruct {
         const [, path] = endpointPath.split(" ");
 
         return apiEndpoint + path;
-    }
-
-    private referenceBusName(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.bus.eventBusName);
     }
 }

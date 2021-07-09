@@ -159,10 +159,6 @@ export class StaticWebsite extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
-        return {};
-    }
-
     async postDeploy(): Promise<void> {
         await this.uploadWebsite();
     }
