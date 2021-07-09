@@ -49,7 +49,7 @@ On the first `serverless deploy`, Lift creates:
 - an [S3](https://aws.amazon.com/s3/) bucket to serve static assets (CSS, JS, etc.)
 - a [CloudFront CDN](https://aws.amazon.com/cloudfront/)
 
-CloudFront serves the website over HTTPS with caching at the edge. It also provides a "HTTP to HTTPS" redirection which is not supported by API Gateway. For websites, this is problematic because it means someone typing `website.com` in a browser will get a blank page: API Gateway will not even redirect this to HTTPS.
+CloudFront serves the website over HTTPS with caching at the edge. It also provides an "HTTP to HTTPS" redirection which is not supported by API Gateway. For websites, this is problematic because it means someone typing `website.com` in a browser will get a blank page: API Gateway will not even redirect this to HTTPS.
 
 Finally, CloudFront also acts as a router:
 
