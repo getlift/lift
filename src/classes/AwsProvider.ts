@@ -122,13 +122,6 @@ export class AwsProvider {
     }
 
     /**
-     * Returns a CloudFormation intrinsic function, like Fn::Ref, GetAtt, etc.
-     */
-    getCloudFormationReference(value: string): AwsCfInstruction {
-        return Stack.of(this.stack).resolve(value) as AwsCfInstruction;
-    }
-
-    /**
      * Send a request to the AWS API.
      */
     request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {

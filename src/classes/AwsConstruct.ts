@@ -1,5 +1,4 @@
 import { Construct as CdkConstruct } from "@aws-cdk/core";
-import { AwsCfInstruction } from "@serverless/typescript";
 import { ConstructInterface } from ".";
 import { AwsProvider } from "./AwsProvider";
 
@@ -25,10 +24,5 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
         return new this(provider.stack, id, configuration, provider);
     }
 
-    abstract outputs(): Record<string, () => Promise<string | undefined>>;
-
-    /**
-     * CloudFormation references
-     */
-    abstract references(): Record<string, AwsCfInstruction>;
+    abstract outputs?(): Record<string, () => Promise<string | undefined>>;
 }

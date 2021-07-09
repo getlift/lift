@@ -1,7 +1,6 @@
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { PolicyStatement } from "../CloudFormation";
 
@@ -66,10 +65,10 @@ export class Storage extends AwsConstruct {
         });
     }
 
-    references(): Record<string, AwsCfInstruction> {
+    variables(): Record<string, unknown> {
         return {
-            bucketArn: this.referenceBucketArn(),
-            bucketName: this.referenceBucketName(),
+            bucketArn: this.bucket.bucketArn,
+            bucketName: this.bucket.bucketName,
         };
     }
 
@@ -77,11 +76,7 @@ export class Storage extends AwsConstruct {
         return [
             new PolicyStatement(
                 ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
-                [
-                    this.referenceBucketArn(),
-                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
-                    Stack.of(this).resolve(Fn.join("/", [this.referenceBucketArn(), "*"])),
-                ]
+                [this.bucket.bucketArn, Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"]))]
             ),
         ];
     }
@@ -90,14 +85,6 @@ export class Storage extends AwsConstruct {
         return {
             bucketName: () => this.getBucketName(),
         };
-    }
-
-    referenceBucketName(): AwsCfInstruction {
-        return this.provider.getCloudFormationReference(this.bucket.bucketName);
-    }
-
-    referenceBucketArn(): AwsCfInstruction {
-        return this.provider.getCloudFormationReference(this.bucket.bucketArn);
     }
 
     async getBucketName(): Promise<string | undefined> {

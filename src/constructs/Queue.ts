@@ -9,7 +9,6 @@ import { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
 import { spawnSync } from "child_process";
 import * as inquirer from "inquirer";
-import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../utils/sleep";
@@ -189,15 +188,15 @@ export class Queue extends AwsConstruct {
         };
     }
 
-    references(): Record<string, AwsCfInstruction> {
+    variables(): Record<string, unknown> {
         return {
-            queueUrl: this.referenceQueueUrl(),
-            queueArn: this.referenceQueueArn(),
+            queueUrl: this.queue.queueUrl,
+            queueArn: this.queue.queueArn,
         };
     }
 
     permissions(): PolicyStatement[] {
-        return [new PolicyStatement("sqs:SendMessage", [this.referenceQueueArn()])];
+        return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
     }
 
     private appendFunctions(): void {
@@ -209,7 +208,7 @@ export class Queue extends AwsConstruct {
             // Subscribe the worker to the SQS queue
             {
                 sqs: {
-                    arn: this.referenceQueueArn(),
+                    arn: this.queue.queueArn,
                     batchSize: batchSize,
                     // TODO add setting
                     maximumBatchingWindow: 60,
@@ -217,14 +216,6 @@ export class Queue extends AwsConstruct {
             },
         ];
         this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
-    }
-
-    private referenceQueueArn(): AwsCfInstruction {
-        return this.provider.getCloudFormationReference(this.queue.queueArn);
-    }
-
-    private referenceQueueUrl(): AwsCfInstruction {
-        return this.provider.getCloudFormationReference(this.queue.queueUrl);
     }
 
     private async getQueueUrl(): Promise<string | undefined> {

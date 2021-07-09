@@ -174,7 +174,7 @@ class LiftPlugin {
                     }
                     const construct = constructs[id];
 
-                    const properties = construct.references();
+                    const properties = construct.variables ? construct.variables() : {};
                     if (!has(properties, property)) {
                         if (Object.keys(properties).length === 0) {
                             throw new ServerlessError(
@@ -199,6 +199,9 @@ class LiftPlugin {
     async info(): Promise<void> {
         const constructs = this.getConstructs();
         for (const [id, construct] of Object.entries(constructs)) {
+            if (typeof construct.outputs !== "function") {
+                continue;
+            }
             const outputs = construct.outputs();
             if (Object.keys(outputs).length > 0) {
                 console.log(chalk.yellow(`${id}:`));
