@@ -1,0 +1,15 @@
+service: vpc
+configValidationMode: error
+
+provider:
+    name: aws
+    # To avoid versions with random names (easier diffs)
+    versionFunctions: false
+
+functions:
+    foo:
+        handler: worker.handler
+
+constructs:
+    vpc:
+        type: vpc
