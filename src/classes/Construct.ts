@@ -6,12 +6,15 @@ import { CliOptions } from "../types/serverless";
  * Defines which methods a Lift construct must expose.
  */
 export interface ConstructInterface {
-    outputs(): Record<string, () => Promise<string | undefined>>;
+    /**
+     * Values shown in the CLI output.
+     */
+    outputs?(): Record<string, () => Promise<string | undefined>>;
 
     /**
-     * CloudFormation references
+     * serverless.yml variables
      */
-    references(): Record<string, Record<string, unknown>>;
+    variables?(): Record<string, unknown>;
 
     /**
      * Post-CloudFormation deployment
