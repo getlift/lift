@@ -118,7 +118,7 @@ constructs:
 
 The `server-side-website` construct exposes the following variables:
 
-- `url`: the URL of the deployed website (either the CloudFront URL or the custom domain, if configured)
+- `url`: the URL of the deployed website (either the CloudFront URL or the first custom domain, if configured)
 
 For example:
 
