@@ -9,7 +9,7 @@ import { StaticConstructInterface } from "./Construct";
 import ServerlessError from "../utils/error";
 import { Storage } from "../constructs/Storage";
 import { Queue } from "../constructs/Queue";
-import { VPC } from "../constructs/VPC";
+import { Vpc } from "../constructs/Vpc";
 import { Webhook } from "../constructs/Webhook";
 import { StaticWebsite } from "../constructs/StaticWebsite";
 
@@ -143,4 +143,4 @@ export class AwsProvider {
  *  If they use TypeScript, `registerConstructs()` will validate that the construct class
  *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
  */
-AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, VPC);
+AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, Vpc);
