@@ -114,6 +114,29 @@ constructs:
         # ...
 ```
 
+## Variables
+
+The `server-side-website` construct exposes the following variables:
+
+- `url`: the URL of the deployed website (either the CloudFront URL or the custom domain, if configured)
+
+For example:
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        # ...
+
+functions:
+    backend:
+        # ...
+        environment:
+            WEBSITE_URL: ${construct:website.url}
+```
+
+_How it works: the `${construct:website.url}` variable will automatically be replaced with a CloudFormation reference._
+
 ## Commands
 
 `serverless deploy` deploys everything configured in `serverless.yml` and uploads assets.
