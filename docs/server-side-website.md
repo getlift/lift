@@ -163,7 +163,7 @@ If your Lambda functions uses `http` events (v1 REST API) instead of `httpApi` e
 constructs:
     website:
         type: server-side-website
-        apiGateway: "rest" # either "rest" (v1) or "http" (v2, the default)
+        apiGateway: 'rest' # either "rest" (v1) or "http" (v2, the default)
 
 functions:
     v1:
