@@ -1,7 +1,6 @@
 import { Vpc as CdkVpc, Peer, Port, SecurityGroup } from "@aws-cdk/aws-ec2";
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsCfInstruction } from "@serverless/typescript";
 import { AwsConstruct, AwsProvider } from "../classes";
 
 const VPC_DEFINITION = {
@@ -44,10 +43,6 @@ export class Vpc extends AwsConstruct {
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
-        return {};
-    }
-
-    references(): Record<string, AwsCfInstruction> {
         return {};
     }
 }
