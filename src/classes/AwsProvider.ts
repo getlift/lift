@@ -13,8 +13,9 @@ import { Vpc } from "../constructs/Vpc";
 import { Webhook } from "../constructs/Webhook";
 import { StaticWebsite } from "../constructs/StaticWebsite";
 import { DatabaseDynamoDBSingleTable } from "../constructs/DatabaseDynamoDBSingleTable";
+import { ProviderInterface } from "./Provider";
 
-export class AwsProvider {
+export class AwsProvider implements ProviderInterface {
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
 
     static registerConstructs(...constructClasses: StaticConstructInterface[]): void {

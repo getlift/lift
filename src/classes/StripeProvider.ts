@@ -2,9 +2,12 @@ import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
+import { get } from "lodash";
 import { Stripe } from "stripe";
 import { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
+import { ProviderInterface } from "./Provider";
+import { ConstructInterface, StaticConstructInterface } from "./Construct";
 
 type StripeConfiguration = {
     account_id: string;
@@ -17,12 +20,48 @@ type StripeConfiguration = {
 
 type StripeConfigFile = { color: string } & Record<string, StripeConfiguration>;
 
-export class StripeProvider {
+export class StripeProvider implements ProviderInterface {
+    private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
+
+    static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
+        for (const constructClass of constructClasses) {
+            if (constructClass.type in this.constructClasses) {
+                throw new ServerlessError(
+                    `The construct type '${constructClass.type}' was registered twice`,
+                    "LIFT_CONSTRUCT_TYPE_CONFLICT"
+                );
+            }
+            this.constructClasses[constructClass.type] = constructClass;
+        }
+    }
+
+    static getConstructClass(type: string): StaticConstructInterface | undefined {
+        return this.constructClasses[type];
+    }
+
+    static getAllConstructClasses(): StaticConstructInterface[] {
+        return Object.values(this.constructClasses);
+    }
+
     private config: { apiKey: string; accountId?: string };
     public provider: Stripe;
     constructor(private readonly serverless: Serverless) {
         this.config = this.resolveConfiguration();
         this.provider = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
+    }
+
+    create(type: string, id: string): ConstructInterface {
+        const Construct = StripeProvider.getConstructClass(type);
+        if (Construct === undefined) {
+            throw new ServerlessError(
+                `The construct '${id}' has an unknown type '${type}'\n` +
+                    "Find all construct types available here: https://github.com/getlift/lift#constructs",
+                "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+            );
+        }
+        const configuration = get(this.serverless.configurationInput.constructs, id, {});
+
+        return Construct.create(this, id, configuration);
     }
 
     resolveConfiguration(): { apiKey: string; accountId?: string } {

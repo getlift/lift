@@ -13,11 +13,16 @@ import type {
     Serverless,
     VariableResolver,
 } from "./types/serverless";
-import { AwsProvider, ConstructInterface } from "./classes";
+import {
+    AwsProvider,
+    ConstructInterface,
+    ProviderInterface,
+    StaticConstructInterface,
+    StaticProviderInterface,
+    StripeProvider,
+} from "./classes";
 import { log } from "./utils/logger";
-import { StaticConstructInterface } from "./classes/Construct";
 import ServerlessError from "./utils/error";
-import { StripeProvider } from "./classes/StripeProvider";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 const CONSTRUCTS_DEFINITION = {
@@ -53,8 +58,8 @@ type LiftConfig = FromSchema<typeof LIFT_CONFIG_SCHEMA>;
 class LiftPlugin {
     private constructs?: Record<string, ConstructInterface>;
     private readonly serverless: Serverless;
-    private readonly providerClasses: typeof AwsProvider[] = [];
-    private readonly providers: AwsProvider[] = [];
+    private readonly providerClasses: StaticProviderInterface[] = [];
+    private readonly providers: ProviderInterface[] = [];
     private readonly schema = CONSTRUCTS_DEFINITION;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
@@ -128,10 +133,8 @@ class LiftPlugin {
     }
 
     private registerProviders() {
-        // @ts-expect-error No common type between AwsProvider and StripeProvider
         this.providerClasses.push(AwsProvider, StripeProvider);
         this.providers.push(new AwsProvider(this.serverless));
-        // @ts-expect-error No common type between AwsProvider and StripeProvider
         this.providers.push(new StripeProvider(this.serverless));
     }
 
@@ -294,7 +297,7 @@ class LiftPlugin {
 
             return Tokenization.resolve(input, {
                 resolver: tokenResolver,
-                scope: this.providers[0].stack,
+                scope: (this.providers[0] as AwsProvider).stack,
             }) as T;
         };
         this.serverless.service.provider = resolveTokens(this.serverless.service.provider);
@@ -308,8 +311,13 @@ class LiftPlugin {
         this.serverless.configurationInput = resolveTokens(this.serverless.configurationInput);
     }
 
+    // This is only required for AwsProvider in order to bundle resources together with existing SLS framework resources
     private appendCloudformationResources() {
-        this.providers[0].appendCloudformationResources();
+        this.providers
+            .filter((provider) => provider instanceof AwsProvider)
+            .map((awsProvider) => {
+                (awsProvider as AwsProvider).appendCloudformationResources();
+            });
     }
 
     private appendPermissions(): void {
@@ -355,7 +363,9 @@ class LiftPlugin {
     }
 
     private getAllConstructClasses(): StaticConstructInterface[] {
-        return flatten(this.providerClasses.map((providerClass) => providerClass.getAllConstructClasses()));
+        const result = flatten(this.providerClasses.map((providerClass) => providerClass.getAllConstructClasses()));
+
+        return result;
     }
 
     private getConstructClass(constructType: string): StaticConstructInterface | undefined {

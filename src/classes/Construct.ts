@@ -1,6 +1,6 @@
 import { PolicyStatement } from "../CloudFormation";
-import { AwsProvider } from "./AwsProvider";
 import { CliOptions } from "../types/serverless";
+import { ProviderInterface } from "./Provider";
 
 /**
  * Defines which methods a Lift construct must expose.
@@ -42,7 +42,7 @@ export interface StaticConstructInterface {
         [k: string]: unknown;
     };
     commands?: ConstructCommands;
-    create(provider: AwsProvider, id: string, configuration: Record<string, unknown>): ConstructInterface;
+    create(provider: ProviderInterface, id: string, configuration: Record<string, unknown>): ConstructInterface;
 }
 
 export type ConstructCommands = Record<string, ConstructCommandDefinition>;
