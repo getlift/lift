@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
+import { Stripe } from "stripe";
 import { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
 
@@ -17,9 +18,11 @@ type StripeConfiguration = {
 type StripeConfigFile = { color: string } & Record<string, StripeConfiguration>;
 
 export class StripeProvider {
-    config: { apiKey: string; accountId?: string };
+    private config: { apiKey: string; accountId?: string };
+    public provider: Stripe;
     constructor(private readonly serverless: Serverless) {
         this.config = this.resolveConfiguration();
+        this.provider = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }
 
     resolveConfiguration(): { apiKey: string; accountId?: string } {

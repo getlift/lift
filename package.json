@@ -30,6 +30,7 @@
     "mime-types": "^2.1.31",
     "ora": "^5.4.1",
     "pascal-case": "^3.1.2",
+    "stripe": "^8.160.0",
     "toml": "^3.0.0"
   },
   "devDependencies": {
