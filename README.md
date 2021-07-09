@@ -9,7 +9,7 @@ Deploy production-ready websites, queues, storage buckets and more with a few li
 - ⚡️ **Not invasive** - Integrates with existing projects
 - ⚡️ **No lock-in** - Eject to CloudFormation at any time
 
-[Why should I choose Lift ?](docs/comparison.md)
+[Why Lift?](docs/comparison.md)
 
 ## Installation
 
