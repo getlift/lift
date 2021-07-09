@@ -3,6 +3,8 @@ configValidationMode: error
 
 provider:
     name: aws
+    # To avoid versions with random names (easier diffs)
+    versionFunctions: false
 
 functions:
     foo:
