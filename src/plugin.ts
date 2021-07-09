@@ -17,6 +17,7 @@ import { AwsProvider, ConstructInterface } from "./classes";
 import { log } from "./utils/logger";
 import { StaticConstructInterface } from "./classes/Construct";
 import ServerlessError from "./utils/error";
+import { StripeProvider } from "./classes/StripeProvider";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 const CONSTRUCTS_DEFINITION = {
@@ -127,8 +128,11 @@ class LiftPlugin {
     }
 
     private registerProviders() {
-        this.providerClasses.push(AwsProvider);
+        // @ts-expect-error No common type between AwsProvider and StripeProvider
+        this.providerClasses.push(AwsProvider, StripeProvider);
         this.providers.push(new AwsProvider(this.serverless));
+        // @ts-expect-error No common type between AwsProvider and StripeProvider
+        this.providers.push(new StripeProvider(this.serverless));
     }
 
     private loadConstructs(): void {
