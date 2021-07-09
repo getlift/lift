@@ -109,6 +109,21 @@ constructs:
 
 [Read more...](docs/webhook.md)
 
+### [Server-side website](docs/server-side-website.md)
+
+Deploy server-side rendered websites, for example Laravel or Symfony apps.
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        assets:
+            '/css/*': public/css
+            '/js/*': public/js
+```
+
+[Read more...](docs/server-side-website.md)
+
 More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
 
 ## Ejecting
