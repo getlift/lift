@@ -206,9 +206,16 @@ export class ServerSideWebsite extends AwsConstruct {
         };
     }
 
-    references(): Record<string, Record<string, unknown>> {
+    variables(): Record<string, unknown> {
         return {
-            url: this.referenceUrl(),
+            url: () => {
+                let domain = this.getMainCustomDomain();
+                if (domain === undefined) {
+                    domain = this.distribution.distributionDomainName;
+                }
+
+                return Fn.join("", ["https://", domain]);
+            },
         };
     }
 
@@ -283,15 +290,6 @@ export class ServerSideWebsite extends AwsConstruct {
             `Emptying S3 bucket '${bucketName}' for the '${this.id}' website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
         await emptyBucket(this.provider, bucketName);
-    }
-
-    referenceUrl(): Record<string, unknown> {
-        let domain = this.getMainCustomDomain();
-        if (domain === undefined) {
-            domain = this.distribution.distributionDomainName;
-        }
-
-        return this.provider.getCloudFormationReference(Fn.join("", ["https://", domain]));
     }
 
     async getUrl(): Promise<string | undefined> {
