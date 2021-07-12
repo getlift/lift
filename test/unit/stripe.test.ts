@@ -1,4 +1,4 @@
-import { StripeProvider } from "../../src/classes/StripeProvider";
+import { StripeProvider } from "../../src/providers";
 
 describe("stripe", () => {
     it("should source local configuration", () => {

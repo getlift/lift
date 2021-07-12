@@ -1,7 +1,7 @@
 import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
 import { CfnOutput, Stack } from "@aws-cdk/core";
 import { debug } from "./utils/logger";
-import { AwsProvider } from "./classes/AwsProvider";
+import { AwsProvider } from "./providers";
 
 export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promise<string | undefined> {
     const outputId = Stack.of(output.stack).resolve(output.logicalId) as string;

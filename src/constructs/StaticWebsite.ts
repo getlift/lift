@@ -25,7 +25,8 @@ import { flatten } from "lodash";
 import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import { log } from "../utils/logger";
 import { s3Sync } from "../utils/s3-sync";
-import { AwsConstruct, AwsProvider } from "../classes";
+import { AwsConstruct } from "../classes";
+import { AwsProvider } from "../providers";
 import { ConstructCommands } from "../classes/Construct";
 import ServerlessError from "../utils/error";
 

@@ -1,6 +1,6 @@
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { ConstructInterface } from ".";
-import { AwsProvider } from "./AwsProvider";
+import { AwsProvider } from "../providers";
 
 export abstract class AwsConstruct extends CdkConstruct implements ConstructInterface {
     static create<C extends AwsConstruct = AwsConstruct>(

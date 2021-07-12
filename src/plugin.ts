@@ -13,14 +13,8 @@ import type {
     Serverless,
     VariableResolver,
 } from "./types/serverless";
-import {
-    AwsProvider,
-    ConstructInterface,
-    ProviderInterface,
-    StaticConstructInterface,
-    StaticProviderInterface,
-    StripeProvider,
-} from "./classes";
+import { ConstructInterface, ProviderInterface, StaticConstructInterface, StaticProviderInterface } from "./classes";
+import { AwsProvider, StripeProvider } from "./providers";
 import { log } from "./utils/logger";
 import ServerlessError from "./utils/error";
 

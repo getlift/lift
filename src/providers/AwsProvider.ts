@@ -3,9 +3,9 @@ import { get, merge } from "lodash";
 import { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import { getStackOutput } from "../CloudFormation";
 import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
-import { awsRequest } from "./aws";
-import { ConstructInterface } from ".";
-import { StaticConstructInterface } from "./Construct";
+import { awsRequest } from "../classes/aws";
+import { ConstructInterface } from "../classes";
+import { StaticConstructInterface } from "../classes/Construct";
 import ServerlessError from "../utils/error";
 import { Storage } from "../constructs/Storage";
 import { Queue } from "../constructs/Queue";
@@ -13,7 +13,7 @@ import { Vpc } from "../constructs/Vpc";
 import { Webhook } from "../constructs/Webhook";
 import { StaticWebsite } from "../constructs/StaticWebsite";
 import { DatabaseDynamoDBSingleTable } from "../constructs/DatabaseDynamoDBSingleTable";
-import { ProviderInterface } from "./Provider";
+import { ProviderInterface } from "../classes/Provider";
 
 export class AwsProvider implements ProviderInterface {
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};

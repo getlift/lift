@@ -6,8 +6,7 @@ import { get } from "lodash";
 import { Stripe } from "stripe";
 import { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
-import { ProviderInterface } from "./Provider";
-import { ConstructInterface, StaticConstructInterface } from "./Construct";
+import { ConstructInterface, ProviderInterface, StaticConstructInterface } from "../classes";
 
 type StripeConfiguration = {
     account_id: string;

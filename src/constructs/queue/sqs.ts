@@ -7,7 +7,7 @@ import {
     SendMessageBatchRequest,
     SendMessageBatchResult,
 } from "aws-sdk/clients/sqs";
-import { AwsProvider } from "../../classes";
+import { AwsProvider } from "../../providers";
 import { log } from "../../utils/logger";
 import { sleep } from "../../utils/sleep";
 
