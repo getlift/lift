@@ -62,13 +62,6 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
         });
     }
 
-    references(): Record<string, Record<string, unknown>> {
-        return {
-            tableName: this.referenceTableName(),
-            tableStreamArn: this.referenceTableStreamArn(),
-        };
-    }
-
     permissions(): PolicyStatement[] {
         return [
             new PolicyStatement(
@@ -82,11 +75,7 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
                     "dynamodb:BatchWriteItem",
                     "dynamodb:UpdateItem",
                 ],
-                [
-                    this.referenceTableArn(),
-                    // @ts-expect-error join only accepts a list of strings, whereas other intrinsic functions are commonly accepted
-                    Stack.of(this).resolve(Fn.join("/", [this.referenceTableArn(), "index", "*"])),
-                ]
+                [this.table.tableArn, Stack.of(this).resolve(Fn.join("/", [this.table.tableArn, "index", "*"]))]
             ),
         ];
     }
@@ -97,17 +86,11 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
         };
     }
 
-    referenceTableName(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.table.tableName);
-    }
-
-    referenceTableArn(): Record<string, unknown> {
-        return this.provider.getCloudFormationReference(this.table.tableArn);
-    }
-
-    referenceTableStreamArn(): Record<string, unknown> {
-        // @ts-expect-error tableStreamArn can be undefined for table without stream. Current table always has stream enabled
-        return this.provider.getCloudFormationReference(this.table.tableStreamArn);
+    variables(): Record<string, unknown> {
+        return {
+            tableName: this.table.tableName,
+            tableStreamArn: this.table.tableStreamArn,
+        };
     }
 
     async getTableName(): Promise<string | undefined> {
