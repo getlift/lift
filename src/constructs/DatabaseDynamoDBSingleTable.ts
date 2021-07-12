@@ -8,12 +8,18 @@ const DATABASE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "database/dynamodb-single-table" },
+        localSecondaryIndexes: { type: "boolean" },
         gsiCount: { type: "integer", minimum: 1, maximum: 20 },
     },
     additionalProperties: false,
 } as const;
 
 type Configuration = FromSchema<typeof DATABASE_DEFINITION>;
+const DATABASE_DEFAULTS: Required<Configuration> = {
+    type: "database/dynamodb-single-table",
+    localSecondaryIndexes: false,
+    gsiCount: 0,
+};
 
 export class DatabaseDynamoDBSingleTable extends AwsConstruct {
     public static type = "database/dynamodb-single-table";
@@ -25,7 +31,7 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
     constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
         super(scope, id);
 
-        const resolvedConfiguration = Object.assign({}, configuration);
+        const resolvedConfiguration = Object.assign({}, DATABASE_DEFAULTS, configuration);
 
         this.table = new Table(this, "Table", {
             partitionKey: { name: "PK", type: AttributeType.STRING },
@@ -36,14 +42,16 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
             stream: StreamViewType.NEW_AND_OLD_IMAGES,
         });
 
-        for (let localSecondaryIndex = 1; localSecondaryIndex <= 5; localSecondaryIndex++) {
-            this.table.addLocalSecondaryIndex({
-                indexName: `LSI-${localSecondaryIndex}`,
-                sortKey: { name: `LSI-${localSecondaryIndex}-SK`, type: AttributeType.STRING },
-            });
+        if (resolvedConfiguration.localSecondaryIndexes) {
+            for (let localSecondaryIndex = 1; localSecondaryIndex <= 5; localSecondaryIndex++) {
+                this.table.addLocalSecondaryIndex({
+                    indexName: `LSI-${localSecondaryIndex}`,
+                    sortKey: { name: `LSI-${localSecondaryIndex}-SK`, type: AttributeType.STRING },
+                });
+            }
         }
 
-        if (resolvedConfiguration.gsiCount !== undefined) {
+        if (resolvedConfiguration.gsiCount > 0) {
             for (
                 let globalSecondaryIndex = 1;
                 globalSecondaryIndex <= resolvedConfiguration.gsiCount;
