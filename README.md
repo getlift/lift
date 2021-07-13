@@ -109,6 +109,16 @@ constructs:
 
 [Read more...](docs/webhook.md)
 
+### [Database - DynamoDB Single Table](docs/database-dynamodb-single-table.md)
+
+Deploy databases leveraging DynamoDB Single Table Design principles.
+
+```yaml
+constructs:
+    database:
+        type: database/dynamodb-single-table
+```
+
 ### [Server-side website](docs/server-side-website.md)
 
 Deploy server-side rendered websites, for example Laravel or Symfony apps.

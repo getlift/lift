@@ -1,0 +1,15 @@
+service: storage
+configValidationMode: error
+
+provider:
+    name: aws
+
+constructs:
+    databaseWithoutSecondaryIndexes:
+        type: database/dynamodb-single-table
+    databaseWithLocalSecondaryIndexes:
+        type: database/dynamodb-single-table
+        localSecondaryIndexes: true
+    databaseWithGlobalSecondaryIndexes:
+        type: database/dynamodb-single-table
+        gsiCount: 2

@@ -34,7 +34,7 @@ declare module "@serverless/test/run-serverless" {
         serverless: Record<string, unknown>;
         stdoutData: string;
         cfTemplate: {
-            Resources: Record<string, unknown>;
+            Resources: Record<string, { Properties: Record<string, unknown> }>;
             Outputs: Record<string, unknown>;
         };
         awsNaming: unknown;
