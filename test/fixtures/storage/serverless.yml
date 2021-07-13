@@ -5,5 +5,8 @@ provider:
     name: aws
 
 constructs:
-    avatars:
+    default:
         type: storage
+    kmsEncryption:
+        type: storage
+        encryption: kms
