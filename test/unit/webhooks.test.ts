@@ -1,27 +1,22 @@
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
 describe("webhooks", () => {
-    it("should implement custom authorizer by default", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
+    let cfTemplate: { Resources: Record<string, { Properties: Record<string, unknown> }> };
+    let computeLogicalId: (...address: string[]) => string;
+    beforeAll(async () => {
+        ({ cfTemplate, computeLogicalId } = await runServerless({
             fixture: "webhooks",
             configExt: pluginConfigExt,
             command: "package",
-        });
-        expect(cfTemplate.Resources[computeLogicalId("stripe", "Route")]).toMatchObject({
-            Properties: {
-                AuthorizationType: "CUSTOM",
-            },
-        });
+        }));
     });
-    it("should allow insecure webhook", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "webhooksInsecure",
-            configExt: pluginConfigExt,
-            command: "package",
-        });
-        expect(cfTemplate.Resources[computeLogicalId("github", "Route")]).toMatchObject({
+    test.each([
+        ["secure", "CUSTOM"],
+        ["insecure", "NONE"],
+    ])("%p webhook should have authorization type %p", (useCase, expectedAuthorizationType) => {
+        expect(cfTemplate.Resources[computeLogicalId(useCase, "Route")]).toMatchObject({
             Properties: {
-                AuthorizationType: "NONE",
+                AuthorizationType: expectedAuthorizationType,
             },
         });
     });
