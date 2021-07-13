@@ -12,6 +12,7 @@ import { Queue } from "../constructs/Queue";
 import { Vpc } from "../constructs/Vpc";
 import { Webhook } from "../constructs/Webhook";
 import { StaticWebsite } from "../constructs/StaticWebsite";
+import { DatabaseDynamoDBSingleTable } from "../constructs/DatabaseDynamoDBSingleTable";
 
 export class AwsProvider {
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
@@ -143,4 +144,4 @@ export class AwsProvider {
  *  If they use TypeScript, `registerConstructs()` will validate that the construct class
  *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
  */
-AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, Vpc);
+AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, Vpc, DatabaseDynamoDBSingleTable);
