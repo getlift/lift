@@ -53,7 +53,7 @@ _How it works: the `${construct:myTable.tableName}` variable will automatically 
 
 ## Permissions
 
-By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to read/write into the table**.
+By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to read/write into the table**, on all indexes (primary and secondary).
 
 In the example below, there are no IAM permissions to set up: `myFunction` will be allowed to read and write into the `myTable` table.
 
