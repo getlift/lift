@@ -334,12 +334,8 @@ export class ServerSideWebsite extends AwsConstruct {
                 "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
-        if (additionalHeadersToForward.includes("Authorization")) {
-            // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
-            additionalHeadersToForward = additionalHeadersToForward.filter(
-                (header: string) => header !== "Authorization"
-            );
-        }
+        // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
+        additionalHeadersToForward = additionalHeadersToForward.filter((header: string) => header !== "Authorization");
 
         /**
          * We forward everything except:
