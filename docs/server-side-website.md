@@ -277,6 +277,27 @@ In case a web page throws an error, API Gateway's default `Internal Error` blank
 
 Applications are of course free to catch errors and display custom error pages. However, sometimes even error pages and frameworks fail completely: this is where the API Gateway error page shows up.
 
+### Forwarded headers
+
+By default, CloudFront will forward the following HTTP headers to the backend running on Lambda:
+
+- `Accept`
+- `Accept-Language`
+- `Authorization`
+- `Origin`
+- `Referer`
+- `X-Forwarded-Host`
+
+To access more headers from the client (or [from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-cloudfront-headers.html)), include these headers in `forwardedHeaders`:
+
+```yaml
+constructs:
+    website:
+        # ...
+        forwardedHeaders:
+            - X-Custom-Header
+```
+
 ### More options
 
 Looking for more options in the construct configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).
