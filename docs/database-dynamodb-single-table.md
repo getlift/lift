@@ -27,6 +27,8 @@ The `database/dynamodb-single-table` construct creates and configures the table 
 - a configurable amount of up to 20 glocal secondary indexes with generic names - `GSI-1` to `GSI-20` for the index names, `GSI-1-PK` to `GSI-20-PK` for the partition keys and `GSI-1-SK` to `GSI-20-SK` for the sort keys
 - all indexes attributes have string data type, ideal for composite attribue - i.e. `value1#value2`
 - a DynamoDB stream publishing new and old values at each write operation on the table
+- a TTL attribute enabling DynamoDB automatic garbage collection set to `TimeToLive`
+- a billing mode set to `PAY_PER_REQUEST`
 
 ## Variables
 
@@ -83,6 +85,11 @@ constructs:
         # ...
         gsiCount: 3
 ```
+
+GSI created on the table follow generic names principles:
+- `GSI-1` to `GSI-20` for the index names
+- `GSI-1-PK` to `GSI-20-PK` for the partition keys
+- `GSI-1-SK` to `GSI-20-SK` for the sort keys
 
 The first time you deploy your construct using `serverless deploy`, you can specify any amount of GSI between `1` and `20`. On subsequent deploys, any modification made to an already deployed construct cannot add or remove more than 1 GSI at a time. If you need 2 additional GSI after initial deployment of the exemple above, you must first update the `gsiCount` to `4`, deploy, and then finally update it to the final desired quantity of `5`.
 
