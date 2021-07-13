@@ -146,6 +146,8 @@ functions:
             QUEUE_URL: ${construct:my-queue.queueUrl}
 ```
 
+Automatic permissions can be disabled: [read more about IAM permissions](permissions.md).
+
 ## Commands
 
 The following commands are available on `queue` constructs:
