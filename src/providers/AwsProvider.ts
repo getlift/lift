@@ -1,11 +1,12 @@
-import { App, CfnOutput, Stack } from "@aws-cdk/core";
+import type { CfnOutput } from "@aws-cdk/core";
+import { App, Stack } from "@aws-cdk/core";
 import { get, merge } from "lodash";
-import { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
-import { ProviderInterface } from "@lift/providers";
-import { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
+import type { ProviderInterface } from "@lift/providers";
+import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import { DatabaseDynamoDBSingleTable, Queue, StaticWebsite, Storage, Vpc, Webhook } from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
-import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
 

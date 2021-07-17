@@ -4,9 +4,9 @@ import { resolve } from "path";
 import { parse as tomlParse } from "toml";
 import { get } from "lodash";
 import { Stripe } from "stripe";
-import { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
-import { ProviderInterface } from "@lift/providers";
-import { Serverless } from "../types/serverless";
+import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import type { ProviderInterface } from "@lift/providers";
+import type { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
 
 type StripeConfiguration = {

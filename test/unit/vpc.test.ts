@@ -1,5 +1,5 @@
 import { cloneDeep, get, merge } from "lodash";
-import { AwsCfInstruction } from "@serverless/typescript";
+import type { AwsCfInstruction } from "@serverless/typescript";
 import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import ServerlessError from "../../src/utils/error";
 

@@ -9,23 +9,24 @@ import {
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
-import { Construct as CdkConstruct, CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
-import { FromSchema } from "json-schema-to-ts";
-import {
+import type { Construct as CdkConstruct } from "@aws-cdk/core";
+import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import type { FromSchema } from "json-schema-to-ts";
+import type {
     DeleteObjectsOutput,
     DeleteObjectsRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import chalk from "chalk";
-import { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
+import type { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
-import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
-import { AwsProvider } from "@lift/providers";
+import type { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
-import { ConstructCommands } from "@lift/constructs";
+import type { ConstructCommands } from "@lift/constructs";
 import { log } from "../../utils/logger";
 import { s3Sync } from "../../utils/s3-sync";
 import ServerlessError from "../../utils/error";

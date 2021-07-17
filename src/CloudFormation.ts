@@ -1,6 +1,7 @@
-import { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
-import { CfnOutput, Stack } from "@aws-cdk/core";
-import { AwsProvider } from "@lift/providers";
+import type { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
+import type { CfnOutput } from "@aws-cdk/core";
+import { Stack } from "@aws-cdk/core";
+import type { AwsProvider } from "@lift/providers";
 import { debug } from "./utils/logger";
 
 export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promise<string | undefined> {

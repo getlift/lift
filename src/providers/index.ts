@@ -1,13 +1,5 @@
-import { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+export type { ProviderInterface } from "./ProviderInterface";
+export type { StaticProviderInterface } from "./StaticProviderInterface";
 
 export { AwsProvider } from "./AwsProvider";
 export { StripeProvider } from "./StripeProvider";
-
-export interface ProviderInterface {
-    create(type: string, id: string): ConstructInterface;
-}
-
-export interface StaticProviderInterface {
-    getConstructClass(type: string): StaticConstructInterface | undefined;
-    getAllConstructClasses(): StaticConstructInterface[];
-}
