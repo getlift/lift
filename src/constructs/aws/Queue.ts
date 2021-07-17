@@ -10,7 +10,7 @@ import ora from "ora";
 import { spawnSync } from "child_process";
 import * as inquirer from "inquirer";
 import { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "@lift/constructs/aws";
+import { AwsConstruct } from "@lift/constructs/abstracts";
 import { ConstructCommands } from "@lift/constructs";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";

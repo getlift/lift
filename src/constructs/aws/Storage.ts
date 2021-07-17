@@ -2,7 +2,7 @@ import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-
 import { Construct as CdkConstruct, CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "@lift/constructs/aws";
+import { AwsConstruct } from "@lift/constructs/abstracts";
 import { PolicyStatement } from "../../CloudFormation";
 
 const STORAGE_DEFINITION = {

@@ -24,7 +24,7 @@ import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
 import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "@lift/constructs/aws";
+import { AwsConstruct } from "@lift/constructs/abstracts";
 import { ConstructCommands } from "@lift/constructs";
 import { log } from "../../utils/logger";
 import { s3Sync } from "../../utils/s3-sync";
