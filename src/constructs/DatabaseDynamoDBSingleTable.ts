@@ -1,7 +1,8 @@
 import { Construct as CdkConstruct, CfnOutput, Fn, Stack } from "@aws-cdk/core";
 import { AttributeType, BillingMode, StreamViewType, Table } from "@aws-cdk/aws-dynamodb";
 import { FromSchema } from "json-schema-to-ts";
-import { AwsConstruct, AwsProvider } from "../classes";
+import { AwsProvider } from "@lift/providers";
+import { AwsConstruct } from "../classes";
 import { PolicyStatement } from "../CloudFormation";
 
 const DATABASE_DEFINITION = {

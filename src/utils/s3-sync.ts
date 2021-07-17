@@ -14,7 +14,7 @@ import * as crypto from "crypto";
 import { lookup } from "mime-types";
 import { chunk, flatten } from "lodash";
 import chalk from "chalk";
-import { AwsProvider } from "../providers";
+import { AwsProvider } from "@lift/providers";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
