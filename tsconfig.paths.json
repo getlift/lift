@@ -2,7 +2,9 @@
     "compilerOptions": {
         "baseUrl": "src",
         "paths": {
-            "@lift/providers": ["providers/index"]
+            "@lift/providers": ["providers/index"],
+            "@lift/constructs": ["constructs/index"],
+            "@lift/constructs/*": ["constructs/*"]
         }
     }
 }

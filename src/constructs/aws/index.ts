@@ -1,6 +1,13 @@
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { AwsProvider } from "@lift/providers";
-import { ConstructInterface } from ".";
+import { ConstructInterface } from "@lift/constructs";
+
+export { DatabaseDynamoDBSingleTable } from "./DatabaseDynamoDBSingleTable";
+export { Queue } from "./Queue";
+export { StaticWebsite } from "./StaticWebsite";
+export { Storage } from "./Storage";
+export { Vpc } from "./Vpc";
+export { Webhook } from "./Webhook";
 
 export abstract class AwsConstruct extends CdkConstruct implements ConstructInterface {
     static create<C extends AwsConstruct = AwsConstruct>(

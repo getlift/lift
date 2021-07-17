@@ -2,7 +2,7 @@ import { Vpc as CdkVpc, Peer, Port, SecurityGroup } from "@aws-cdk/aws-ec2";
 import { Construct as CdkConstruct } from "@aws-cdk/core";
 import { FromSchema } from "json-schema-to-ts";
 import { AwsProvider } from "@lift/providers";
-import { ConstructInterface } from "../classes";
+import { ConstructInterface } from "@lift/constructs";
 
 const VPC_DEFINITION = {
     type: "object",

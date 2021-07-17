@@ -8,8 +8,8 @@ import {
     SendMessageBatchResult,
 } from "aws-sdk/clients/sqs";
 import { AwsProvider } from "@lift/providers";
-import { log } from "../../utils/logger";
-import { sleep } from "../../utils/sleep";
+import { log } from "../../../utils/logger";
+import { sleep } from "../../../utils/sleep";
 
 type ProgressCallback = (numberOfMessagesFound: number) => void;
 

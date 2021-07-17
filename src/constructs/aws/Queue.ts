@@ -10,12 +10,12 @@ import ora from "ora";
 import { spawnSync } from "child_process";
 import * as inquirer from "inquirer";
 import { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "../classes";
+import { AwsConstruct } from "@lift/constructs/aws";
+import { ConstructCommands } from "@lift/constructs";
 import { pollMessages, retryMessages } from "./queue/sqs";
-import { sleep } from "../utils/sleep";
-import { PolicyStatement } from "../CloudFormation";
-import { ConstructCommands } from "../classes/Construct";
-import { CliOptions } from "../types/serverless";
+import { sleep } from "../../utils/sleep";
+import { PolicyStatement } from "../../CloudFormation";
+import { CliOptions } from "../../types/serverless";
 
 const QUEUE_DEFINITION = {
     type: "object",

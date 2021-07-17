@@ -24,11 +24,11 @@ import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
 import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import { AwsProvider } from "@lift/providers";
-import { log } from "../utils/logger";
-import { s3Sync } from "../utils/s3-sync";
-import { AwsConstruct } from "../classes";
-import { ConstructCommands } from "../classes/Construct";
-import ServerlessError from "../utils/error";
+import { AwsConstruct } from "@lift/constructs/aws";
+import { ConstructCommands } from "@lift/constructs";
+import { log } from "../../utils/logger";
+import { s3Sync } from "../../utils/s3-sync";
+import ServerlessError from "../../utils/error";
 
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",

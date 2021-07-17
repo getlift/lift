@@ -5,8 +5,8 @@ import { EventBus } from "@aws-cdk/aws-events";
 import { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "../classes";
-import ServerlessError from "../utils/error";
+import { AwsConstruct } from "@lift/constructs/aws";
+import ServerlessError from "../../utils/error";
 
 const WEBHOOK_DEFINITION = {
     type: "object",

@@ -1,6 +1,6 @@
+import { ProviderInterface } from "@lift/providers";
 import { PolicyStatement } from "../CloudFormation";
 import { CliOptions } from "../types/serverless";
-import { ProviderInterface } from "./Provider";
 
 /**
  * Defines which methods a Lift construct must expose.

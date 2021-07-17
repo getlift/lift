@@ -4,9 +4,10 @@ import { resolve } from "path";
 import { parse as tomlParse } from "toml";
 import { get } from "lodash";
 import { Stripe } from "stripe";
+import { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import { ProviderInterface } from "@lift/providers";
 import { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
-import { ConstructInterface, ProviderInterface, StaticConstructInterface } from "../classes";
 
 type StripeConfiguration = {
     account_id: string;
