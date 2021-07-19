@@ -6,8 +6,17 @@ import { get } from "lodash";
 import { Stripe } from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
+import type { FromSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
+
+const STRIPE_DEFINITION = {
+    type: "object",
+    properties: {
+        profile: { type: "string" },
+    },
+    additionalProperties: false,
+} as const;
 
 type StripeConfiguration = {
     account_id: string;
@@ -19,8 +28,11 @@ type StripeConfiguration = {
 };
 
 type StripeConfigFile = { color: string } & Record<string, StripeConfiguration>;
+type Configuration = FromSchema<typeof STRIPE_DEFINITION>;
 
 export class StripeProvider implements ProviderInterface {
+    public static type = "stripe";
+    public static schema = STRIPE_DEFINITION;
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
 
     static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
@@ -43,9 +55,15 @@ export class StripeProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
+    static create(serverless: Serverless, id: string, configuration: Configuration): StripeProvider {
+        console.log(configuration);
+
+        return new this(serverless, id);
+    }
+
     private config: { apiKey: string; accountId?: string };
     public provider: Stripe;
-    constructor(private readonly serverless: Serverless) {
+    constructor(private readonly serverless: Serverless, private readonly id: string) {
         this.config = this.resolveConfiguration();
         this.provider = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }

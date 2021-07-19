@@ -10,7 +10,17 @@ import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless 
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
 
+const AWS_DEFINITION = {
+    type: "object",
+    properties: {
+        profile: { type: "string" },
+    },
+    additionalProperties: false,
+} as const;
+
 export class AwsProvider implements ProviderInterface {
+    public static type = "aws";
+    public static schema = AWS_DEFINITION;
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
 
     static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
@@ -31,6 +41,10 @@ export class AwsProvider implements ProviderInterface {
 
     static getAllConstructClasses(): StaticConstructInterface[] {
         return Object.values(this.constructClasses);
+    }
+
+    static create(serverless: Serverless): ProviderInterface {
+        return new this(serverless);
     }
 
     private readonly app: App;
