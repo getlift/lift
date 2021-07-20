@@ -77,7 +77,7 @@
     "lint": "eslint .",
     "check-format": "prettier --check .",
     "type": "tsc --noEmit",
-    "build": "etsc && tscpaths -p tsconfig.json -s ./src -o ./dist/src --verbose && tsc --emitDeclarationOnly",
+    "build": "etsc && tscpaths -p tsconfig.json -s ./src -o ./dist/src && tsc --emitDeclarationOnly",
     "watch": "nodemon",
     "test": "jest",
     "prepare": "husky install && npm run build"
