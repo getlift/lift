@@ -1,0 +1,12 @@
+service: stripe
+configValidationMode: error
+
+provider:
+    name: aws
+
+providers:
+    stripeProviderWithProfile:
+        type: stripe
+        profile: myProfile
+    stripeProviderWithoutProfile:
+        type: stripe

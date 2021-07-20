@@ -87,6 +87,7 @@ class LiftPlugin {
 
     constructor(serverless: Serverless, cliOptions: Record<string, string>) {
         this.serverless = serverless;
+        Object.assign(this.serverless, { getProviderById: this.getProviderById.bind(this) });
         this.cliOptions = cliOptions;
 
         this.commands.lift = {
@@ -224,6 +225,10 @@ class LiftPlugin {
         }
 
         return this.constructs;
+    }
+
+    getProviderById(id: string): ProviderInterface | undefined {
+        return this.providers[id];
     }
 
     resolveReference({ address }: { address: string }): { value: string } {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
-import { get } from "lodash";
+import { get, has } from "lodash";
 import { Stripe } from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
@@ -55,16 +55,14 @@ export class StripeProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
-    static create(serverless: Serverless, id: string, configuration: Configuration): StripeProvider {
-        console.log(configuration);
-
-        return new this(serverless, id);
+    static create(serverless: Serverless, id: string, { profile }: Configuration): StripeProvider {
+        return new this(serverless, id, profile);
     }
 
     private config: { apiKey: string; accountId?: string };
     public provider: Stripe;
-    constructor(private readonly serverless: Serverless, private readonly id: string) {
-        this.config = this.resolveConfiguration();
+    constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
+        this.config = this.resolveConfiguration(profile);
         this.provider = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }
 
@@ -82,29 +80,58 @@ export class StripeProvider implements ProviderInterface {
         return Construct.create(this, id, configuration);
     }
 
-    resolveConfiguration(): { apiKey: string; accountId?: string } {
+    resolveConfiguration(profile?: string): { apiKey: string; accountId?: string } {
         // Sourcing from env
-        if (typeof process.env.STRIPE_API_KEY === "string") {
+        if (profile === undefined && typeof process.env.STRIPE_API_KEY === "string") {
             return { apiKey: process.env.STRIPE_API_KEY };
         }
 
         // Sourcing from TOML configuration file
-        const configFilePath = resolve(homedir(), ".config/stripe/config.toml");
-        if (existsSync(configFilePath)) {
-            const stripeConfigurationFileContent = readFileSync(configFilePath);
-            const stripeConfigurations = tomlParse(stripeConfigurationFileContent.toString()) as StripeConfigFile;
-            const defaultStripeConfig = stripeConfigurations.default;
-
-            return {
-                apiKey: defaultStripeConfig.test_mode_api_key,
-                accountId: defaultStripeConfig.account_id,
-            };
+        const configsPath = process.env.XDG_CONFIG_HOME ?? resolve(homedir(), ".config");
+        const stripeConfigFilePath = resolve(configsPath, "stripe/config.toml");
+        if (!existsSync(stripeConfigFilePath)) {
+            throw new ServerlessError(
+                "Could not source any Stripe configuration. Have you set your STRIPE_API_KEY environment?",
+                "STRIPE_MISSING_CONFIGURATION"
+            );
         }
 
-        // Fallback throw error
-        throw new ServerlessError(
-            "Could not source any Stripe configuration. Have you set your STRIPE_API_KEY environment?",
-            "STRIPE_MISSING_CONFIGURATION"
-        );
+        const stripeConfigurationFileContent = readFileSync(stripeConfigFilePath);
+        const stripeConfigurations = tomlParse(stripeConfigurationFileContent.toString()) as StripeConfigFile;
+        if (profile !== undefined) {
+            if (!has(stripeConfigurations, profile)) {
+                throw new ServerlessError(
+                    `There is no ${profile} profile in your stripe configuration. Found profiles are ${Object.keys(
+                        stripeConfigurations
+                    )
+                        .filter((stripeConfiguration) => stripeConfiguration !== "color")
+                        .join(", ")}`,
+                    "STRIPE_MISSING_PROFILE"
+                );
+            }
+            const stripeConfig = stripeConfigurations[profile];
+
+            return {
+                apiKey: stripeConfig.test_mode_api_key,
+                accountId: stripeConfig.account_id,
+            };
+        }
+        // Fallback to default profile
+        if (!has(stripeConfigurations, "default")) {
+            throw new ServerlessError(
+                `There is no default profile in your stripe configuration. Please provide one of the found profiles: ${Object.keys(
+                    stripeConfigurations
+                )
+                    .filter((stripeConfiguration) => stripeConfiguration !== "color")
+                    .join(", ")}`,
+                "STRIPE_MISSING_DEFAULT_PROFILE"
+            );
+        }
+        const defaultStripeConfig = stripeConfigurations.default;
+
+        return {
+            apiKey: defaultStripeConfig.test_mode_api_key,
+            accountId: defaultStripeConfig.account_id,
+        };
     }
 }
