@@ -6,6 +6,7 @@ import { get, has } from "lodash";
 import { Stripe } from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
+import { Webhook } from "@lift/constructs/stripe";
 import type { FromSchema } from "json-schema-to-ts";
 import type { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
@@ -135,3 +136,5 @@ export class StripeProvider implements ProviderInterface {
         };
     }
 }
+
+StripeProvider.registerConstructs(Webhook);
