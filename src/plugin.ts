@@ -5,6 +5,7 @@ import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
 import { DefaultTokenResolver, Lazy, StringConcat, Tokenization } from "@aws-cdk/core";
+import { FromSchema } from "json-schema-to-ts";
 import type {
     CommandsDefinition,
     DeprecatedVariableResolver,
@@ -30,11 +31,11 @@ const CONSTRUCTS_DEFINITION = {
                     },
                     required: ["type"],
                 },
-            ] as Record<string, unknown>[],
+            ],
         },
     },
     additionalProperties: false,
-};
+} as const;
 
 /**
  * Serverless plugin
@@ -97,7 +98,7 @@ class LiftPlugin {
     }
 
     private registerConstructsSchema() {
-        this.schema.patternProperties[CONSTRUCT_ID_PATTERN].allOf.push({
+        (this.schema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]).push({
             oneOf: this.getAllConstructClasses().map((Construct) => {
                 return this.defineConstructSchema(Construct.type, Construct.schema);
             }),
@@ -348,5 +349,9 @@ class LiftPlugin {
         return undefined;
     }
 }
+
+export type Lift = {
+    constructs: FromSchema<typeof CONSTRUCTS_DEFINITION>;
+};
 
 module.exports = LiftPlugin;
