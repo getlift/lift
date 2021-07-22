@@ -74,7 +74,7 @@
     "lint": "eslint .",
     "check-format": "prettier --check .",
     "type": "tsc --noEmit",
-    "build": "etsc",
+    "build": "etsc && tsc --emitDeclarationOnly",
     "watch": "nodemon",
     "test": "jest",
     "prepare": "husky install && npm run build"
@@ -87,7 +87,7 @@
       "eslint --fix"
     ]
   },
-  "types": "lib/index.d.ts",
+  "types": "dist/src/plugin.d.ts",
   "peerDependencies": {
     "serverless": "^2.36.0"
   }

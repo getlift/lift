@@ -131,6 +131,8 @@ To eject:
 - copy the parts you want to turn into CloudFormation and paste them in the [`resources` section of serverless.yml](https://www.serverless.com/framework/docs/providers/aws/guide/resources/)
 - don't forget to remove from `serverless.yml` the Lift constructs you have turned into CloudFormation
 
+## [Types definition for Lift constructs](docs/serverless-types.md)
+
 ---
 
 Lift is built and maintained with love ❤️ by
