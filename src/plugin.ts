@@ -134,7 +134,9 @@ class LiftPlugin {
     }
 
     private registerConstructsSchema() {
-        (this.constructsSchema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]).push({
+        (
+            this.constructsSchema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]
+        ).push({
             oneOf: this.getAllConstructClasses().map((Construct) => {
                 return this.defineSchemaWithType(Construct.type, Construct.schema);
             }),
