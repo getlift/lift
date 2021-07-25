@@ -66,7 +66,7 @@ export class StripeProvider implements ProviderInterface {
         this.provider = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }
 
-    create(type: string, id: string): ConstructInterface {
+    createConstruct(type: string, id: string): ConstructInterface {
         const Construct = StripeProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(

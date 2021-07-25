@@ -218,7 +218,7 @@ class LiftPlugin {
         for (const [id, { type, provider: providerId }] of Object.entries(constructsInputConfiguration)) {
             // Legacy behavior -> defaults to Serverless framework AWS provider
             if (providerId === undefined) {
-                this.constructs[id] = this.providers[DEFAULT_PROVIDER].create(type, id);
+                this.constructs[id] = this.providers[DEFAULT_PROVIDER].createConstruct(type, id);
                 continue;
             }
             const provider = this.getLiftProviderById(providerId);
@@ -230,7 +230,7 @@ class LiftPlugin {
                     "LIFT_UNKNOWN_PROVIDER_ID"
                 );
             }
-            this.constructs[id] = provider.create(type, id);
+            this.constructs[id] = provider.createConstruct(type, id);
         }
     }
 

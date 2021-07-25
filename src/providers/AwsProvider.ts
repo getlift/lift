@@ -64,7 +64,7 @@ export class AwsProvider implements ProviderInterface {
         serverless.stack = this.stack;
     }
 
-    create(type: string, id: string): ConstructInterface {
+    createConstruct(type: string, id: string): ConstructInterface {
         const Construct = AwsProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(
