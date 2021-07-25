@@ -5,7 +5,6 @@ import { StripeConstruct } from "@lift/constructs/abstracts";
 const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "webhook" },
         url: { type: "string" },
         enabledEvents: { type: "array", items: { type: "string" } },
     },

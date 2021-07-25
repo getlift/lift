@@ -139,7 +139,9 @@ class LiftPlugin {
             this.constructsSchema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]
         ).push({
             oneOf: this.getAllConstructClasses().map((Construct) => {
-                return this.defineSchemaWithType(Construct.type, Construct.schema);
+                const constructSchema = this.defineSchemaWithType(Construct.type, Construct.schema);
+
+                return merge(constructSchema, { properties: { provider: { type: "string" } } });
             }),
         });
     }

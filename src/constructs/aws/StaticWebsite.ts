@@ -34,7 +34,6 @@ import ServerlessError from "../../utils/error";
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "static-website" },
         path: { type: "string" },
         domain: {
             anyOf: [

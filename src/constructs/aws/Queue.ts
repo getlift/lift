@@ -21,7 +21,6 @@ import type { CliOptions } from "../../types/serverless";
 const QUEUE_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "queue" },
         worker: {
             type: "object",
             properties: {

@@ -9,7 +9,6 @@ import { PolicyStatement } from "../../CloudFormation";
 const STORAGE_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "storage" },
         archive: { type: "number", minimum: 30 },
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
@@ -18,7 +17,6 @@ const STORAGE_DEFINITION = {
     additionalProperties: false,
 } as const;
 const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
-    type: "storage",
     archive: 45,
     encryption: "s3",
 };
