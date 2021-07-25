@@ -23,7 +23,7 @@ describe("stripe", () => {
             ["stripeProviderWithoutProfile", "rk_test_key_from_env"],
         ])("should source the correct key for provider %p", (useCase, expectedApiKey) => {
             // @ts-expect-error serverless object in unknown and can vary
-            const stripeProvider = serverless.getProviderById(useCase) as StripeProvider;
+            const stripeProvider = serverless.getLiftProviderById(useCase) as StripeProvider;
             const stripeApiKey = (get(stripeProvider, "provider._api.auth") as string).slice(7);
             expect(stripeApiKey).toBe(expectedApiKey);
         });

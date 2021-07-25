@@ -87,7 +87,8 @@ class LiftPlugin {
 
     constructor(serverless: Serverless, cliOptions: Record<string, string>) {
         this.serverless = serverless;
-        Object.assign(this.serverless, { getProviderById: this.getProviderById.bind(this) });
+        // This method is exposed for Lift tests only, it is not a public API
+        Object.assign(this.serverless, { getLiftProviderById: this.getLiftProviderById.bind(this) });
         this.cliOptions = cliOptions;
 
         this.commands.lift = {
@@ -215,7 +216,20 @@ class LiftPlugin {
         this.constructs = {};
         const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {});
         for (const [id, { type, provider: providerId }] of Object.entries(constructsInputConfiguration)) {
-            const provider = providerId !== undefined ? this.providers[providerId] : this.providers[DEFAULT_PROVIDER];
+            // Legacy behavior -> defaults to Serverless framework AWS provider
+            if (providerId === undefined) {
+                this.constructs[id] = this.providers[DEFAULT_PROVIDER].create(type, id);
+                continue;
+            }
+            const provider = this.getLiftProviderById(providerId);
+            if (!provider) {
+                throw new ServerlessError(
+                    `No provider ${providerId} was found for construct ${id}. Available providers are ${Object.keys(
+                        this.providers
+                    ).join(", ")}`,
+                    "LIFT_UNKNOWN_PROVIDER_ID"
+                );
+            }
             this.constructs[id] = provider.create(type, id);
         }
     }
@@ -229,7 +243,7 @@ class LiftPlugin {
         return this.constructs;
     }
 
-    getProviderById(id: string): ProviderInterface | undefined {
+    getLiftProviderById(id: string): ProviderInterface | undefined {
         return this.providers[id];
     }
 
