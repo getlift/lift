@@ -7,6 +7,10 @@ The `static-website` construct deploys:
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:

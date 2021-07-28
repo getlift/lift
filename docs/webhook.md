@@ -5,6 +5,10 @@ Implementing a webhook HTTP endpoint in your application allows this ecosystem o
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:

@@ -6,6 +6,10 @@ The `queue` construct deploys a properly configured **SQS queue** with a **worke
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:

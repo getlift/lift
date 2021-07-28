@@ -4,6 +4,10 @@ The `storage` construct deploys S3 buckets to store files.
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:
