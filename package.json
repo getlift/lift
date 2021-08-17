@@ -36,7 +36,7 @@
     "@serverless/typescript": "^2.49.0",
     "@types/chai": "^4.2.21",
     "@types/inquirer": "^7.3.3",
-    "@types/jest": "^26.0.24",
+    "@types/jest": "^27.0.1",
     "@types/js-yaml": "^3.12.5",
     "@types/json-schema": "^7.0.8",
     "@types/mime-types": "^2.1.0",
@@ -45,7 +45,7 @@
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
     "chai": "^4.3.4",
-    "esbuild-node-tsc": "1.5.0",
+    "esbuild-node-tsc": "~1.5.1",
     "eslint": "^7.29.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-import": "^2.23.4",
@@ -56,14 +56,14 @@
     "lint-staged": "^11.0.0",
     "nodemon": "^2.0.10",
     "prettier": "^2.3.2",
-    "serverless": "2.51.2",
+    "serverless": "^2.54.0",
     "sinon": "^11.1.1",
     "stdout-stderr": "^0.1.13",
     "ts-jest": "^27.0.3",
     "typescript": "^4.3.4"
   },
   "engines": {
-    "node": ">=10 <16"
+    "node": ">=10 <17"
   },
   "files": [
     "/dist"
