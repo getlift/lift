@@ -20,7 +20,7 @@ import { log } from "./utils/logger";
 import ServerlessError from "./utils/error";
 
 const PROVIDER_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
-// This is enable all existing constructs defined prior intoduction of "providers" property to work
+// This enables all existing constructs defined prior intoduction of "providers" property to work
 const DEFAULT_PROVIDER = "defaultAwsProvider";
 const PROVIDERS_DEFINITION = {
     type: "object",
