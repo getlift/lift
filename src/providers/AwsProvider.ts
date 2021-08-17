@@ -12,9 +12,7 @@ import ServerlessError from "../utils/error";
 
 const AWS_DEFINITION = {
     type: "object",
-    properties: {
-        profile: { type: "string" },
-    },
+    properties: {},
     additionalProperties: false,
 } as const;
 
