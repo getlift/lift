@@ -74,6 +74,8 @@ functions:
             BUCKET_NAME: ${construct:avatars.bucketName}
 ```
 
+Automatic permissions can be disabled: [read more about IAM permissions](permissions.md).
+
 ## Configuration reference
 
 ### Encryption

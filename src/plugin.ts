@@ -37,6 +37,15 @@ const CONSTRUCTS_DEFINITION = {
     additionalProperties: false,
 } as const;
 
+const LIFT_CONFIG_SCHEMA = {
+    type: "object",
+    properties: {
+        automaticPermissions: { type: "boolean" },
+    },
+    additionalProperties: false,
+} as const;
+type LiftConfig = FromSchema<typeof LIFT_CONFIG_SCHEMA>;
+
 /**
  * Serverless plugin
  */
@@ -114,6 +123,7 @@ class LiftPlugin {
 
     private registerConfigSchema() {
         this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", this.schema);
+        this.serverless.configSchemaHandler.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
     }
 
     private registerProviders() {
@@ -299,6 +309,12 @@ class LiftPlugin {
     }
 
     private appendPermissions(): void {
+        // Automatic permissions can be disabled via a `lift.automaticPermissions` flag in serverless.yml
+        const liftConfiguration = get(this.serverless.configurationInput, "lift", {}) as LiftConfig;
+        if (liftConfiguration.automaticPermissions === false) {
+            return;
+        }
+
         const constructs = this.getConstructs();
         const statements = flatten(
             Object.entries(constructs).map(([, construct]) => {
