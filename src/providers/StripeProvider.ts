@@ -62,9 +62,22 @@ export class StripeProvider implements ProviderInterface {
 
     private config: { apiKey: string; accountId?: string };
     public sdk: Stripe;
+    private state: Record<string, unknown>;
     constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
         this.config = this.resolveConfiguration(profile);
         this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
+        this.state = {};
+    }
+
+    public referenceNewStripeResources<T>(constructId: string, resources: T): void {
+        if (this.state[constructId] !== undefined) {
+            throw new ServerlessError("State information were already existing for this construct", "");
+        }
+        this.state[constructId] = resources;
+    }
+
+    public getStripeResources(constructId: string): unknown {
+        return this.state[constructId];
     }
 
     createConstruct(type: string, id: string): ConstructInterface {
