@@ -1,7 +1,7 @@
 import * as sinon from "sinon";
-import { SinonStub } from "sinon";
+import type { SinonStub } from "sinon";
 import * as AWS from "../../src/classes/aws";
-import { Provider as LegacyAwsProvider } from "../../src/types/serverless";
+import type { Provider as LegacyAwsProvider } from "../../src/types/serverless";
 
 /**
  * Helper to mock the AWS SDK

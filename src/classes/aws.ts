@@ -1,4 +1,4 @@
-import { Provider as LegacyAwsProvider } from "../types/serverless";
+import type { Provider as LegacyAwsProvider } from "../types/serverless";
 
 // This is defined as a separate function to allow mocking in tests
 export async function awsRequest<Input, Output>(
