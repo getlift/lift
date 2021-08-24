@@ -38,6 +38,7 @@ const QUEUE_DEFINITION = {
             minimum: 1,
             maximum: 10,
         },
+        fifo: { type: "boolean" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -114,14 +115,16 @@ export class Queue extends AwsConstruct {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
+        const baseName = `${this.provider.stackName}-${id}`;
+
         const dlq = new CdkQueue(this, "Dlq", {
-            queueName: `${this.provider.stackName}-${id}-dlq`,
+            queueName: `${baseName}-dlq`,
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
         });
 
         this.queue = new CdkQueue(this, "Queue", {
-            queueName: `${this.provider.stackName}-${id}`,
+            queueName: configuration.fifo === true ? `${baseName}.fifo` : `${baseName}`,
             // This should be 6 times the lambda function's timeout
             // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
             visibilityTimeout: Duration.seconds(functionTimeout * 6),
@@ -129,6 +132,7 @@ export class Queue extends AwsConstruct {
                 maxReceiveCount: maxRetries,
                 queue: dlq,
             },
+            fifo: configuration.fifo,
         });
 
         const alarmEmail = configuration.alarm;
