@@ -81,6 +81,10 @@ export class Queue extends AwsConstruct {
                     usage: "Body of the SQS message",
                     type: "string",
                 },
+                groupId: {
+                    usage: "This parameter applies only to FIFO (first-in-first-out) queues. The tag that specifies that a message belongs to a specific message group.",
+                    type: "string",
+                },
             },
         },
         failed: {
@@ -378,9 +382,12 @@ export class Queue extends AwsConstruct {
 
         const body = typeof options.body === "string" ? options.body : await this.askMessageBody();
 
+        const groupId = typeof options.groupId === "string" ? options.groupId : undefined;
+
         await this.provider.request<SendMessageRequest, never>("SQS", "sendMessage", {
             QueueUrl: queueUrl,
             MessageBody: body,
+            MessageGroupId: groupId,
         });
     }
 
