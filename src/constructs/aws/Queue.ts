@@ -118,9 +118,10 @@ export class Queue extends AwsConstruct {
         const baseName = `${this.provider.stackName}-${id}`;
 
         const dlq = new CdkQueue(this, "Dlq", {
-            queueName: `${baseName}-dlq`,
+            queueName: configuration.fifo === true ? `${baseName}-dlq.fifo` : `${baseName}-dlq`,
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
+            fifo: configuration.fifo,
         });
 
         this.queue = new CdkQueue(this, "Queue", {
