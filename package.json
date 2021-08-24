@@ -4,7 +4,6 @@
   "homepage": "https://github.com/getlift/lift",
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
-  "version": "1.6.0-beta.1",
   "dependencies": {
     "@aws-cdk/aws-apigatewayv2": "^1.110.1",
     "@aws-cdk/aws-apigatewayv2-integrations": "^1.110.1",
