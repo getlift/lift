@@ -17,6 +17,7 @@ import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
 import type { CliOptions } from "../../types/serverless";
+import ServerlessError from "../../utils/error";
 
 const QUEUE_DEFINITION = {
     type: "object",
@@ -81,8 +82,8 @@ export class Queue extends AwsConstruct {
                     usage: "Body of the SQS message",
                     type: "string",
                 },
-                groupId: {
-                    usage: "This parameter applies only to FIFO (first-in-first-out) queues. The tag that specifies that a message belongs to a specific message group.",
+                "group-id": {
+                    usage: "This parameter applies only to FIFO (first-in-first-out) queues. The ID that specifies that a message belongs to a specific message group.",
                     type: "string",
                 },
             },
@@ -380,15 +381,25 @@ export class Queue extends AwsConstruct {
             return;
         }
 
+        if (this.configuration.fifo === true && typeof options["group-id"] !== "string") {
+            throw new ServerlessError(
+                `The '${this.id}' queue is a FIFO queue. You must set the SQS message group ID via the '--group-id' option.`,
+                "LIFT_MISSING_CLI_OPTION"
+            );
+        }
+
         const body = typeof options.body === "string" ? options.body : await this.askMessageBody();
 
-        const groupId = typeof options.groupId === "string" ? options.groupId : undefined;
-
-        await this.provider.request<SendMessageRequest, never>("SQS", "sendMessage", {
+        const params: SendMessageRequest = {
             QueueUrl: queueUrl,
             MessageBody: body,
-            MessageGroupId: groupId,
-        });
+        };
+        if (this.configuration.fifo === true) {
+            // Type validated above
+            params.MessageGroupId = options["group-id"] as string;
+        }
+
+        await this.provider.request<SendMessageRequest, never>("SQS", "sendMessage", params);
     }
 
     displayLogs(options: CliOptions): void {
