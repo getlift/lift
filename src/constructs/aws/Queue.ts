@@ -222,7 +222,7 @@ export class Queue extends AwsConstruct {
                     arn: this.queue.queueArn,
                     batchSize: batchSize,
                     // TODO add setting
-                    maximumBatchingWindow: 60,
+                    maximumBatchingWindow: this.queue.fifo ? undefined : 60,
                 },
             },
         ];
