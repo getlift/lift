@@ -14,22 +14,24 @@ import {
     OriginRequestQueryStringBehavior,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
-import { CfnOutput, Construct, Duration, Fn, RemovalPolicy } from "@aws-cdk/core";
-import { FromSchema } from "json-schema-to-ts";
+import type { Construct } from "@aws-cdk/core";
+import { CfnOutput, Duration, Fn, RemovalPolicy } from "@aws-cdk/core";
+import type { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { HttpOrigin, S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
-import { BehaviorOptions, ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import type { BehaviorOptions, ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import * as path from "path";
 import * as fs from "fs";
 import { flatten } from "lodash";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
-import { log } from "../utils/logger";
-import { s3Put, s3Sync } from "../utils/s3-sync";
-import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
-import { AwsConstruct, AwsProvider } from "../classes";
-import { ConstructCommands } from "../classes/Construct";
-import ServerlessError from "../utils/error";
+import { AwsConstruct } from "@lift/constructs/abstracts";
+import type { ConstructCommands } from "@lift/constructs";
+import type { AwsProvider } from "@lift/providers";
+import { log } from "../../utils/logger";
+import { s3Put, s3Sync } from "../../utils/s3-sync";
+import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
+import ServerlessError from "../../utils/error";
 
 const SCHEMA = {
     type: "object",

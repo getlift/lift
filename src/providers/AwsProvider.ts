@@ -1,21 +1,32 @@
-import { App, CfnOutput, Stack } from "@aws-cdk/core";
+import type { CfnOutput } from "@aws-cdk/core";
+import { App, Stack } from "@aws-cdk/core";
 import { get, merge } from "lodash";
-import { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
+import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
+import type { ProviderInterface } from "@lift/providers";
+import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import {
+    DatabaseDynamoDBSingleTable,
+    Queue,
+    ServerSideWebsite,
+    StaticWebsite,
+    Storage,
+    Vpc,
+    Webhook,
+} from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
-import { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
-import { awsRequest } from "./aws";
-import { ConstructInterface } from ".";
-import { StaticConstructInterface } from "./Construct";
+import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
-import { Storage } from "../constructs/Storage";
-import { Queue } from "../constructs/Queue";
-import { Vpc } from "../constructs/Vpc";
-import { Webhook } from "../constructs/Webhook";
-import { StaticWebsite } from "../constructs/StaticWebsite";
-import { DatabaseDynamoDBSingleTable } from "../constructs/DatabaseDynamoDBSingleTable";
-import { ServerSideWebsite } from "../constructs/ServerSideWebsite";
 
-export class AwsProvider {
+const AWS_DEFINITION = {
+    type: "object",
+    properties: {},
+    additionalProperties: false,
+} as const;
+
+export class AwsProvider implements ProviderInterface {
+    public static type = "aws";
+    public static schema = AWS_DEFINITION;
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
 
     static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
@@ -36,6 +47,10 @@ export class AwsProvider {
 
     static getAllConstructClasses(): StaticConstructInterface[] {
         return Object.values(this.constructClasses);
+    }
+
+    static create(serverless: Serverless): ProviderInterface {
+        return new this(serverless);
     }
 
     private readonly app: App;
@@ -60,7 +75,7 @@ export class AwsProvider {
         serverless.stack = this.stack;
     }
 
-    create(type: string, id: string): ConstructInterface {
+    createConstruct(type: string, id: string): ConstructInterface {
         const Construct = AwsProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(

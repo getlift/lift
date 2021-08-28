@@ -6,6 +6,10 @@ The `queue` construct deploys a properly configured **SQS queue** with a **worke
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:
@@ -145,6 +149,8 @@ functions:
         environment:
             QUEUE_URL: ${construct:my-queue.queueUrl}
 ```
+
+Automatic permissions can be disabled: [read more about IAM permissions](permissions.md).
 
 ## Commands
 

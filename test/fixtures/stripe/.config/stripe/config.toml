@@ -1,0 +1,9 @@
+color = ""
+
+[myProfile]
+  account_id = "acct_1234"
+  device_name = "mydevice"
+  live_mode_api_key = "rk_live_live_mode_api_key"
+  live_mode_publishable_key = "pk_live_live_mode_publishable_key"
+  test_mode_api_key = "rk_test_key_from_toml_file"
+  test_mode_publishable_key = "pk_test_test_mode_publishable_key"

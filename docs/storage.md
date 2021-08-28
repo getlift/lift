@@ -4,6 +4,10 @@ The `storage` construct deploys S3 buckets to store files.
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:
@@ -69,6 +73,8 @@ functions:
         environment:
             BUCKET_NAME: ${construct:avatars.bucketName}
 ```
+
+Automatic permissions can be disabled: [read more about IAM permissions](permissions.md).
 
 ## Configuration reference
 

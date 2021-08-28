@@ -102,4 +102,28 @@ describe("permissions", () => {
 
         expectLiftStorageStatementIsAdded(cfTemplate);
     });
+
+    it("should be possible to disable automatic permissions", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "permissions",
+            configExt: merge({}, pluginConfigExt, {
+                // We disable automatic permissions
+                lift: {
+                    automaticPermissions: false,
+                },
+            }),
+            command: "package",
+        });
+        // There should be no "s3:*" permissions added
+        expect(
+            get(cfTemplate.Resources.IamRoleLambdaExecution, "Properties.Policies[0].PolicyDocument.Statement")
+        ).toMatchObject([
+            {
+                Action: ["logs:CreateLogStream", "logs:CreateLogGroup"],
+            },
+            {
+                Action: ["logs:PutLogEvents"],
+            },
+        ]);
+    });
 });

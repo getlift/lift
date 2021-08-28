@@ -9,19 +9,21 @@ import {
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
-import { Construct as CdkConstruct, CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
-import { FromSchema } from "json-schema-to-ts";
+import type { Construct as CdkConstruct } from "@aws-cdk/core";
+import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import type { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
-import { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
-import { log } from "../utils/logger";
-import { s3Sync } from "../utils/s3-sync";
-import { AwsConstruct, AwsProvider } from "../classes";
-import { ConstructCommands } from "../classes/Construct";
-import ServerlessError from "../utils/error";
-import { emptyBucket, invalidateCloudFrontCache } from "../classes/aws";
+import type { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import type { AwsProvider } from "@lift/providers";
+import { AwsConstruct } from "@lift/constructs/abstracts";
+import type { ConstructCommands } from "@lift/constructs";
+import { log } from "../../utils/logger";
+import { s3Sync } from "../../utils/s3-sync";
+import ServerlessError from "../../utils/error";
+import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",

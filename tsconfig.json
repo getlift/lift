@@ -1,5 +1,11 @@
 {
     "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@lift/providers": ["src/providers"],
+            "@lift/constructs": ["src/constructs"],
+            "@lift/constructs/*": ["src/constructs/*"]
+        },
         "declaration": true,
         "importHelpers": true,
         "module": "commonjs",

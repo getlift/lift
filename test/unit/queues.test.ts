@@ -1,6 +1,6 @@
 import { merge } from "lodash";
 import * as sinon from "sinon";
-import { DeleteMessageBatchResult, ReceiveMessageResult, SendMessageBatchResult } from "aws-sdk/clients/sqs";
+import type { DeleteMessageBatchResult, ReceiveMessageResult, SendMessageBatchResult } from "aws-sdk/clients/sqs";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 import { mockAws } from "../utils/mockAws";

@@ -46,7 +46,7 @@ declare module "@serverless/test/run-serverless" {
 }
 
 declare module "@serverless/test/setup-run-serverless-fixtures-engine" {
-    import runServerless from "@serverless/test/run-serverless";
+    import type runServerless from "@serverless/test/run-serverless";
 
     type SetupRunServerlessFixturesEngineOptions = {
         fixturesDir: string;

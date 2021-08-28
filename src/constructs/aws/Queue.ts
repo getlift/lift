@@ -1,20 +1,22 @@
 import { Queue as CdkQueue } from "@aws-cdk/aws-sqs";
-import { FromSchema } from "json-schema-to-ts";
+import type { FromSchema } from "json-schema-to-ts";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
-import { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
-import { Construct as CdkConstruct, CfnOutput, Duration } from "@aws-cdk/core";
+import type { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
+import type { Construct as CdkConstruct } from "@aws-cdk/core";
+import { CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
-import { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
+import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import ora from "ora";
 import { spawnSync } from "child_process";
 import * as inquirer from "inquirer";
-import { AwsConstruct, AwsProvider } from "../classes";
+import type { AwsProvider } from "@lift/providers";
+import { AwsConstruct } from "@lift/constructs/abstracts";
+import type { ConstructCommands } from "@lift/constructs";
 import { pollMessages, retryMessages } from "./queue/sqs";
-import { sleep } from "../utils/sleep";
-import { PolicyStatement } from "../CloudFormation";
-import { ConstructCommands } from "../classes/Construct";
-import { CliOptions } from "../types/serverless";
+import { sleep } from "../../utils/sleep";
+import { PolicyStatement } from "../../CloudFormation";
+import type { CliOptions } from "../../types/serverless";
 
 const QUEUE_DEFINITION = {
     type: "object",

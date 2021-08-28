@@ -4,6 +4,10 @@ The `database/dynamodb-single-table` construct deploys a single DynamoDB table w
 
 ## Quick start
 
+```bash
+serverless plugin install -n serverless-lift
+```
+
 ```yaml
 service: my-app
 provider:
