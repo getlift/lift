@@ -148,34 +148,6 @@ When iterating, it is possible to skip the CloudFormation deployment and directl
 
 ## Configuration reference
 
-### API Gateway
-
-API Gateway provides 2 versions of APIs:
-
-- v1: REST API
-- v2: HTTP API, the fastest and cheapest
-
-By default, the `server-side-website` construct supports v2 HTTP APIs.
-
-If your Lambda functions uses `http` events (v1 REST API) instead of `httpApi` events (v2 HTTP API), use the `apiGateway: "rest"` option:
-
-```yaml
-constructs:
-    website:
-        type: server-side-website
-        apiGateway: 'rest' # either "rest" (v1) or "http" (v2, the default)
-
-functions:
-    v1:
-        handler: foo.handler
-        events:
-            -   http: 'GET /' # REST API (v1)
-    v2:
-        handler: bar.handler
-        events:
-            -   httpApi: 'GET /' # HTTP API (v2)
-```
-
 ### Assets
 
 ```yaml
@@ -211,6 +183,34 @@ With the example above:
 - `https://<domain>/css/*` -> serves the files uploaded from the local `dist/css` directory
 - `https://<domain>/images/*` -> serves the files uploaded from the local `assets/animations` directory
 - `https://<domain>/favicon.ico` -> serves the file uploaded from `public/favicon.ico`
+
+### API Gateway
+
+API Gateway provides 2 versions of APIs:
+
+- v1: REST API
+- v2: HTTP API, the fastest and cheapest
+
+By default, the `server-side-website` construct supports v2 HTTP APIs.
+
+If your Lambda functions uses `http` events (v1 REST API) instead of `httpApi` events (v2 HTTP API), use the `apiGateway: "rest"` option:
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        apiGateway: 'rest' # either "rest" (v1) or "http" (v2, the default)
+
+functions:
+    v1:
+        handler: foo.handler
+        events:
+            -   http: 'GET /' # REST API (v1)
+    v2:
+        handler: bar.handler
+        events:
+            -   httpApi: 'GET /' # HTTP API (v2)
+```
 
 ### Custom domain
 
