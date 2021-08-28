@@ -154,7 +154,14 @@ describe("server-side website", () => {
                     QueryStringsConfig: { QueryStringBehavior: "all" },
                     HeadersConfig: {
                         HeaderBehavior: "whitelist",
-                        Headers: ["Accept", "Accept-Language", "Origin", "Referer", "X-Forwarded-Host"],
+                        Headers: [
+                            "Accept",
+                            "Accept-Language",
+                            "Origin",
+                            "Referer",
+                            "X-Requested-With",
+                            "X-Forwarded-Host",
+                        ],
                     },
                 },
             },
@@ -449,7 +456,7 @@ describe("server-side website", () => {
         );
     });
 
-    it("should allow to customize the forwarded headers", async () => {
+    it("should allow to override the forwarded headers", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
             config: Object.assign(baseConfig, {
@@ -466,15 +473,7 @@ describe("server-side website", () => {
                 OriginRequestPolicyConfig: {
                     HeadersConfig: {
                         HeaderBehavior: "whitelist",
-                        Headers: [
-                            "Accept",
-                            "Accept-Language",
-                            "Origin",
-                            "Referer",
-                            "X-Forwarded-Host",
-                            "X-My-Custom-Header",
-                            "X-My-Other-Custom-Header",
-                        ],
+                        Headers: ["X-My-Custom-Header", "X-My-Other-Custom-Header"],
                     },
                 },
             },
@@ -488,7 +487,7 @@ describe("server-side website", () => {
                 constructs: {
                     backend: {
                         type: "server-side-website",
-                        forwardedHeaders: ["Authorization"],
+                        forwardedHeaders: ["Authorization", "X-My-Custom-Header"],
                     },
                 },
             }),
@@ -498,7 +497,7 @@ describe("server-side website", () => {
                 OriginRequestPolicyConfig: {
                     HeadersConfig: {
                         // Should not contain "Authorization"
-                        Headers: ["Accept", "Accept-Language", "Origin", "Referer", "X-Forwarded-Host"],
+                        Headers: ["X-My-Custom-Header"],
                     },
                 },
             },

@@ -338,6 +338,10 @@ export class ServerSideWebsite extends AwsConstruct {
         }
         // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
         additionalHeadersToForward = additionalHeadersToForward.filter((header: string) => header !== "Authorization");
+        if (additionalHeadersToForward.length > 0) {
+            // Custom list
+            return OriginRequestHeaderBehavior.allowList(...additionalHeadersToForward);
+        }
 
         /**
          * We forward everything except:
@@ -350,10 +354,9 @@ export class ServerSideWebsite extends AwsConstruct {
             "Accept-Language",
             "Origin",
             "Referer",
+            "X-Requested-With",
             // This header is set by our CloudFront Function
-            "X-Forwarded-Host",
-            // We merge the user-provided list in the hardcoded list
-            ...additionalHeadersToForward
+            "X-Forwarded-Host"
         );
     }
 
