@@ -209,15 +209,10 @@ export class ServerSideWebsite extends AwsConstruct {
     }
 
     variables(): Record<string, unknown> {
-        return {
-            url: () => {
-                let domain = this.getMainCustomDomain();
-                if (domain === undefined) {
-                    domain = this.distribution.distributionDomainName;
-                }
+        const domain = this.getMainCustomDomain() ?? this.distribution.distributionDomainName;
 
-                return Fn.join("", ["https://", domain]);
-            },
+        return {
+            url: Fn.join("", ["https://", domain]),
         };
     }
 
