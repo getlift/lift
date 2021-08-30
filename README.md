@@ -134,7 +134,7 @@ constructs:
 
 [Read more...](docs/server-side-website.md)
 
-More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/components).
+More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/constructs).
 
 ## Ejecting
 

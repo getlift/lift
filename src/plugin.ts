@@ -323,10 +323,17 @@ class LiftPlugin {
     private registerCommands() {
         const constructsConfiguration = get(this.serverless.configurationInput, "constructs", {}) as Record<
             string,
-            { type: string }
+            { type?: string }
         >;
         // For each construct
         for (const [id, constructConfig] of Object.entries(constructsConfiguration)) {
+            if (constructConfig.type === undefined) {
+                throw new ServerlessError(
+                    `The construct '${id}' has no 'type' defined.\n` +
+                        "Find all construct types available here: https://github.com/getlift/lift#constructs",
+                    "LIFT_MISSING_CONSTRUCT_TYPE"
+                );
+            }
             const constructClass = this.getConstructClass(constructConfig.type);
             if (constructClass === undefined) {
                 throw new ServerlessError(
