@@ -101,6 +101,35 @@ serverless landing:upload
 
 This command only takes seconds: it directly uploads files to S3 and clears the CloudFront cache.
 
+## Variables
+
+All static-website constructs expose the following variables:
+
+- `cname`: the domain name of the resource, such as `d111111abcdef8.cloudfront.net`
+
+This can be used to reference the bucket from Route53 configuration, for example:
+
+```yaml
+constructs:
+    landing:
+        type: static-website
+        path: public
+
+resources:
+  Resources:
+    Route53Record:
+      Type: AWS::Route53::RecordSet
+      Properties:
+        HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ
+        Name: app.mydomain.
+        Type: A
+        AliasTarget:
+          HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ
+          DNSName: ${construct:landing.cname}
+```
+
+_How it works: the `${construct:landing.cname}` variable will automatically be replaced with a CloudFormation reference to the CloudFront Distribution._
+
 ## Configuration reference
 
 ### Path
