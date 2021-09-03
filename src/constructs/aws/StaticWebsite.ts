@@ -71,6 +71,7 @@ export class StaticWebsite extends AwsConstruct {
         },
     };
 
+    private readonly distribution: Distribution;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
@@ -108,7 +109,7 @@ export class StaticWebsite extends AwsConstruct {
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
-        const distribution = new Distribution(this, "CDN", {
+        this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
             defaultRootObject: "index.html",
@@ -141,7 +142,7 @@ export class StaticWebsite extends AwsConstruct {
             description: "Name of the bucket that stores the static website.",
             value: bucket.bucketName,
         });
-        let websiteDomain: string = distribution.distributionDomainName;
+        let websiteDomain: string = this.distribution.distributionDomainName;
         if (configuration.domain !== undefined) {
             // In case of multiple domains, we take the first one
             websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
@@ -152,12 +153,18 @@ export class StaticWebsite extends AwsConstruct {
         });
         this.cnameOutput = new CfnOutput(this, "CloudFrontCName", {
             description: "CloudFront CNAME.",
-            value: distribution.distributionDomainName,
+            value: this.distribution.distributionDomainName,
         });
         this.distributionIdOutput = new CfnOutput(this, "DistributionId", {
             description: "ID of the CloudFront distribution.",
-            value: distribution.distributionId,
+            value: this.distribution.distributionId,
         });
+    }
+
+    variables(): Record<string, unknown> {
+        return {
+            cname: this.distribution.distributionDomainName,
+        };
     }
 
     outputs(): Record<string, () => Promise<string | undefined>> {
