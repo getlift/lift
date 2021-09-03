@@ -120,11 +120,11 @@ resources:
     Route53Record:
       Type: AWS::Route53::RecordSet
       Properties:
-        HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ
-        Name: app.mydomain.
+        HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ # Your HostedZoneId
+        Name: app.mydomain
         Type: A
         AliasTarget:
-          HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ
+          HostedZoneId: Z2FDTNDATAQYW2 # Cloudfront Route53 HostedZoneId. This does not change.
           DNSName: ${construct:landing.cname}
 ```
 
