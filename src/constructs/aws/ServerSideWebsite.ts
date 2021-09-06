@@ -354,8 +354,10 @@ export class ServerSideWebsite extends AwsConstruct {
         return OriginRequestHeaderBehavior.allowList(
             "Accept",
             "Accept-Language",
+            "Content-Type",
             "Origin",
             "Referer",
+            "User-Agent",
             "X-Requested-With",
             // This header is set by our CloudFront Function
             "X-Forwarded-Host"

@@ -157,8 +157,10 @@ describe("server-side website", () => {
                         Headers: [
                             "Accept",
                             "Accept-Language",
+                            "Content-Type",
                             "Origin",
                             "Referer",
+                            "User-Agent",
                             "X-Requested-With",
                             "X-Forwarded-Host",
                         ],

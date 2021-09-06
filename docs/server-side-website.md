@@ -284,8 +284,10 @@ By default, CloudFront is configured to forward the following HTTP headers to th
 - `Accept`
 - `Accept-Language`
 - `Authorization`
+- `Content-Type`
 - `Origin`
 - `Referer`
+- `User-Agent`
 - `X-Forwarded-Host`
 - `X-Requested-With`
 
