@@ -4,7 +4,15 @@ import { get, merge } from "lodash";
 import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
-import { DatabaseDynamoDBSingleTable, Queue, StaticWebsite, Storage, Vpc, Webhook } from "@lift/constructs/aws";
+import {
+    DatabaseDynamoDBSingleTable,
+    Queue,
+    ServerSideWebsite,
+    StaticWebsite,
+    Storage,
+    Vpc,
+    Webhook,
+} from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
 import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
@@ -50,7 +58,12 @@ export class AwsProvider implements ProviderInterface {
     public readonly region: string;
     public readonly stackName: string;
     private readonly legacyProvider: LegacyAwsProvider;
-    public naming: { getStackName: () => string; getLambdaLogicalId: (functionName: string) => string };
+    public naming: {
+        getStackName: () => string;
+        getLambdaLogicalId: (functionName: string) => string;
+        getRestApiLogicalId: () => string;
+        getHttpApiLogicalId: () => string;
+    };
 
     constructor(private readonly serverless: Serverless) {
         this.stackName = serverless.getProvider("aws").naming.getStackName();
@@ -152,4 +165,12 @@ export class AwsProvider implements ProviderInterface {
  *  If they use TypeScript, `registerConstructs()` will validate that the construct class
  *  implements both static fields (type, schema, create(), …) and non-static fields (outputs(), references(), …).
  */
-AwsProvider.registerConstructs(Storage, Queue, Webhook, StaticWebsite, Vpc, DatabaseDynamoDBSingleTable);
+AwsProvider.registerConstructs(
+    Storage,
+    Queue,
+    Webhook,
+    StaticWebsite,
+    Vpc,
+    DatabaseDynamoDBSingleTable,
+    ServerSideWebsite
+);

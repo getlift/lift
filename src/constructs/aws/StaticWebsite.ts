@@ -12,14 +12,7 @@ import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import type { Construct as CdkConstruct } from "@aws-cdk/core";
 import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
 import type { FromSchema } from "json-schema-to-ts";
-import type {
-    DeleteObjectsOutput,
-    DeleteObjectsRequest,
-    ListObjectsV2Output,
-    ListObjectsV2Request,
-} from "aws-sdk/clients/s3";
 import chalk from "chalk";
-import type { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
@@ -30,6 +23,7 @@ import type { ConstructCommands } from "@lift/constructs";
 import { log } from "../../utils/logger";
 import { s3Sync } from "../../utils/s3-sync";
 import ServerlessError from "../../utils/error";
+import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -210,22 +204,7 @@ export class StaticWebsite extends AwsConstruct {
         if (distributionId === undefined) {
             return;
         }
-        await this.provider.request<CreateInvalidationRequest, CreateInvalidationResult>(
-            "CloudFront",
-            "createInvalidation",
-            {
-                DistributionId: distributionId,
-                InvalidationBatch: {
-                    // This should be a unique ID: we use a timestamp
-                    CallerReference: Date.now().toString(),
-                    Paths: {
-                        // Invalidate everything
-                        Items: ["/*"],
-                        Quantity: 1,
-                    },
-                },
-            }
-        );
+        await invalidateCloudFrontCache(this.provider, distributionId);
     }
 
     async preRemove(): Promise<void> {
@@ -238,19 +217,7 @@ export class StaticWebsite extends AwsConstruct {
         log(
             `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
         );
-        const data = await this.provider.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
-            Bucket: bucketName,
-        });
-        if (data.Contents === undefined) {
-            return;
-        }
-        const keys = data.Contents.map((item) => item.Key).filter((key): key is string => key !== undefined);
-        await this.provider.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
-            Bucket: bucketName,
-            Delete: {
-                Objects: keys.map((key) => ({ Key: key })),
-            },
-        });
+        await emptyBucket(this.provider, bucketName);
     }
 
     async getUrl(): Promise<string | undefined> {

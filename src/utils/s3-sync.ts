@@ -29,26 +29,29 @@ type S3Objects = Record<string, S3Object>;
 export async function s3Sync({
     aws,
     localPath,
+    targetPathPrefix,
     bucketName,
 }: {
     aws: AwsProvider;
     localPath: string;
+    targetPathPrefix?: string;
     bucketName: string;
 }): Promise<{ hasChanges: boolean }> {
     let hasChanges = false;
     const filesToUpload: string[] = await listFilesRecursively(localPath);
-    const existingS3Objects = await s3ListAll(aws, bucketName);
+    const existingS3Objects = await s3ListAll(aws, bucketName, targetPathPrefix);
 
     // Upload files by chunks
     let skippedFiles = 0;
     for (const batch of chunk(filesToUpload, 2)) {
         await Promise.all(
             batch.map(async (file) => {
+                const targetKey = targetPathPrefix !== undefined ? path.join(targetPathPrefix, file) : file;
                 const fileContent = fs.readFileSync(path.join(localPath, file));
 
                 // Check that the file isn't already uploaded
-                if (file in existingS3Objects) {
-                    const existingObject = existingS3Objects[file];
+                if (targetKey in existingS3Objects) {
+                    const existingObject = existingS3Objects[targetKey];
                     const etag = computeS3ETag(fileContent);
                     if (etag === existingObject.ETag) {
                         skippedFiles++;
@@ -58,7 +61,7 @@ export async function s3Sync({
                 }
 
                 console.log(`Uploading ${file}`);
-                await s3Put(aws, bucketName, file, fileContent);
+                await s3Put(aws, bucketName, targetKey, fileContent);
                 hasChanges = true;
             })
         );
@@ -67,10 +70,13 @@ export async function s3Sync({
         console.log(chalk.gray(`Skipped uploading ${skippedFiles} unchanged files`));
     }
 
-    const objectsToDelete = findObjectsToDelete(Object.keys(existingS3Objects), filesToUpload);
-    if (objectsToDelete.length > 0) {
-        objectsToDelete.map((key) => console.log(`Deleting ${key}`));
-        await s3Delete(aws, bucketName, objectsToDelete);
+    const targetKeys = filesToUpload.map((file) =>
+        targetPathPrefix !== undefined ? path.join(targetPathPrefix, file) : file
+    );
+    const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
+    if (keysToDelete.length > 0) {
+        keysToDelete.map((key) => console.log(`Deleting ${key}`));
+        await s3Delete(aws, bucketName, keysToDelete);
         hasChanges = true;
     }
 
@@ -99,13 +105,14 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
     return flatten(files);
 }
 
-async function s3ListAll(aws: AwsProvider, bucketName: string): Promise<S3Objects> {
+async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: string): Promise<S3Objects> {
     let result;
     let continuationToken = undefined;
     const objects: Record<string, S3Object> = {};
     do {
         result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
             Bucket: bucketName,
+            Prefix: pathPrefix,
             MaxKeys: 1000,
             ContinuationToken: continuationToken,
         });
@@ -121,12 +128,12 @@ async function s3ListAll(aws: AwsProvider, bucketName: string): Promise<S3Object
     return objects;
 }
 
-function findObjectsToDelete(existing: string[], target: string[]): string[] {
+function findKeysToDelete(existing: string[], target: string[]): string[] {
     // Returns every key that shouldn't exist anymore
     return existing.filter((key) => target.indexOf(key) === -1);
 }
 
-async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
+export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
     let contentType = lookup(key);
     if (contentType === false) {
         contentType = "application/octet-stream";
