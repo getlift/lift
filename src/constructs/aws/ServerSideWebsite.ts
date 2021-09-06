@@ -334,6 +334,13 @@ export class ServerSideWebsite extends AwsConstruct {
         // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
         additionalHeadersToForward = additionalHeadersToForward.filter((header: string) => header !== "Authorization");
         if (additionalHeadersToForward.length > 0) {
+            if (additionalHeadersToForward.length > 10) {
+                throw new ServerlessError(
+                    `Invalid value in 'constructs.${this.id}.forwardedHeaders': ${additionalHeadersToForward.length} headers are configured but only 10 headers can be forwarded (this is an CloudFront limitation).`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+
             // Custom list
             return OriginRequestHeaderBehavior.allowList(...additionalHeadersToForward);
         }

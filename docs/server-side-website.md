@@ -291,7 +291,7 @@ By default, CloudFront is configured to forward the following HTTP headers to th
 
 Why only this list? Because CloudFront + API Gateway requires us to define explicitly the list of headers to forward. It isn't possible to forward _all_ headers.
 
-To access more headers from the client (or [from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-cloudfront-headers.html)), you can override the list of headers forwarded by CloudFront in `forwardedHeaders`:
+To access more headers from the client (or [from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-cloudfront-headers.html)), you can redefine the list of headers forwarded by CloudFront in `forwardedHeaders`:
 
 ```yaml
 constructs:

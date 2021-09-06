@@ -522,6 +522,24 @@ describe("server-side website", () => {
         );
     });
 
+    it("should error if more than 10 headers are configured", async () => {
+        await expect(() => {
+            return runServerless({
+                command: "package",
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        backend: {
+                            type: "server-side-website",
+                            forwardedHeaders: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "Invalid value in 'constructs.backend.forwardedHeaders': 11 headers are configured but only 10 headers can be forwarded (this is an CloudFront limitation)."
+        );
+    });
+
     it("should synchronize assets to S3", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
