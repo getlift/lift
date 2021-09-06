@@ -137,6 +137,28 @@ functions:
 
 _How it works: the `${construct:website.url}` variable will automatically be replaced with a CloudFormation reference._
 
+- `cname`: the CloudFront domain to point custom domains to, for example `d1111abcdef8.cloudfront.net`
+
+This can be used to configure a custom domain with Route53, for example:
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        # ...
+resources:
+    Resources:
+        Route53Record:
+            Type: AWS::Route53::RecordSet
+            Properties:
+                HostedZoneId: ZXXXXXXXXXXXXXXXXXXJ # Your HostedZoneId
+                Name: app.mydomain
+                Type: A
+                AliasTarget:
+                    HostedZoneId: Z2FDTNDATAQYW2 # Cloudfront Route53 HostedZoneId. This does not change.
+                    DNSName: ${construct:website.cname}
+```
+
 ## Commands
 
 `serverless deploy` deploys everything configured in `serverless.yml` and uploads assets.
