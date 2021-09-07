@@ -58,6 +58,7 @@ const SCHEMA = {
         },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        defaultRootObject: { type: "string" },
     },
     additionalProperties: false,
 } as const;
@@ -175,6 +176,7 @@ export class ServerSideWebsite extends AwsConstruct {
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
             domainNames: domains,
+            defaultRootObject: configuration.defaultRootObject
         });
 
         // CloudFormation outputs
