@@ -365,6 +365,56 @@ describe("server-side website", () => {
         });
     });
 
+    it("should support a custom domain with specific default root object", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        assets: {
+                            "/assets/*": "public",
+                        },
+                        domain: "example.com",
+                        defaultRootObject: "index.html",
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::Distribution",
+            Properties: {
+                DistributionConfig: {
+                    // Check that CloudFront uses the custom ACM certificate and custom domain
+                    Aliases: ["example.com"],
+                    ViewerCertificate: {
+                        AcmCertificateArn:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        MinimumProtocolVersion: "TLSv1.2_2019",
+                        SslSupportMethod: "sni-only",
+                    },
+                    DefaultRootObject: "index.html",
+                },
+            },
+        });
+        // The domain should be the custom domain, not the CloudFront one
+        expect(cfTemplate.Outputs).toMatchObject({
+            [computeLogicalId("backend", "Domain")]: {
+                Description: "Website domain name.",
+                Value: "example.com",
+            },
+            [computeLogicalId("backend", "CloudFrontCName")]: {
+                Description: "CloudFront CNAME.",
+                Value: {
+                    "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"],
+                },
+            },
+        });
+    });
+    
     it("should support multiple custom domains", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
