@@ -24,6 +24,7 @@ import { log } from "../../utils/logger";
 import { s3Sync } from "../../utils/s3-sync";
 import ServerlessError from "../../utils/error";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
+import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 
 const STATIC_WEBSITE_DEFINITION = {
     type: "object",
@@ -48,6 +49,7 @@ const STATIC_WEBSITE_DEFINITION = {
             additionalProperties: false,
         },
         errorPage: { type: "string" },
+        redirectToMainDomain: { type: "boolean" },
     },
     additionalProperties: false,
     required: ["path"],
@@ -66,6 +68,7 @@ export class StaticWebsite extends AwsConstruct {
     };
 
     private readonly distribution: Distribution;
+    private readonly domains: string[] | undefined;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
@@ -98,7 +101,7 @@ export class StaticWebsite extends AwsConstruct {
         bucket.grantRead(cloudFrontOAI);
 
         // Cast the domains to an array
-        const domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
+        this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
@@ -119,6 +122,10 @@ export class StaticWebsite extends AwsConstruct {
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 functionAssociations: [
                     {
+                        function: this.createRequestFunction(),
+                        eventType: FunctionEventType.VIEWER_REQUEST,
+                    },
+                    {
                         function: this.createResponseFunction(),
                         eventType: FunctionEventType.VIEWER_RESPONSE,
                     },
@@ -128,7 +135,7 @@ export class StaticWebsite extends AwsConstruct {
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
-            domainNames: domains,
+            domainNames: this.domains,
         });
 
         // CloudFormation outputs
@@ -302,6 +309,24 @@ export class StaticWebsite extends AwsConstruct {
 
         return new cloudfront.Function(this, "ResponseFunction", {
             functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
+    }
+
+    private createRequestFunction(): cloudfront.Function {
+        let additionalCode = "";
+
+        if (this.configuration.redirectToMainDomain === true) {
+            additionalCode += redirectToMainDomain(this.domains);
+        }
+
+        const code = `function handler(event) {
+    var request = event.request;${additionalCode}
+    return request;
+}`;
+
+        return new cloudfront.Function(this, "RequestFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }

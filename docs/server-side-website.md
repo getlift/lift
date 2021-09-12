@@ -286,6 +286,22 @@ Usually, we can retrieve which domain a user is visiting via the `Host` HTTP hea
 
 The `server-side-website` construct offers a workaround: the `X-Forwarded-Host` header is automatically populated via CloudFront Functions. Code running on Lambda will be able to access the original `Host` header via this `X-Forwarded-Host` header.
 
+#### Redirect all domains to a single one
+
+It is sometimes necessary to redirect every request to a single domain. A common example is to redirect the root domain to the `www` version.
+
+```yaml
+constructs:
+    website:
+        # ...
+        domain:
+            - www.mywebsite.com
+            - mywebsite.com
+        redirectToMainDomain: true
+```
+
+The first domain in the list will be considered the main domain. In this case, `mywebsite.com` will redirect to `www.mywebsite.com`.
+
 ### Error pages
 
 ```yaml
