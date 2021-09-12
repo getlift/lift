@@ -1,11 +1,12 @@
 import type { CfnOutput } from "@aws-cdk/core";
 import { App, Stack } from "@aws-cdk/core";
-import { get, merge } from "lodash";
 import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
-import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import type { CredentialsOptions } from "aws-sdk/lib/credentials";
+import { ManagedPolicy, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
 import {
     DatabaseDynamoDBSingleTable,
+    HttpApi,
     Queue,
     ServerSideWebsite,
     StaticWebsite,
@@ -14,19 +15,11 @@ import {
     Webhook,
 } from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
-import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import type { Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
 
-const AWS_DEFINITION = {
-    type: "object",
-    properties: {},
-    additionalProperties: false,
-} as const;
-
-export class AwsProvider implements ProviderInterface {
-    public static type = "aws";
-    public static schema = AWS_DEFINITION;
+export class AwsProvider {
     private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
 
     static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
@@ -49,11 +42,7 @@ export class AwsProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
-    static create(serverless: Serverless): ProviderInterface {
-        return new this(serverless);
-    }
-
-    private readonly app: App;
+    public readonly app: App;
     public readonly stack: Stack;
     public readonly region: string;
     public readonly stackName: string;
@@ -64,18 +53,35 @@ export class AwsProvider implements ProviderInterface {
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
     };
+    public readonly constructs: Record<string, ConstructInterface> = {};
+    /**
+     * IAM role used by all Lambda functions of the stack.
+     */
+    public readonly lambdaRole: Role;
 
     constructor(private readonly serverless: Serverless) {
-        this.stackName = serverless.getProvider("aws").naming.getStackName();
-        this.app = new App();
-        this.stack = new Stack(this.app);
         this.legacyProvider = serverless.getProvider("aws");
+        this.stackName = this.legacyProvider.naming.getStackName();
+        this.region = this.legacyProvider.getRegion();
+        this.app = new App();
+        this.stack = new Stack(this.app, this.stackName, {
+            env: {
+                region: this.region,
+            },
+        });
         this.naming = this.legacyProvider.naming;
-        this.region = serverless.getProvider("aws").getRegion();
         serverless.stack = this.stack;
+
+        this.lambdaRole = new Role(this.stack, "LambdaRole", {
+            assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+            managedPolicies: [
+                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaVPCAccessExecutionRole"),
+                ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+            ],
+        });
     }
 
-    createConstruct(type: string, id: string): ConstructInterface {
+    createConstruct(type: string, id: string, configuration: Record<string, unknown>): ConstructInterface {
         const Construct = AwsProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(
@@ -84,9 +90,8 @@ export class AwsProvider implements ProviderInterface {
                 "LIFT_UNKNOWN_CONSTRUCT_TYPE"
             );
         }
-        const configuration = get(this.serverless.configurationInput.constructs, id, {});
 
-        return Construct.create(this, id, configuration);
+        return Construct.create(id, configuration, this);
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
@@ -150,10 +155,16 @@ export class AwsProvider implements ProviderInterface {
         return awsRequest<Input, Output>(params, service, method, this.legacyProvider);
     }
 
-    appendCloudformationResources(): void {
-        merge(this.serverless.service, {
-            resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
-        });
+    getCredentials(): CredentialsOptions {
+        return this.legacyProvider.getCredentials();
+    }
+
+    async getAccountId(): Promise<string> {
+        return this.legacyProvider.getAccountId();
+    }
+
+    static getProviderName(): string {
+        return "aws-cdk";
     }
 }
 
@@ -172,5 +183,6 @@ AwsProvider.registerConstructs(
     StaticWebsite,
     Vpc,
     DatabaseDynamoDBSingleTable,
-    ServerSideWebsite
+    ServerSideWebsite,
+    HttpApi
 );

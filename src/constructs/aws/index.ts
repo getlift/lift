@@ -5,3 +5,4 @@ export { Storage } from "./Storage";
 export { Vpc } from "./Vpc";
 export { Webhook } from "./Webhook";
 export { ServerSideWebsite } from "./ServerSideWebsite";
+export { HttpApi } from "./HttpApi";

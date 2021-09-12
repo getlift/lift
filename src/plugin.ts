@@ -6,9 +6,9 @@ import { readFileSync } from "fs";
 import { dump } from "js-yaml";
 import { DefaultTokenResolver, Lazy, StringConcat, Tokenization } from "@aws-cdk/core";
 import type { FromSchema } from "json-schema-to-ts";
-import type { ProviderInterface, StaticProviderInterface } from "@lift/providers";
-import { AwsProvider, StripeProvider } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
+import { NetlifyWebsite } from "@lift/constructs/netlify/NetlifyWebsite";
+import { AwsProvider } from "@lift/providers";
 import type {
     CommandsDefinition,
     DeprecatedVariableResolver,
@@ -18,27 +18,9 @@ import type {
 } from "./types/serverless";
 import { log } from "./utils/logger";
 import ServerlessError from "./utils/error";
-
-const PROVIDER_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
-// This enables all existing constructs defined prior intoduction of "providers" property to work
-const DEFAULT_PROVIDER = "defaultAwsProvider";
-const PROVIDERS_DEFINITION = {
-    type: "object",
-    patternProperties: {
-        [PROVIDER_ID_PATTERN]: {
-            allOf: [
-                {
-                    type: "object",
-                    properties: {
-                        type: { type: "string" },
-                    },
-                    required: ["type"],
-                },
-            ] as Record<string, unknown>[],
-        },
-    },
-    additionalProperties: false,
-};
+import { CdkDeploy } from "./plugins/CdkDeploy";
+import { CdkPackage } from "./plugins/CdkPackage";
+import { CdkInfo } from "./plugins/CdkInfo";
 
 const CONSTRUCT_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 const CONSTRUCTS_DEFINITION = {
@@ -72,13 +54,33 @@ type LiftConfig = FromSchema<typeof LIFT_CONFIG_SCHEMA>;
 /**
  * Serverless plugin
  */
-class LiftPlugin {
+export class LiftPlugin {
+    private static readonly constructClasses: Record<string, StaticConstructInterface> = {};
+
+    static registerConstructs(...constructClasses: StaticConstructInterface[]): void {
+        for (const constructClass of constructClasses) {
+            if (constructClass.type in this.constructClasses) {
+                throw new ServerlessError(
+                    `The construct type '${constructClass.type}' was registered twice`,
+                    "LIFT_CONSTRUCT_TYPE_CONFLICT"
+                );
+            }
+            this.constructClasses[constructClass.type] = constructClass;
+        }
+    }
+
+    static getConstructClass(type: string): StaticConstructInterface | undefined {
+        return this.constructClasses[type];
+    }
+
+    static getAllConstructClasses(): StaticConstructInterface[] {
+        return Object.values(this.constructClasses);
+    }
+
     private constructs?: Record<string, ConstructInterface>;
-    private providers: Record<string, ProviderInterface>;
     private readonly serverless: Serverless;
-    private static readonly providerClasses: Record<string, StaticProviderInterface> = {};
-    private readonly providersSchema = PROVIDERS_DEFINITION;
     private readonly constructsSchema = CONSTRUCTS_DEFINITION;
+    private readonly awsProvider: AwsProvider;
     public readonly hooks: Record<string, Hook>;
     public readonly commands: CommandsDefinition = {};
     public readonly configurationVariablesSources: Record<string, VariableResolver>;
@@ -87,8 +89,6 @@ class LiftPlugin {
 
     constructor(serverless: Serverless, cliOptions: Record<string, string>) {
         this.serverless = serverless;
-        // This method is exposed for Lift tests only, it is not a public API
-        Object.assign(this.serverless, { getLiftProviderById: this.getLiftProviderById.bind(this) });
         this.cliOptions = cliOptions;
 
         this.commands.lift = {
@@ -107,7 +107,6 @@ class LiftPlugin {
                 this.resolveLazyVariables();
             },
             "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "after:package:compileEvents": this.appendCloudformationResources.bind(this),
             "after:deploy:deploy": this.postDeploy.bind(this),
             "before:remove:remove": this.preRemove.bind(this),
             "lift:eject:eject": this.eject.bind(this),
@@ -126,28 +125,25 @@ class LiftPlugin {
             },
         };
 
-        this.providers = { [DEFAULT_PROVIDER]: new AwsProvider(this.serverless) };
-        this.loadProviders();
+        this.awsProvider = new AwsProvider(this.serverless);
+        serverless.setProvider("aws-cdk", this.awsProvider);
+        serverless.pluginManager.addPlugin(CdkPackage);
+        serverless.pluginManager.addPlugin(CdkDeploy);
+        serverless.pluginManager.addPlugin(CdkInfo);
+
         this.registerConstructsSchema();
-        this.registerProvidersSchema();
         this.registerConfigSchema();
         this.registerCommands();
     }
 
     private registerConstructsSchema() {
+        const constructClasses = [...LiftPlugin.getAllConstructClasses(), ...AwsProvider.getAllConstructClasses()];
+
         (
             this.constructsSchema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]
         ).push({
-            oneOf: this.getAllConstructClasses().map((Construct) => {
+            oneOf: constructClasses.map((Construct) => {
                 return this.defineSchemaWithType(Construct.type, Construct.schema);
-            }),
-        });
-    }
-
-    private registerProvidersSchema() {
-        this.providersSchema.patternProperties[PROVIDER_ID_PATTERN].allOf.push({
-            oneOf: LiftPlugin.getAllProviderClasses().map((Provider) => {
-                return this.defineSchemaWithType(Provider.type, Provider.schema);
             }),
         });
     }
@@ -158,54 +154,10 @@ class LiftPlugin {
 
     private registerConfigSchema() {
         this.serverless.configSchemaHandler.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
+        this.serverless.configSchemaHandler.defineProvider("aws-cdk", {
+            constructs: this.constructsSchema,
+        });
         this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", this.constructsSchema);
-        this.serverless.configSchemaHandler.defineTopLevelProperty("providers", this.providersSchema);
-    }
-
-    static registerProviders(...providerClasses: StaticProviderInterface[]): void {
-        for (const providerClass of providerClasses) {
-            if (providerClass.type in this.providerClasses) {
-                throw new ServerlessError(
-                    `The provider type '${providerClass.type}' was registered twice`,
-                    "LIFT_PROVIDER_TYPE_CONFLICT"
-                );
-            }
-            this.providerClasses[providerClass.type] = providerClass;
-        }
-    }
-
-    static getProviderClass(type: string): StaticProviderInterface | undefined {
-        return this.providerClasses[type];
-    }
-
-    static getAllProviderClasses(): StaticProviderInterface[] {
-        return Object.values(this.providerClasses);
-    }
-
-    private loadProviders() {
-        const providersInputConfiguration = get(this.serverless.configurationInput, "providers", {});
-        for (const [id, { type }] of Object.entries(providersInputConfiguration)) {
-            this.providers[id] = this.createProvider(type, id);
-        }
-    }
-
-    private createProvider(type: string, id: string): ProviderInterface {
-        if (type === AwsProvider.type) {
-            throw new ServerlessError(
-                "AwsProvider is not configurable via providers",
-                "LIFT_AWS_PROVIDER_CONFIGURATION"
-            );
-        }
-        const Provider = LiftPlugin.getProviderClass(type);
-        if (Provider === undefined) {
-            throw new ServerlessError(
-                `The provider '${id}' has an unknown type '${type}'`,
-                "LIFT_UNKNOWN_PROVIDER_TYPE"
-            );
-        }
-        const configuration = get(this.serverless.configurationInput.providers, id, {});
-
-        return Provider.create(this.serverless, id, configuration);
     }
 
     private loadConstructs(): void {
@@ -215,23 +167,37 @@ class LiftPlugin {
         }
         this.constructs = {};
         const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {});
-        for (const [id, { type, provider: providerId }] of Object.entries(constructsInputConfiguration)) {
-            // Legacy behavior -> defaults to Serverless framework AWS provider
-            if (providerId === undefined) {
-                this.constructs[id] = this.providers[DEFAULT_PROVIDER].createConstruct(type, id);
-                continue;
-            }
-            const provider = this.getLiftProviderById(providerId);
-            if (!provider) {
-                throw new ServerlessError(
-                    `No provider ${providerId} was found for construct ${id}. Available providers are ${Object.keys(
-                        this.providers
-                    ).join(", ")}`,
-                    "LIFT_UNKNOWN_PROVIDER_ID"
-                );
-            }
-            this.constructs[id] = provider.createConstruct(type, id);
+        for (const [id, configuration] of Object.entries(constructsInputConfiguration)) {
+            this.constructs[id] = this.createConstruct(configuration.type, id, configuration);
         }
+    }
+
+    getConstructClass(id: string, type: string): StaticConstructInterface {
+        let constructClass = LiftPlugin.getConstructClass(type);
+        if (constructClass !== undefined) {
+            return constructClass;
+        }
+        // Fallback to AWS constructs
+        constructClass = AwsProvider.getConstructClass(type);
+        if (constructClass === undefined) {
+            throw new ServerlessError(
+                `The construct '${id}' has an unknown type '${type}'\n` +
+                    "Find all construct types available here: https://github.com/getlift/lift#constructs",
+                "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+            );
+        }
+
+        return constructClass;
+    }
+
+    createConstruct(type: string, id: string, configuration: Record<string, unknown>): ConstructInterface {
+        const Construct = LiftPlugin.getConstructClass(type);
+        if (Construct !== undefined) {
+            return Construct.create(id, configuration);
+        }
+
+        // Fallback to AWS constructs
+        return this.awsProvider.createConstruct(type, id, configuration);
     }
 
     private getConstructs(): Record<string, ConstructInterface> {
@@ -241,10 +207,6 @@ class LiftPlugin {
         }
 
         return this.constructs;
-    }
-
-    getLiftProviderById(id: string): ProviderInterface | undefined {
-        return this.providers[id];
     }
 
     resolveReference({ address }: { address: string }): { value: string } {
@@ -334,14 +296,7 @@ class LiftPlugin {
                     "LIFT_MISSING_CONSTRUCT_TYPE"
                 );
             }
-            const constructClass = this.getConstructClass(constructConfig.type);
-            if (constructClass === undefined) {
-                throw new ServerlessError(
-                    `The construct '${id}' has an unknown type '${constructConfig.type}'\n` +
-                        "Find all construct types available here: https://github.com/getlift/lift#constructs",
-                    "LIFT_UNKNOWN_CONSTRUCT_TYPE"
-                );
-            }
+            const constructClass = this.getConstructClass(id, constructConfig.type);
             if (constructClass.commands === undefined) {
                 continue;
             }
@@ -391,7 +346,7 @@ class LiftPlugin {
 
             return Tokenization.resolve(input, {
                 resolver: tokenResolver,
-                scope: (this.providers[DEFAULT_PROVIDER] as AwsProvider).stack,
+                scope: this.awsProvider.stack,
             }) as T;
         };
         this.serverless.service.provider = resolveTokens(this.serverless.service.provider);
@@ -403,11 +358,6 @@ class LiftPlugin {
         this.serverless.service.outputs = resolveTokens(this.serverless.service.outputs);
         // Also resolve tokens in `configurationInput` because they also appear in there
         this.serverless.configurationInput = resolveTokens(this.serverless.configurationInput);
-    }
-
-    // This is only required for AwsProvider in order to bundle resources together with existing SLS framework resources
-    private appendCloudformationResources() {
-        (this.providers[DEFAULT_PROVIDER] as AwsProvider).appendCloudformationResources();
     }
 
     private appendPermissions(): void {
@@ -451,31 +401,12 @@ class LiftPlugin {
         log("You can also find that CloudFormation template in the following file:");
         log(compiledTemplateFilePath);
     }
-
-    private getAllConstructClasses(): StaticConstructInterface[] {
-        const result = flatten(
-            LiftPlugin.getAllProviderClasses().map((providerClass) => providerClass.getAllConstructClasses())
-        );
-
-        return result;
-    }
-
-    private getConstructClass(constructType: string): StaticConstructInterface | undefined {
-        for (const providerClass of LiftPlugin.getAllProviderClasses()) {
-            const constructClass = providerClass.getConstructClass(constructType);
-            if (constructClass !== undefined) {
-                return constructClass;
-            }
-        }
-
-        return undefined;
-    }
 }
 
 export type Lift = {
     constructs: FromSchema<typeof CONSTRUCTS_DEFINITION>;
 };
 
-LiftPlugin.registerProviders(AwsProvider, StripeProvider);
+LiftPlugin.registerConstructs(NetlifyWebsite);
 
 module.exports = LiftPlugin;

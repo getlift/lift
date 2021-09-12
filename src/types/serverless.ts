@@ -1,5 +1,6 @@
 import type { AWS } from "@serverless/typescript";
 import type { Stack } from "@aws-cdk/core";
+import type { CredentialsOptions } from "aws-sdk/lib/credentials";
 
 export type Hook = () => void | Promise<void>;
 
@@ -29,6 +30,8 @@ export type Provider = {
         getCompiledTemplateFileName: () => string;
     };
     getRegion: () => string;
+    getAccountId: () => Promise<string>;
+    getCredentials: () => CredentialsOptions;
     /**
      * Send a request to the AWS API.
      */
@@ -45,6 +48,7 @@ export type Serverless = {
     };
     configSchemaHandler: {
         defineTopLevelProperty: (pluginName: string, schema: Record<string, unknown>) => void;
+        defineProvider: (provider: string, schema: Record<string, unknown>) => void;
     };
     configurationInput: AWS & {
         constructs?: Record<string, { type: string; provider?: string }>;
@@ -58,6 +62,7 @@ export type Serverless = {
         options: Record<string, unknown>;
     };
     getProvider: (provider: "aws") => Provider;
+    setProvider(name: string, provider: unknown): void;
 };
 
 export type CloudformationTemplate = AWS["resources"];

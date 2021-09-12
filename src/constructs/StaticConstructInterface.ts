@@ -1,5 +1,4 @@
 import type { ConstructInterface } from "@lift/constructs";
-import type { ProviderInterface } from "@lift/providers";
 import type { CliOptions } from "../types/serverless";
 
 /**
@@ -12,7 +11,7 @@ export interface StaticConstructInterface {
         [k: string]: unknown;
     };
     commands?: ConstructCommands;
-    create(provider: ProviderInterface, id: string, configuration: Record<string, unknown>): ConstructInterface;
+    create(id: string, configuration: Record<string, unknown>, provider?: unknown): ConstructInterface;
 }
 
 export type ConstructCommands = Record<string, ConstructCommandDefinition>;

@@ -19,7 +19,7 @@ export class Vpc extends CdkVpc implements ConstructInterface {
     public static type = "vpc";
     public static schema = VPC_DEFINITION;
 
-    static create(provider: AwsProvider, id: string, configuration: Configuration): Vpc {
+    static create(id: string, configuration: Configuration, provider: AwsProvider): Vpc {
         return new this(provider.stack, id, configuration, provider);
     }
 

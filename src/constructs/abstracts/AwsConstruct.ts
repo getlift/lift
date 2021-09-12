@@ -7,9 +7,9 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
         this: {
             new (scope: CdkConstruct, id: string, configuration: Record<string, unknown>, provider: AwsProvider): C;
         },
-        provider: AwsProvider,
         id: string,
-        configuration: Record<string, unknown>
+        configuration: Record<string, unknown>,
+        provider: AwsProvider
     ): C {
         /**
          * We are passing a `configuration` of type `Record<string, unknown>` to a parameter
