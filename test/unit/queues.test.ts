@@ -392,6 +392,7 @@ describe("queues", () => {
         expect(sendSpy.firstCall.firstArg).toStrictEqual({
             QueueUrl: "queue-url",
             MessageBody: "Message body",
+            MessageGroupId: undefined,
         });
     });
 });
