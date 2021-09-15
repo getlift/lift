@@ -127,6 +127,7 @@ export class Queue extends AwsConstruct {
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
             fifo: configuration.fifo,
+            contentBasedDeduplication: configuration.fifo,
         });
 
         this.queue = new CdkQueue(this, "Queue", {
@@ -139,6 +140,7 @@ export class Queue extends AwsConstruct {
                 queue: dlq,
             },
             fifo: configuration.fifo,
+            contentBasedDeduplication: configuration.fifo,
         });
 
         const alarmEmail = configuration.alarm;
