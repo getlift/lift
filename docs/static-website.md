@@ -195,6 +195,22 @@ constructs:
             - app.mywebsite.com
 ```
 
+#### Redirect all domains to a single one
+
+It is sometimes necessary to redirect one or several domains to a single one. A common example is to redirect the root domain to the `www` version.
+
+```yaml
+constructs:
+    website:
+        # ...
+        domain:
+            - www.mywebsite.com
+            - mywebsite.com
+        redirectToMainDomain: true
+```
+
+The first domain in the list will be considered the main domain. In this case, `mywebsite.com` will redirect to `www.mywebsite.com`.
+
 ### Error page
 
 By default, all 404 requests are redirected to `index.html` with a 200 response status. This behavior is optimized for Single-Page Applications: it allows doing client-side URL routing with JavaScript frameworks.

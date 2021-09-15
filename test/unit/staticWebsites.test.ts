@@ -26,7 +26,8 @@ describe("static websites", () => {
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
         const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
-        const edgeFunction = computeLogicalId("landing", "ResponseFunction");
+        const requestFunction = computeLogicalId("landing", "RequestFunction");
+        const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
@@ -35,7 +36,8 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             originAccessIdentityLogicalId,
-            edgeFunction,
+            requestFunction,
+            responseFunction,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -107,9 +109,15 @@ describe("static websites", () => {
                         ViewerProtocolPolicy: "redirect-to-https",
                         FunctionAssociations: [
                             {
+                                EventType: "viewer-request",
+                                FunctionARN: {
+                                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
+                                },
+                            },
+                            {
                                 EventType: "viewer-response",
                                 FunctionARN: {
-                                    "Fn::GetAtt": [edgeFunction, "FunctionARN"],
+                                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
                                 },
                             },
                         ],
@@ -168,7 +176,7 @@ describe("static websites", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+        expect(cfTemplate.Resources[responseFunction]).toMatchObject({
             Type: "AWS::CloudFront::Function",
             Properties: {
                 AutoPublish: true,
@@ -301,6 +309,45 @@ describe("static websites", () => {
     }
 }, response.headers);
     return response;
+}`,
+            },
+        });
+    });
+
+    it("should allow to redirect to the main domain", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        domain: ["www.example.com", "example.com"],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        redirectToMainDomain: true,
+                    },
+                },
+            }),
+        });
+        const edgeFunction = computeLogicalId("landing", "RequestFunction");
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                FunctionCode: `function handler(event) {
+    var request = event.request;
+    if (request.headers["host"].value !== "www.example.com") {
+        return {
+            statusCode: 301,
+            statusDescription: "Moved Permanently",
+            headers: {
+                location: {
+                    value: "https://www.example.com" + request.uri
+                }
+            }
+        };
+    }
+    return request;
 }`,
             },
         });

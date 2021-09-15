@@ -458,6 +458,45 @@ describe("server-side website", () => {
         );
     });
 
+    it("should allow to redirect to the main domain", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: ["www.example.com", "example.com"],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        redirectToMainDomain: true,
+                    },
+                },
+            }),
+        });
+        const edgeFunction = computeLogicalId("backend", "RequestFunction");
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                FunctionCode: `function handler(event) {
+    var request = event.request;
+    request.headers["x-forwarded-host"] = request.headers["host"];
+    if (request.headers["host"].value !== "www.example.com") {
+        return {
+            statusCode: 301,
+            statusDescription: "Moved Permanently",
+            headers: {
+                location: {
+                    value: "https://www.example.com" + request.uri
+                }
+            }
+        };
+    }
+    return request;
+}`,
+            },
+        });
+    });
+
     it("should allow to override the forwarded headers", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",

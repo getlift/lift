@@ -32,6 +32,7 @@ import { log } from "../../utils/logger";
 import { s3Put, s3Sync } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 import ServerlessError from "../../utils/error";
+import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 
 const SCHEMA = {
     type: "object",
@@ -56,6 +57,7 @@ const SCHEMA = {
                 },
             ],
         },
+        redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
     },
@@ -75,6 +77,7 @@ export class ServerSideWebsite extends AwsConstruct {
     };
 
     private readonly distribution: Distribution;
+    private readonly domains: string[] | undefined;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
@@ -140,7 +143,7 @@ export class ServerSideWebsite extends AwsConstruct {
         const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
 
         // Cast the domains to an array
-        const domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
+        this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
@@ -174,7 +177,7 @@ export class ServerSideWebsite extends AwsConstruct {
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
-            domainNames: domains,
+            domainNames: this.domains,
         });
 
         // CloudFormation outputs
@@ -383,6 +386,12 @@ export class ServerSideWebsite extends AwsConstruct {
     }
 
     private createRequestFunction(): cloudfront.Function {
+        let additionalCode = "";
+
+        if (this.configuration.redirectToMainDomain === true) {
+            additionalCode += redirectToMainDomain(this.domains);
+        }
+
         /**
          * CloudFront function that forwards the real `Host` header into `X-Forwarded-Host`
          *
@@ -392,7 +401,7 @@ export class ServerSideWebsite extends AwsConstruct {
          */
         const code = `function handler(event) {
     var request = event.request;
-    request.headers["x-forwarded-host"] = request.headers["host"];
+    request.headers["x-forwarded-host"] = request.headers["host"];${additionalCode}
     return request;
 }`;
 
