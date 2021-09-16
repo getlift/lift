@@ -115,6 +115,16 @@ export class Queue extends AwsConstruct {
     ) {
         super(scope, id);
 
+        // This should be covered by the schema validation, but until it is enforced by default
+        // this is a very common error for users
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (configuration.worker === undefined) {
+            throw new ServerlessError(
+                `Invalid configuration in 'constructs.${this.id}': no 'worker' defined. Queue constructs require a 'worker' function to be defined.`,
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
+
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
 
