@@ -261,6 +261,8 @@ constructs:
 
 [SQS FIFO](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html) queues provide strict message ordering guarantees. Configuring a FIFO queue is as easy as provding the `fifo: true` option on your construct. This will ensure both the main and Dead-Letter-Queue are configured as FIFO.
 
+By default, FIFO queues have [content-based deduplication](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html) enabled by default. It is possible to skip that deduplication behavior by publishing messages to SQS [with deduplication IDs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html).
+
 ### Retries
 
 ```yaml
