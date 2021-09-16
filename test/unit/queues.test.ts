@@ -30,8 +30,7 @@ describe("queues", () => {
             "emailsDlq47F8494C",
             "emailsQueueF057328A",
         ]);
-        const s = computeLogicalId("emails", "Queue");
-        expect(cfTemplate.Resources[s]).toMatchObject({
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             DeletionPolicy: "Delete",
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -392,8 +391,32 @@ describe("queues", () => {
         expect(sendSpy.firstCall.firstArg).toStrictEqual({
             QueueUrl: "queue-url",
             MessageBody: "Message body",
-            MessageGroupId: undefined,
         });
+    });
+
+    it("should create FIFO queues", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        fifo: true,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")].Properties).toMatchObject({
+            ContentBasedDeduplication: true,
+            FifoQueue: true,
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")].Properties).toMatchObject({
+            FifoQueue: true,
+        });
+        // The DLQ is meant to store failed messages. We probably don't want similar messages to be dropped automatically.
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")].Properties).not.toHaveProperty(
+            "ContentBasedDeduplication"
+        );
     });
 
     it("should send a message to a fifo queue", async () => {
