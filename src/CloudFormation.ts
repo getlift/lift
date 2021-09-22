@@ -2,13 +2,13 @@ import type { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/
 import type { CfnOutput } from "@aws-cdk/core";
 import { Stack } from "@aws-cdk/core";
 import type { AwsProvider } from "@lift/providers";
-import { debug } from "./utils/logger";
+import { getUtils } from "./utils/logger";
 
 export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promise<string | undefined> {
     const outputId = Stack.of(output.stack).resolve(output.logicalId) as string;
     const stackName = aws.stackName;
 
-    debug(`Fetching output "${outputId}" in stack "${stackName}"`);
+    getUtils().log.debug(`Fetching output "${outputId}" in stack "${stackName}"`);
 
     let data: DescribeStacksOutput;
     try {
@@ -17,7 +17,7 @@ export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promi
         });
     } catch (e) {
         if (e instanceof Error && e.message === `Stack with id ${stackName} does not exist`) {
-            debug(e.message);
+            getUtils().log.debug(e.message);
 
             return undefined;
         }

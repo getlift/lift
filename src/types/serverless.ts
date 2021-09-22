@@ -58,6 +58,7 @@ export type Serverless = {
         options: Record<string, unknown>;
     };
     getProvider: (provider: "aws") => Provider;
+    addServiceOutputSection?(section: string, content: string | string[]): void;
 };
 
 export type CloudformationTemplate = AWS["resources"];
