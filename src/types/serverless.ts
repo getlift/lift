@@ -27,6 +27,7 @@ export type Provider = {
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
         getCompiledTemplateFileName: () => string;
+        getRoleLogicalId: () => string;
     };
     getRegion: () => string;
     /**
