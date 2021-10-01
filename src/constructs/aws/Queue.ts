@@ -26,10 +26,8 @@ const QUEUE_DEFINITION = {
         worker: {
             type: "object",
             properties: {
-                handler: { type: "string" },
                 timeout: { type: "number" },
             },
-            required: ["handler"],
             additionalProperties: true,
         },
         maxRetries: { type: "number" },
