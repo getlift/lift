@@ -95,12 +95,19 @@ export class Upload extends AwsConstruct {
                 httpApiId: Fn.ref(this.provider.naming.getHttpApiLogicalId()),
             });
 
+            const lambdaProxyIntegration = new LambdaProxyIntegration({
+                handler: this.function,
+            });
+
             this.route = new HttpRoute(this, "Route", {
                 httpApi: this.httpApi,
-                integration: new LambdaProxyIntegration({
-                    handler: this.function,
-                }),
+                integration: lambdaProxyIntegration,
                 routeKey: HttpRouteKey.with("/upload-url", HttpMethod.POST),
+            });
+            this.route = new HttpRoute(this, "CORSRoute", {
+                httpApi: this.httpApi,
+                integration: lambdaProxyIntegration,
+                routeKey: HttpRouteKey.with("/upload-url", HttpMethod.OPTIONS),
             });
         }
 
@@ -153,6 +160,7 @@ const crypto = require("crypto");
 const s3 = new AWS.S3();
 
 exports.handler = async (event) => {
+    if (event.requestContext?.http?.method === 'OPTIONS') return "";
     const body = JSON.parse(event.body);
     const fileName = \`tmp/\${crypto.randomBytes(5).toString('hex')}-\${body.fileName}\`;
 

@@ -28,6 +28,8 @@ describe("upload", () => {
             "uploadRouteuploadRoute2545F0B8PermissionCB079AC2",
             "uploadRouteHttpIntegration02104492e88c1940a1c8d0dbac532c8091C83E5A",
             httpApiRoute,
+            "uploadCORSRouteuploadCORSRouteA2C80313PermissionEA9DCB1F",
+            "uploadCORSRouteC21947AF",
         ]);
     });
     it("should create all required resources with REST API", async () => {
