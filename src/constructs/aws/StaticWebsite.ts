@@ -106,6 +106,23 @@ export class StaticWebsite extends AwsConstruct {
             configuration.certificate !== undefined
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
+
+        const functionAssociations = [
+            {
+                function: this.createResponseFunction(),
+                eventType: FunctionEventType.VIEWER_RESPONSE,
+            },
+        ];
+
+        const requestFunction = this.createRequestFunction();
+
+        if (requestFunction !== null) {
+            functionAssociations.push({
+                function: requestFunction,
+                eventType: FunctionEventType.VIEWER_REQUEST,
+            });
+        }
+
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
@@ -120,16 +137,7 @@ export class StaticWebsite extends AwsConstruct {
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
                 cachePolicy: CachePolicy.CACHING_OPTIMIZED,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                functionAssociations: [
-                    {
-                        function: this.createRequestFunction(),
-                        eventType: FunctionEventType.VIEWER_REQUEST,
-                    },
-                    {
-                        function: this.createResponseFunction(),
-                        eventType: FunctionEventType.VIEWER_RESPONSE,
-                    },
-                ],
+                functionAssociations: functionAssociations,
             },
             errorResponses: [this.errorResponse()],
             // Enable http2 transfer for better performances
@@ -313,11 +321,15 @@ export class StaticWebsite extends AwsConstruct {
         });
     }
 
-    private createRequestFunction(): cloudfront.Function {
+    private createRequestFunction(): cloudfront.Function | null {
         let additionalCode = "";
 
         if (this.configuration.redirectToMainDomain === true) {
             additionalCode += redirectToMainDomain(this.domains);
+        }
+
+        if (additionalCode === "") {
+            return null;
         }
 
         const code = `function handler(event) {
