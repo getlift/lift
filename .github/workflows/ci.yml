@@ -14,7 +14,7 @@ jobs:
         strategy:
             matrix:
                 node:
-                    - 10
+                    - 12.0
                     - 12
                     - 14
                     - 16
