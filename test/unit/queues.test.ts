@@ -192,6 +192,25 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the delivery delay", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        delay: 10,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                DelaySeconds: 10,
+            },
+        });
+    });
+
     it("allows defining a DLQ email alarm", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",

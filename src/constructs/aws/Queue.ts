@@ -38,6 +38,7 @@ const QUEUE_DEFINITION = {
             maximum: 10,
         },
         fifo: { type: "boolean" },
+        delay: { type: "number" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -128,6 +129,8 @@ export class Queue extends AwsConstruct {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
+        const delay = configuration.delay !== undefined ? Duration.seconds(configuration.delay) : undefined;
+
         const baseName = `${this.provider.stackName}-${id}`;
 
         const dlq = new CdkQueue(this, "Dlq", {
@@ -147,6 +150,7 @@ export class Queue extends AwsConstruct {
                 queue: dlq,
             },
             fifo: configuration.fifo,
+            deliveryDelay: delay,
             contentBasedDeduplication: configuration.fifo,
         });
 
