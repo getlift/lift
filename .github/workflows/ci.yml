@@ -14,12 +14,12 @@ jobs:
         strategy:
             matrix:
                 node:
-                    - 10
+                    - "12.13.0"
                     - 12
                     - 14
                     - 16
                 serverless:
-                    - 2.36.0
+                    - "2.36.0"
                     - latest
         steps:
             - uses: actions/checkout@v2
