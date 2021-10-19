@@ -4,6 +4,7 @@ import type { DeleteMessageBatchResult, ReceiveMessageResult, SendMessageBatchRe
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 import { mockAws } from "../utils/mockAws";
+import ServerlessError from "../../src/utils/error";
 
 describe("queues", () => {
     afterEach(() => {
@@ -209,6 +210,30 @@ describe("queues", () => {
                 DelaySeconds: 10,
             },
         });
+    });
+
+    it("should throw an error if the delay is invalid", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            delay: 901,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': 'delay' must be between 0 and 900, '901' given."
+            );
+        }
     });
 
     it("allows defining a DLQ email alarm", async () => {

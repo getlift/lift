@@ -129,7 +129,17 @@ export class Queue extends AwsConstruct {
 
         const maxRetries = configuration.maxRetries ?? 3;
 
-        const delay = configuration.delay !== undefined ? Duration.seconds(configuration.delay) : undefined;
+        let delay = undefined;
+        if (configuration.delay !== undefined) {
+            if (configuration.delay < 0 || configuration.delay > 900) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'delay' must be between 0 and 900, '${configuration.delay}' given.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+
+            delay = Duration.seconds(configuration.delay);
+        }
 
         const baseName = `${this.provider.stackName}-${id}`;
 
