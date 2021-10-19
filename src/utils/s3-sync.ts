@@ -15,6 +15,7 @@ import { lookup } from "mime-types";
 import { chunk, flatten } from "lodash";
 import chalk from "chalk";
 import type { AwsProvider } from "@lift/providers";
+import ServerlessError from "./error";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
@@ -147,7 +148,7 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
 }
 
 async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-    await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
+    const response = await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
         Bucket: bucket,
         Delete: {
             Objects: keys.map((key) => {
@@ -157,6 +158,16 @@ async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promi
             }),
         },
     });
+
+    // S3 deleteObjects operation will fail silently
+    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
+    if (response.Errors !== undefined && response.Errors.length !== 0) {
+        response.Errors.forEach((error) => console.log(error));
+        throw new ServerlessError(
+            `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+            "LIFT_S3_DELETE_OBJECTS_FAILURE"
+        );
+    }
 }
 
 export function computeS3ETag(fileContent: Buffer): string {

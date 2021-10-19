@@ -605,7 +605,13 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
-        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects").resolves({
+            Deleted: [
+                {
+                    Key: "assets/image.jpg",
+                },
+            ],
+        });
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
         await runServerless({
