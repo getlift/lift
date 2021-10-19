@@ -1,6 +1,7 @@
 import * as sinon from "sinon";
 import * as fs from "fs";
 import * as path from "path";
+import { get } from "lodash";
 import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { computeS3ETag } from "../../src/utils/s3-sync";
@@ -26,7 +27,6 @@ describe("static websites", () => {
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
         const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
-        const requestFunction = computeLogicalId("landing", "RequestFunction");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
@@ -36,7 +36,6 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             originAccessIdentityLogicalId,
-            requestFunction,
             responseFunction,
             cfDistributionLogicalId,
         ]);
@@ -108,12 +107,6 @@ describe("static websites", () => {
                         TargetOriginId: cfOriginId,
                         ViewerProtocolPolicy: "redirect-to-https",
                         FunctionAssociations: [
-                            {
-                                EventType: "viewer-request",
-                                FunctionARN: {
-                                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
-                                },
-                            },
                             {
                                 EventType: "viewer-response",
                                 FunctionARN: {
@@ -331,6 +324,9 @@ describe("static websites", () => {
             }),
         });
         const edgeFunction = computeLogicalId("landing", "RequestFunction");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        const requestFunction = computeLogicalId("landing", "RequestFunction");
+        const responseFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
             Type: "AWS::CloudFront::Function",
             Properties: {
@@ -351,6 +347,26 @@ describe("static websites", () => {
 }`,
             },
         });
+
+        expect(
+            get(
+                cfTemplate.Resources[cfDistributionLogicalId],
+                "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
+            )
+        ).toMatchObject([
+            {
+                EventType: "viewer-response",
+                FunctionARN: {
+                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
+                },
+            },
+            {
+                EventType: "viewer-request",
+                FunctionARN: {
+                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
+                },
+            },
+        ]);
     });
 
     it("should allow to customize the error page", async () => {
