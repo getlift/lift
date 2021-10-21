@@ -1,3 +1,4 @@
+import type { CfnBucket } from "@aws-cdk/aws-s3";
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
 import type { Construct as CdkConstruct } from "@aws-cdk/core";
 import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
@@ -14,6 +15,7 @@ const STORAGE_DEFINITION = {
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
+        objectLock: { type: "boolean" },
     },
     additionalProperties: false,
 } as const;
@@ -21,6 +23,7 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     type: "storage",
     archive: 45,
     encryption: "s3",
+    objectLock: false,
 };
 
 type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
@@ -61,6 +64,12 @@ export class Storage extends AwsConstruct {
                 },
             ],
         });
+
+        // Until https://github.com/aws/aws-cdk/issues/5247 is resolved
+        if (resolvedConfiguration.objectLock) {
+            const cfnBucket = this.bucket.node.defaultChild as CfnBucket;
+            cfnBucket.addPropertyOverride("ObjectLockConfiguration.ObjectLockEnabled", "Enabled");
+        }
 
         this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             value: this.bucket.bucketName,
