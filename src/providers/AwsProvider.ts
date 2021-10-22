@@ -1,7 +1,5 @@
 import type { CfnOutput } from "@aws-cdk/core";
 import { App, Stack } from "@aws-cdk/core";
-import { get, merge } from "lodash";
-import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import {
@@ -13,8 +11,10 @@ import {
     Vpc,
     Webhook,
 } from "@lift/constructs/aws";
+import { CredentialProviderChain, Credentials } from "aws-sdk";
+import { Bootstrapper, SdkProvider } from "aws-cdk";
+import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deployments";
 import { getStackOutput } from "../CloudFormation";
-import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
 
@@ -49,33 +49,23 @@ export class AwsProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
-    static create(serverless: Serverless): ProviderInterface {
-        return new this(serverless);
+    static create(): ProviderInterface {
+        return new this();
     }
 
     private readonly app: App;
     public readonly stack: Stack;
     public readonly region: string;
     public readonly stackName: string;
-    private readonly legacyProvider: LegacyAwsProvider;
-    public naming: {
-        getStackName: () => string;
-        getLambdaLogicalId: (functionName: string) => string;
-        getRestApiLogicalId: () => string;
-        getHttpApiLogicalId: () => string;
-    };
 
-    constructor(private readonly serverless: Serverless) {
-        this.stackName = serverless.getProvider("aws").naming.getStackName();
+    constructor() {
+        this.stackName = "stack-name";
         this.app = new App();
         this.stack = new Stack(this.app);
-        this.legacyProvider = serverless.getProvider("aws");
-        this.naming = this.legacyProvider.naming;
-        this.region = serverless.getProvider("aws").getRegion();
-        serverless.stack = this.stack;
+        this.region = "us-east-1";
     }
 
-    createConstruct(type: string, id: string): ConstructInterface {
+    createConstruct(type: string, id: string, configuration: Record<string, unknown>): ConstructInterface {
         const Construct = AwsProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(
@@ -84,56 +74,8 @@ export class AwsProvider implements ProviderInterface {
                 "LIFT_UNKNOWN_CONSTRUCT_TYPE"
             );
         }
-        const configuration = get(this.serverless.configurationInput.constructs, id, {});
 
         return Construct.create(this, id, configuration);
-    }
-
-    addFunction(functionName: string, functionConfig: unknown): void {
-        if (!this.serverless.configurationInput.functions) {
-            // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
-            this.serverless.configurationInput.functions = {};
-        }
-
-        Object.assign(this.serverless.service.functions, {
-            [functionName]: functionConfig,
-        });
-        /**
-         * We must manually call `setFunctionNames()`: this is a function that normalizes functions.
-         * This function is called by the Framework, but we have to call it again because we add new
-         * functions after this function has already run. So our new function (that we add here)
-         * will not have been normalized.
-         */
-        this.serverless.service.setFunctionNames(this.serverless.processedInput.options);
-    }
-
-    /**
-     * @internal
-     */
-    setVpcConfig(securityGroups: AwsCfInstruction[], subnets: AwsCfInstruction[]): void {
-        if (this.getVpcConfig() !== null) {
-            throw new ServerlessError(
-                "Can't register more than one VPC.\n" +
-                    'Either you have several "vpc" constructs \n' +
-                    'or you already defined "provider.vpc" in serverless.yml',
-                "LIFT_ONLY_ONE_VPC"
-            );
-        }
-
-        this.serverless.service.provider.vpc = {
-            securityGroupIds: securityGroups, // TODO : merge with existing groups ?
-            subnetIds: subnets,
-        };
-    }
-
-    /**
-     * This function can be used by other constructs to reference
-     * global subnets or security groups in their resources
-     *
-     * @internal
-     */
-    getVpcConfig(): AwsLambdaVpcConfig | null {
-        return this.serverless.service.provider.vpc ?? null;
     }
 
     /**
@@ -143,17 +85,72 @@ export class AwsProvider implements ProviderInterface {
         return getStackOutput(this, output);
     }
 
+    async deploy(): Promise<void> {
+        const credentials = new Credentials(this.provider.getCredentials());
+        const credentialProviderChain = new CredentialProviderChain();
+        credentialProviderChain.providers.push(credentials);
+        const sdkProvider = new SdkProvider(credentialProviderChain, this.region, {
+            credentials,
+        });
+
+        // Setup the bootstrap stack
+        // Ideally we don't do that every time
+        console.log("Setting up the CDK");
+        const cdkBootstrapper = new Bootstrapper({
+            source: "default",
+        });
+        const bootstrapDeployResult = await cdkBootstrapper.bootstrapEnvironment(
+            {
+                account: await this.provider.getAccountId(),
+                name: "dev",
+                region: "us-east-1",
+            },
+            sdkProvider,
+            {
+                /**
+                 * We use a CDK toolkit stack dedicated to Serverless.
+                 * The reason for this is:
+                 * - to keep complete control over that stack
+                 * - because there are multiple versions, we don't want to force
+                 * one specific version on users
+                 * (see https://docs.aws.amazon.com/cdk/latest/guide/bootstrapping.html#bootstrapping-templates)
+                 */
+                toolkitStackName: "serverless-cdk-toolkit",
+                /**
+                 * In the same spirit as the custom stack name, we must provide
+                 * a different "qualifier": this ID will be used in CloudFormation
+                 * exports to provide a unique export name.
+                 */
+                parameters: {
+                    qualifier: "serverless",
+                },
+            }
+        );
+        if (bootstrapDeployResult.noOp) {
+            // console.log("The CDK is already set up, moving on");
+        }
+
+        console.log(`Deploying ${this.stackName}`);
+        const stackArtifact = this.app.synth().getStackByName(this.stackName);
+        const cloudFormation = new CloudFormationDeployments({ sdkProvider });
+        const deployResult = await cloudFormation.deployStack({
+            stack: stackArtifact,
+            quiet: true,
+        });
+        if (deployResult.noOp) {
+            console.log("");
+            console.log("Nothing to deploy, the stack is up to date");
+        } else {
+            console.log("");
+            console.log("Deployment success");
+        }
+    }
+
     /**
      * Send a request to the AWS API.
      */
     request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
         return awsRequest<Input, Output>(params, service, method, this.legacyProvider);
-    }
-
-    appendCloudformationResources(): void {
-        merge(this.serverless.service, {
-            resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
-        });
     }
 }
 

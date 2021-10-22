@@ -1,23 +1,11 @@
 import { flatten, get, has, merge } from "lodash";
 import chalk from "chalk";
-import type { AwsIamPolicyStatements } from "@serverless/typescript";
-import * as path from "path";
-import { readFileSync } from "fs";
-import { dump } from "js-yaml";
 import { DefaultTokenResolver, Lazy, StringConcat, Tokenization } from "@aws-cdk/core";
-import type { FromSchema } from "json-schema-to-ts";
 import type { ProviderInterface, StaticProviderInterface } from "@lift/providers";
 import { AwsProvider, StripeProvider } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
-import type {
-    CommandsDefinition,
-    DeprecatedVariableResolver,
-    Hook,
-    Serverless,
-    VariableResolver,
-} from "./types/serverless";
-import { log } from "./utils/logger";
 import ServerlessError from "./utils/error";
+import { Config } from "./Config";
 
 const PROVIDER_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 // This enables all existing constructs defined prior intoduction of "providers" property to work
@@ -67,71 +55,24 @@ const LIFT_CONFIG_SCHEMA = {
     },
     additionalProperties: false,
 } as const;
-type LiftConfig = FromSchema<typeof LIFT_CONFIG_SCHEMA>;
 
-/**
- * Serverless plugin
- */
-class LiftPlugin {
-    private constructs?: Record<string, ConstructInterface>;
-    private providers: Record<string, ProviderInterface>;
-    private readonly serverless: Serverless;
+export default class Lift {
+    private constructs: Record<string, ConstructInterface> = {};
+    private providers: Record<string, ProviderInterface> = {};
     private static readonly providerClasses: Record<string, StaticProviderInterface> = {};
     private readonly providersSchema = PROVIDERS_DEFINITION;
     private readonly constructsSchema = CONSTRUCTS_DEFINITION;
-    public readonly hooks: Record<string, Hook>;
-    public readonly commands: CommandsDefinition = {};
-    public readonly configurationVariablesSources: Record<string, VariableResolver>;
-    public readonly variableResolvers: Record<string, DeprecatedVariableResolver>;
-    private readonly cliOptions: Record<string, string>;
+    private readonly config: Config;
 
-    constructor(serverless: Serverless, cliOptions: Record<string, string>) {
-        this.serverless = serverless;
-        // This method is exposed for Lift tests only, it is not a public API
-        Object.assign(this.serverless, { getLiftProviderById: this.getLiftProviderById.bind(this) });
-        this.cliOptions = cliOptions;
-
-        this.commands.lift = {
-            commands: {
-                eject: {
-                    usage: "Eject Lift constructs to raw CloudFormation",
-                    lifecycleEvents: ["eject"],
-                },
-            },
-        };
-
-        this.hooks = {
-            initialize: () => {
-                this.loadConstructs();
-                this.appendPermissions();
-                this.resolveLazyVariables();
-            },
-            "before:aws:info:displayStackOutputs": this.info.bind(this),
-            "after:package:compileEvents": this.appendCloudformationResources.bind(this),
-            "after:deploy:deploy": this.postDeploy.bind(this),
-            "before:remove:remove": this.preRemove.bind(this),
-            "lift:eject:eject": this.eject.bind(this),
-        };
-
-        this.configurationVariablesSources = {
-            construct: {
-                resolve: this.resolveReference.bind(this),
-            },
-        };
-        this.variableResolvers = {
-            construct: (fullVariable) => {
-                const address = fullVariable.split(":")[1];
-
-                return Promise.resolve(this.resolveReference({ address }).value);
-            },
-        };
-
-        this.providers = { [DEFAULT_PROVIDER]: new AwsProvider(this.serverless) };
+    constructor() {
+        this.config = Config.fromFile();
         this.loadProviders();
         this.registerConstructsSchema();
         this.registerProvidersSchema();
         this.registerConfigSchema();
         this.registerCommands();
+        this.loadConstructs();
+        this.resolveLazyVariables();
     }
 
     private registerConstructsSchema() {
@@ -146,7 +87,7 @@ class LiftPlugin {
 
     private registerProvidersSchema() {
         this.providersSchema.patternProperties[PROVIDER_ID_PATTERN].allOf.push({
-            oneOf: LiftPlugin.getAllProviderClasses().map((Provider) => {
+            oneOf: Lift.getAllProviderClasses().map((Provider) => {
                 return this.defineSchemaWithType(Provider.type, Provider.schema);
             }),
         });
@@ -157,9 +98,9 @@ class LiftPlugin {
     }
 
     private registerConfigSchema() {
-        this.serverless.configSchemaHandler.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
-        this.serverless.configSchemaHandler.defineTopLevelProperty("constructs", this.constructsSchema);
-        this.serverless.configSchemaHandler.defineTopLevelProperty("providers", this.providersSchema);
+        this.configSchema.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
+        this.configSchema.defineTopLevelProperty("constructs", this.constructsSchema);
+        this.configSchema.defineTopLevelProperty("providers", this.providersSchema);
     }
 
     static registerProviders(...providerClasses: StaticProviderInterface[]): void {
@@ -183,43 +124,45 @@ class LiftPlugin {
     }
 
     private loadProviders() {
-        const providersInputConfiguration = get(this.serverless.configurationInput, "providers", {});
-        for (const [id, { type }] of Object.entries(providersInputConfiguration)) {
-            this.providers[id] = this.createProvider(type, id);
+        for (const [id, providerConfig] of Object.entries(get(this.config, "providers", {}))) {
+            const type = get(providerConfig, "type", undefined) as string | undefined;
+            if (type === undefined) {
+                throw new ServerlessError(
+                    `The provider '${id}' must have a "type" property.`,
+                    "LIFT_UNKNOWN_PROVIDER_TYPE"
+                );
+            }
+            this.providers[id] = this.createProvider(type, id, providerConfig as Record<string, unknown>);
         }
     }
 
-    private createProvider(type: string, id: string): ProviderInterface {
-        if (type === AwsProvider.type) {
-            throw new ServerlessError(
-                "AwsProvider is not configurable via providers",
-                "LIFT_AWS_PROVIDER_CONFIGURATION"
-            );
-        }
-        const Provider = LiftPlugin.getProviderClass(type);
+    private createProvider(type: string, id: string, configuration: Record<string, unknown>): ProviderInterface {
+        const Provider = Lift.getProviderClass(type);
         if (Provider === undefined) {
             throw new ServerlessError(
                 `The provider '${id}' has an unknown type '${type}'`,
                 "LIFT_UNKNOWN_PROVIDER_TYPE"
             );
         }
-        const configuration = get(this.serverless.configurationInput.providers, id, {});
 
-        return Provider.create(this.serverless, id, configuration);
+        return Provider.create(id, configuration);
     }
 
     private loadConstructs(): void {
-        if (this.constructs !== undefined) {
-            // Safeguard
-            throw new Error("Constructs are already initialized: this should not happen");
-        }
-        this.constructs = {};
-        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {});
-        for (const [id, { type, provider: providerId }] of Object.entries(constructsInputConfiguration)) {
-            // Legacy behavior -> defaults to Serverless framework AWS provider
+        for (const [id, constructConfig] of Object.entries(get(this.config, "constructs", {}))) {
+            const providerId = get(constructConfig, "provider", undefined) as string | undefined;
             if (providerId === undefined) {
-                this.constructs[id] = this.providers[DEFAULT_PROVIDER].createConstruct(type, id);
-                continue;
+                throw new ServerlessError(
+                    `The construct '${id}' must have a "provider" property.`,
+                    "LIFT_UNKNOWN_PROVIDER_ID"
+                );
+            }
+            const type = get(constructConfig, "type", undefined) as string | undefined;
+            if (type === undefined) {
+                throw new ServerlessError(
+                    `The construct '${id}' must have a "type" property.`,
+                    "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+                );
             }
             const provider = this.getLiftProviderById(providerId);
             if (!provider) {
@@ -230,17 +173,8 @@ class LiftPlugin {
                     "LIFT_UNKNOWN_PROVIDER_ID"
                 );
             }
-            this.constructs[id] = provider.createConstruct(type, id);
+            this.constructs[id] = provider.createConstruct(type, id, constructConfig as Record<string, unknown>);
         }
-    }
-
-    private getConstructs(): Record<string, ConstructInterface> {
-        if (this.constructs === undefined) {
-            // Safeguard
-            throw new Error("Constructs are not initialized: this should not happen");
-        }
-
-        return this.constructs;
     }
 
     getLiftProviderById(id: string): ProviderInterface | undefined {
@@ -269,7 +203,6 @@ class LiftPlugin {
              */
             value: Lazy.any({
                 produce: () => {
-                    const constructs = this.getConstructs();
                     const [id, property] = address.split(".", 2);
                     if (!has(this.constructs, id)) {
                         throw new ServerlessError(
@@ -277,7 +210,7 @@ class LiftPlugin {
                             "LIFT_VARIABLE_UNKNOWN_CONSTRUCT"
                         );
                     }
-                    const construct = constructs[id];
+                    const construct = this.constructs[id];
 
                     const properties = construct.variables ? construct.variables() : {};
                     if (!has(properties, property)) {
@@ -302,8 +235,7 @@ class LiftPlugin {
     }
 
     async info(): Promise<void> {
-        const constructs = this.getConstructs();
-        for (const [id, construct] of Object.entries(constructs)) {
+        for (const [id, construct] of Object.entries(this.constructs)) {
             if (typeof construct.outputs !== "function") {
                 continue;
             }
@@ -321,10 +253,7 @@ class LiftPlugin {
     }
 
     private registerCommands() {
-        const constructsConfiguration = get(this.serverless.configurationInput, "constructs", {}) as Record<
-            string,
-            { type?: string }
-        >;
+        const constructsConfiguration = get(this.config, "constructs", {}) as Record<string, { type?: string }>;
         // For each construct
         for (const [id, constructConfig] of Object.entries(constructsConfiguration)) {
             if (constructConfig.type === undefined) {
@@ -363,21 +292,9 @@ class LiftPlugin {
         }
     }
 
-    private async postDeploy(): Promise<void> {
-        const constructs = this.getConstructs();
-        for (const [, construct] of Object.entries(constructs)) {
-            if (construct.postDeploy !== undefined) {
-                await construct.postDeploy();
-            }
-        }
-    }
-
-    private async preRemove(): Promise<void> {
-        const constructs = this.getConstructs();
-        for (const [, construct] of Object.entries(constructs)) {
-            if (construct.preRemove !== undefined) {
-                await construct.preRemove();
-            }
+    async deploy(): Promise<void> {
+        for (const provider of Object.values(this.providers)) {
+            await provider.deploy();
         }
     }
 
@@ -394,74 +311,19 @@ class LiftPlugin {
                 scope: (this.providers[DEFAULT_PROVIDER] as AwsProvider).stack,
             }) as T;
         };
-        this.serverless.service.provider = resolveTokens(this.serverless.service.provider);
-        this.serverless.service.package = resolveTokens(this.serverless.service.package);
-        this.serverless.service.custom = resolveTokens(this.serverless.service.custom);
-        this.serverless.service.resources = resolveTokens(this.serverless.service.resources);
-        this.serverless.service.functions = resolveTokens(this.serverless.service.functions);
-        this.serverless.service.layers = resolveTokens(this.serverless.service.layers);
-        this.serverless.service.outputs = resolveTokens(this.serverless.service.outputs);
-        // Also resolve tokens in `configurationInput` because they also appear in there
         this.serverless.configurationInput = resolveTokens(this.serverless.configurationInput);
-    }
-
-    // This is only required for AwsProvider in order to bundle resources together with existing SLS framework resources
-    private appendCloudformationResources() {
-        (this.providers[DEFAULT_PROVIDER] as AwsProvider).appendCloudformationResources();
-    }
-
-    private appendPermissions(): void {
-        // Automatic permissions can be disabled via a `lift.automaticPermissions` flag in serverless.yml
-        const liftConfiguration = get(this.serverless.configurationInput, "lift", {}) as LiftConfig;
-        if (liftConfiguration.automaticPermissions === false) {
-            return;
-        }
-
-        const constructs = this.getConstructs();
-        const statements = flatten(
-            Object.entries(constructs).map(([, construct]) => {
-                return (construct.permissions ? construct.permissions() : []) as unknown as AwsIamPolicyStatements;
-            })
-        );
-        if (statements.length === 0) {
-            return;
-        }
-
-        const role = this.serverless.service.provider.iam?.role;
-
-        if (typeof role === "object" && "statements" in role) {
-            role.statements?.push(...statements);
-
-            return;
-        }
-
-        this.serverless.service.provider.iamRoleStatements = this.serverless.service.provider.iamRoleStatements ?? [];
-        this.serverless.service.provider.iamRoleStatements.push(...statements);
-    }
-
-    private async eject() {
-        log("Ejecting from Lift to CloudFormation");
-        await this.serverless.pluginManager.spawn("package");
-        const legacyProvider = this.serverless.getProvider("aws");
-        const compiledTemplateFileName = legacyProvider.naming.getCompiledTemplateFileName();
-        const compiledTemplateFilePath = path.join(this.serverless.serviceDir, ".serverless", compiledTemplateFileName);
-        const cfTemplate = readFileSync(compiledTemplateFilePath);
-        const formattedYaml = dump(JSON.parse(cfTemplate.toString()));
-        console.log(formattedYaml);
-        log("You can also find that CloudFormation template in the following file:");
-        log(compiledTemplateFilePath);
     }
 
     private getAllConstructClasses(): StaticConstructInterface[] {
         const result = flatten(
-            LiftPlugin.getAllProviderClasses().map((providerClass) => providerClass.getAllConstructClasses())
+            Lift.getAllProviderClasses().map((providerClass) => providerClass.getAllConstructClasses())
         );
 
         return result;
     }
 
     private getConstructClass(constructType: string): StaticConstructInterface | undefined {
-        for (const providerClass of LiftPlugin.getAllProviderClasses()) {
+        for (const providerClass of Lift.getAllProviderClasses()) {
             const constructClass = providerClass.getConstructClass(constructType);
             if (constructClass !== undefined) {
                 return constructClass;
@@ -472,10 +334,4 @@ class LiftPlugin {
     }
 }
 
-export type Lift = {
-    constructs: FromSchema<typeof CONSTRUCTS_DEFINITION>;
-};
-
-LiftPlugin.registerProviders(AwsProvider, StripeProvider);
-
-module.exports = LiftPlugin;
+Lift.registerProviders(AwsProvider, StripeProvider);

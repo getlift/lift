@@ -10,5 +10,5 @@ export interface StaticProviderInterface {
     };
     getConstructClass(type: string): StaticConstructInterface | undefined;
     getAllConstructClasses(): StaticConstructInterface[];
-    create(serverless: Serverless, id: string, configuration: Record<string, unknown>): ProviderInterface;
+    create(id: string, configuration: Record<string, unknown>): ProviderInterface;
 }

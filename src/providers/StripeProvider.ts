@@ -2,12 +2,11 @@ import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
-import { get, has } from "lodash";
+import { has } from "lodash";
 import { Stripe } from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
 import type { FromSchema } from "json-schema-to-ts";
-import type { Serverless } from "../types/serverless";
 import ServerlessError from "../utils/error";
 
 const STRIPE_DEFINITION = {
@@ -55,18 +54,24 @@ export class StripeProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
-    static create(serverless: Serverless, id: string, { profile }: Configuration): StripeProvider {
-        return new this(serverless, id, profile);
+    static create(id: string, { profile }: Configuration): StripeProvider {
+        return new this(id, profile);
     }
 
     private config: { apiKey: string; accountId?: string };
     public sdk: Stripe;
-    constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
+    constructor(private readonly id: string, profile?: string) {
         this.config = this.resolveConfiguration(profile);
         this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }
 
-    createConstruct(type: string, id: string): ConstructInterface {
+    deploy(): Promise<void> {
+        // TODO
+
+        return Promise.resolve();
+    }
+
+    createConstruct(type: string, id: string, configuration: Record<string, unknown>): ConstructInterface {
         const Construct = StripeProvider.getConstructClass(type);
         if (Construct === undefined) {
             throw new ServerlessError(
@@ -75,7 +80,6 @@ export class StripeProvider implements ProviderInterface {
                 "LIFT_UNKNOWN_CONSTRUCT_TYPE"
             );
         }
-        const configuration = get(this.serverless.configurationInput.constructs, id, {});
 
         return Construct.create(this, id, configuration);
     }
