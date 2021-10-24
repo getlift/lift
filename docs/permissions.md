@@ -36,7 +36,7 @@ provider:
                     Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"]
                     Resource:
                         - ${construct:avatars.bucketArn}
-                        - Fn::Join: ['', [${construct:avatars.bucketArn}, '/*']]
+                        - Fn::Join: ['', ['${construct:avatars.bucketArn}', '/*']]
 
 ...
 ```
