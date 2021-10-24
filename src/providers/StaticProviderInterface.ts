@@ -1,6 +1,6 @@
 import type { StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
-import type { Serverless } from "src/types/serverless";
+import type { ServerlessConfig } from "../Config";
 
 export interface StaticProviderInterface {
     type: string;
@@ -10,5 +10,5 @@ export interface StaticProviderInterface {
     };
     getConstructClass(type: string): StaticConstructInterface | undefined;
     getAllConstructClasses(): StaticConstructInterface[];
-    create(id: string, configuration: Record<string, unknown>): ProviderInterface;
+    create(id: string, configuration: Record<string, unknown>, globalConfig: ServerlessConfig): ProviderInterface;
 }

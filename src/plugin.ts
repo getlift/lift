@@ -5,7 +5,8 @@ import type { ProviderInterface, StaticProviderInterface } from "@lift/providers
 import { AwsProvider, StripeProvider } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import ServerlessError from "./utils/error";
-import { Config } from "./Config";
+import type { ServerlessConfig } from "./Config";
+import { readConfig } from "./Config";
 
 const PROVIDER_ID_PATTERN = "^[a-zA-Z0-9-_]+$";
 // This enables all existing constructs defined prior intoduction of "providers" property to work
@@ -62,17 +63,17 @@ export default class Lift {
     private static readonly providerClasses: Record<string, StaticProviderInterface> = {};
     private readonly providersSchema = PROVIDERS_DEFINITION;
     private readonly constructsSchema = CONSTRUCTS_DEFINITION;
-    private readonly config: Config;
+    private readonly config: ServerlessConfig;
 
     constructor() {
-        this.config = Config.fromFile();
+        this.config = readConfig();
         this.loadProviders();
         this.registerConstructsSchema();
         this.registerProvidersSchema();
         this.registerConfigSchema();
-        this.registerCommands();
+        // this.registerCommands();
         this.loadConstructs();
-        this.resolveLazyVariables();
+        // this.resolveLazyVariables();
     }
 
     private registerConstructsSchema() {
@@ -98,9 +99,9 @@ export default class Lift {
     }
 
     private registerConfigSchema() {
-        this.configSchema.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
-        this.configSchema.defineTopLevelProperty("constructs", this.constructsSchema);
-        this.configSchema.defineTopLevelProperty("providers", this.providersSchema);
+        // this.configSchema.defineTopLevelProperty("lift", LIFT_CONFIG_SCHEMA);
+        // this.configSchema.defineTopLevelProperty("constructs", this.constructsSchema);
+        // this.configSchema.defineTopLevelProperty("providers", this.providersSchema);
     }
 
     static registerProviders(...providerClasses: StaticProviderInterface[]): void {
@@ -124,8 +125,8 @@ export default class Lift {
     }
 
     private loadProviders() {
-        for (const [id, providerConfig] of Object.entries(get(this.config, "providers", {}))) {
-            const type = get(providerConfig, "type", undefined) as string | undefined;
+        for (const [id, providerConfig] of Object.entries(this.config.providers)) {
+            const type = get(providerConfig, "type", undefined);
             if (type === undefined) {
                 throw new ServerlessError(
                     `The provider '${id}' must have a "type" property.`,
@@ -145,35 +146,33 @@ export default class Lift {
             );
         }
 
-        return Provider.create(id, configuration);
+        return Provider.create(id, configuration, this.config);
     }
 
     private loadConstructs(): void {
-        for (const [id, constructConfig] of Object.entries(get(this.config, "constructs", {}))) {
-            const providerId = get(constructConfig, "provider", undefined) as string | undefined;
-            if (providerId === undefined) {
+        for (const [id, config] of Object.entries(this.config.constructs)) {
+            if (config.provider === undefined) {
                 throw new ServerlessError(
                     `The construct '${id}' must have a "provider" property.`,
                     "LIFT_UNKNOWN_PROVIDER_ID"
                 );
             }
-            const type = get(constructConfig, "type", undefined) as string | undefined;
-            if (type === undefined) {
+            if (config.type === undefined) {
                 throw new ServerlessError(
                     `The construct '${id}' must have a "type" property.`,
                     "LIFT_UNKNOWN_CONSTRUCT_TYPE"
                 );
             }
-            const provider = this.getLiftProviderById(providerId);
+            const provider = this.getLiftProviderById(config.provider);
             if (!provider) {
                 throw new ServerlessError(
-                    `No provider ${providerId} was found for construct ${id}. Available providers are ${Object.keys(
-                        this.providers
-                    ).join(", ")}`,
+                    `No provider ${
+                        config.provider
+                    } was found for construct ${id}. Available providers are ${Object.keys(this.providers).join(", ")}`,
                     "LIFT_UNKNOWN_PROVIDER_ID"
                 );
             }
-            this.constructs[id] = provider.createConstruct(type, id, constructConfig as Record<string, unknown>);
+            this.constructs[id] = provider.createConstruct(config.type, id, config as Record<string, unknown>);
         }
     }
 

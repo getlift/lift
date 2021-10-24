@@ -2,6 +2,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
+            "@lift/commands": ["src/commands"],
             "@lift/providers": ["src/providers"],
             "@lift/constructs": ["src/constructs"],
             "@lift/constructs/*": ["src/constructs/*"]

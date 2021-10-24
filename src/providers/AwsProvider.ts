@@ -11,12 +11,13 @@ import {
     Vpc,
     Webhook,
 } from "@lift/constructs/aws";
-import { CredentialProviderChain, Credentials } from "aws-sdk";
+import { CredentialProviderChain } from "aws-sdk";
 import { Bootstrapper, SdkProvider } from "aws-cdk";
 import { CloudFormationDeployments } from "aws-cdk/lib/api/cloudformation-deployments";
 import { getStackOutput } from "../CloudFormation";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
+import type { ServerlessConfig } from "../Config";
 
 const AWS_DEFINITION = {
     type: "object",
@@ -49,8 +50,12 @@ export class AwsProvider implements ProviderInterface {
         return Object.values(this.constructClasses);
     }
 
-    static create(): ProviderInterface {
-        return new this();
+    static create(
+        id: string,
+        configuration: Record<string, unknown>,
+        globalConfig: ServerlessConfig
+    ): ProviderInterface {
+        return new this(id, configuration, globalConfig);
     }
 
     private readonly app: App;
@@ -58,11 +63,11 @@ export class AwsProvider implements ProviderInterface {
     public readonly region: string;
     public readonly stackName: string;
 
-    constructor() {
-        this.stackName = "stack-name";
+    constructor(id: string, configuration: Record<string, unknown>, globalConfig: ServerlessConfig) {
+        this.stackName = globalConfig.service;
         this.app = new App();
-        this.stack = new Stack(this.app);
-        this.region = "us-east-1";
+        this.stack = new Stack(this.app, this.stackName);
+        this.region = typeof configuration.region === "string" ? configuration.region : "us-east-1";
     }
 
     createConstruct(type: string, id: string, configuration: Record<string, unknown>): ConstructInterface {
@@ -86,12 +91,18 @@ export class AwsProvider implements ProviderInterface {
     }
 
     async deploy(): Promise<void> {
-        const credentials = new Credentials(this.provider.getCredentials());
+        console.log("Deploying the CloudFormation stack");
+
+        // const credentials = new Credentials(this.provider.getCredentials());
         const credentialProviderChain = new CredentialProviderChain();
-        credentialProviderChain.providers.push(credentials);
+        // credentialProviderChain.providers.push(credentials);
         const sdkProvider = new SdkProvider(credentialProviderChain, this.region, {
-            credentials,
+            // credentials,
         });
+        const accountId = (await sdkProvider.defaultAccount())?.accountId;
+        if (accountId === undefined) {
+            throw new Error("No AWS account ID could be found via the AWS credentials");
+        }
 
         // Setup the bootstrap stack
         // Ideally we don't do that every time
@@ -101,7 +112,7 @@ export class AwsProvider implements ProviderInterface {
         });
         const bootstrapDeployResult = await cdkBootstrapper.bootstrapEnvironment(
             {
-                account: await this.provider.getAccountId(),
+                account: accountId,
                 name: "dev",
                 region: "us-east-1",
             },
@@ -127,7 +138,7 @@ export class AwsProvider implements ProviderInterface {
             }
         );
         if (bootstrapDeployResult.noOp) {
-            // console.log("The CDK is already set up, moving on");
+            console.log("The CDK is already set up, moving on");
         }
 
         console.log(`Deploying ${this.stackName}`);
