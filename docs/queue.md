@@ -299,6 +299,24 @@ constructs:
             # The retry delay on the queue will be 10*6 => 60 seconds
 ```
 
+### Delivery delay
+
+When a message is sent to the queue, it will be available immediately to the worker.
+
+You can postpone the delivery of messages by a given amount of seconds using the `delay` option.
+
+The maximum value is 900 seconds (15 minutes).
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        worker:
+            handler: src/worker.handler
+            # Messages delivery will be delayed by 1 minute
+            delay: 60
+```
+
 ### Batch size
 
 ```yaml
