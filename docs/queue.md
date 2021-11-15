@@ -311,10 +311,8 @@ The maximum value is 900 seconds (15 minutes).
 constructs:
     my-queue:
         # ...
-        worker:
-            handler: src/worker.handler
-            # Messages delivery will be delayed by 1 minute
-            delay: 60
+        # Messages delivery will be delayed by 1 minute
+        delay: 60
 ```
 
 ### Batch size
