@@ -256,7 +256,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 invalidate = invalidate || hasChanges;
             } else {
                 // File
-                const targetKey = path.join(s3PathPrefix, path.basename(filePath));
+                const targetKey = path.posix.join(s3PathPrefix, path.basename(filePath));
                 log(`Uploading '${filePath}' to 's3://${bucketName}/${targetKey}'`);
                 await s3Put(this.provider, bucketName, targetKey, fs.readFileSync(filePath));
                 invalidate = true;

@@ -47,8 +47,8 @@ export async function s3Sync({
     for (const batch of chunk(filesToUpload, 2)) {
         await Promise.all(
             batch.map(async (file) => {
-                const targetKey = targetPathPrefix !== undefined ? path.join(targetPathPrefix, file) : file;
-                const fileContent = fs.readFileSync(path.join(localPath, file));
+                const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
+                const fileContent = fs.readFileSync(path.posix.join(localPath, file));
 
                 // Check that the file isn't already uploaded
                 if (targetKey in existingS3Objects) {
@@ -72,7 +72,7 @@ export async function s3Sync({
     }
 
     const targetKeys = filesToUpload.map((file) =>
-        targetPathPrefix !== undefined ? path.join(targetPathPrefix, file) : file
+        targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
     );
     const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
     if (keysToDelete.length > 0) {
@@ -89,14 +89,14 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
 
     const files = await Promise.all(
         items.map(async (fileName) => {
-            const fullPath = path.join(directory, fileName);
+            const fullPath = path.posix.join(directory, fileName);
             const fileStat = await stat(fullPath);
             if (fileStat.isFile()) {
                 return [fileName];
             } else if (fileStat.isDirectory()) {
                 const subFiles = await listFilesRecursively(fullPath);
 
-                return subFiles.map((subFileName) => path.join(fileName, subFileName));
+                return subFiles.map((subFileName) => path.posix.join(fileName, subFileName));
             }
 
             return [];
