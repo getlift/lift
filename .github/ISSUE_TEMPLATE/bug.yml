@@ -3,11 +3,6 @@ description: Report a bug in Lift
 labels: bug
 
 body:
-    - type: input
-      id: construct
-      attributes:
-          label: Affected Construct
-          placeholder: If applicable (eg. queue, storage)
     - type: textarea
       id: description
       attributes:
@@ -23,12 +18,9 @@ body:
       validations:
           required: true
     - type: textarea
-      id: possible-solution
-      attributes:
-          label: Possible Solution
-          description: "Optional: only if you have suggestions on a fix for the bug"
-    - type: textarea
       id: additional-information
       attributes:
           label: Additional Information
-          description: "Optional: any other details about the problem: screenshot, affected Lift version, Serverless Framework version,etc"
+          description: |
+              Optional: any other details that may help.
+              Possible solution, screenshot, affected Lift version, Serverless Framework version, etc.
