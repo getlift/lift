@@ -1,0 +1,26 @@
+name: 🐛 Bug report
+description: Report a bug in Lift
+labels: bug
+
+body:
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: A clear and concise description of what the bug is, with the complete error message when relevant.
+      validations:
+          required: true
+    - type: textarea
+      id: how-to-reproduce
+      attributes:
+          label: How to Reproduce
+          description: "`serverless.yml` configuration and other information needed to reproduce the issue."
+      validations:
+          required: true
+    - type: textarea
+      id: additional-information
+      attributes:
+          label: Additional Information
+          description: |
+              Optional: any other details that may help.
+              Possible solution, screenshot, affected Lift version, Serverless Framework version, etc.

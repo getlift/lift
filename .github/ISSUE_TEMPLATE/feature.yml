@@ -1,0 +1,24 @@
+name: ✨ New Construct, Feature or Improvement
+description: Suggest something new
+labels: enhancement
+
+body:
+    - type: textarea
+      id: use-case
+      attributes:
+          label: Start from the Use-case
+          description: Describe the problem you're trying to solve, rather than the technical solution you may have.
+      validations:
+          required: true
+    - type: textarea
+      id: example-config
+      attributes:
+          label: Example Config
+          description: "Optional: An example of the Construct config when applicable."
+    - type: textarea
+      id: implementation-idea
+      attributes:
+          label: Implementation Idea
+          description: |
+              Optional: Describe here how this might be solved from a technical point-of-view.
+              Cloudformation property, required resources, output or variable needed, etc.
