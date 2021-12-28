@@ -37,7 +37,6 @@ const QUEUE_DEFINITION = {
             minimum: 1,
             maximum: 10,
         },
-        partialBatchFailure: { type: "boolean" },
         fifo: { type: "boolean" },
         delay: { type: "number" },
     },
@@ -238,7 +237,6 @@ export class Queue extends AwsConstruct {
     private appendFunctions(): void {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
-        const responseType = this.configuration.partialBatchFailure === true ? "ReportBatchItemFailures" : undefined;
 
         // Override events for the worker
         this.configuration.worker.events = [
@@ -249,7 +247,7 @@ export class Queue extends AwsConstruct {
                     batchSize: batchSize,
                     // TODO add setting
                     maximumBatchingWindow: this.queue.fifo ? undefined : 60,
-                    functionResponseType: responseType,
+                    functionResponseType: "ReportBatchItemFailures",
                 },
             },
         ];

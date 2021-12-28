@@ -19,7 +19,7 @@ jobs:
                     - 14
                     - 16
                 serverless:
-                    - "2.67.0"
+                    - "2.36.0"
                     - latest
         steps:
             - uses: actions/checkout@v2

@@ -84,6 +84,7 @@ describe("queues", () => {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
                 MaximumBatchingWindowInSeconds: 60,
+                FunctionResponseTypes: ["ReportBatchItemFailures"],
             },
             Type: "AWS::Lambda::EventSourceMapping",
         });
@@ -190,37 +191,6 @@ describe("queues", () => {
             Properties: {
                 BatchSize: 10,
             },
-        });
-    });
-
-    it("allows enabling partial batch failure", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
-            fixture: "queues",
-            configExt: merge(pluginConfigExt, {
-                constructs: {
-                    emails: {
-                        batchSize: 10,
-                        partialBatchFailure: true,
-                    },
-                },
-            }),
-            command: "package",
-        });
-        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toEqual({
-            DependsOn: ["IamRoleLambdaExecution"],
-            Properties: {
-                BatchSize: 10,
-                Enabled: true,
-                EventSourceArn: {
-                    "Fn::GetAtt": [computeLogicalId("emails", "Queue"), "Arn"],
-                },
-                FunctionName: {
-                    "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
-                },
-                MaximumBatchingWindowInSeconds: 60,
-                FunctionResponseTypes: ["ReportBatchItemFailures"],
-            },
-            Type: "AWS::Lambda::EventSourceMapping",
         });
     });
 

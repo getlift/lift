@@ -45,6 +45,7 @@ Lift constructs are production-ready:
 - Failed messages in the dead letter queue are stored for 14 days (the maximum) to give developers time to deal with them
 - The SQS "Visibility Timeout" setting is configured per AWS recommendations ([more details](#retry-delay))
 - Batch processing is disabled by default ([configurable](#batch-size)): errors need to be handled properly using [partial batch failures](#partial-batch-failures)
+- The event mapping is configured with `ReportBatchItemFailures` enabled by default for [partial batch failures](#partial-batch-failures) to work out of the box
 
 ## Example
 
@@ -336,20 +337,9 @@ It is possible to set the batch size between 1 and 10.
 
 ### Partial batch failures
 
-```yaml
-constructs:
-    my-queue:
-        # ...
-        partialBatchFailure: true
-```
-
-*Default: false*
-
 When using message batches, an error thrown in your worker function would consider the whole batch as failed.
 
-If you want to only consider specific messages of the batch as failed, you can enable this option.
-
-When enabling this, you need to return a specific format in your worker function.
+If you want to only consider specific messages of the batch as failed, you need to return a specific format in your worker function.
 It contains the identifier of the messages you consider as failed in the `itemIdentifier` key.
 
 ```json
