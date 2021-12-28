@@ -31,7 +31,9 @@ declare module "@serverless/test/run-serverless" {
         );
 
     type RunServerlessReturn = {
-        serverless: Record<string, unknown>;
+        serverless: {
+            version: string;
+        };
         stdoutData: string;
         cfTemplate: {
             Resources: Record<string, { Properties: Record<string, unknown> }>;
