@@ -27,7 +27,7 @@ describe("server-side website", () => {
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("backend", "OriginAccessIdentity");
+        const originAccessIdentityLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3Origin");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
@@ -39,10 +39,10 @@ describe("server-side website", () => {
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
             bucketPolicyLogicalId,
-            originAccessIdentityLogicalId,
             originPolicyId,
             cachePolicyId,
             requestFunction,
+            originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -56,26 +56,23 @@ describe("server-side website", () => {
                 PolicyDocument: {
                     Statement: [
                         {
-                            Action: ["s3:GetObject*", "s3:GetBucket*", "s3:List*"],
+                            Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
                                 CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"] },
                             },
-                            Resource: [
-                                { "Fn::GetAtt": [bucketLogicalId, "Arn"] },
-                                { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
-                            ],
+                            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
                     ],
                     Version: "2012-10-17",
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toMatchObject({
+        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toStrictEqual({
             Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
             Properties: {
                 CloudFrontOriginAccessIdentityConfig: {
-                    Comment: "Identity that represents CloudFront for the backend website.",
+                    Comment: `Identity for ${cfOriginId2}`,
                 },
             },
         });
@@ -222,8 +219,6 @@ describe("server-side website", () => {
             }),
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
-        const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("backend", "OriginAccessIdentity");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
@@ -233,8 +228,6 @@ describe("server-side website", () => {
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
-            bucketPolicyLogicalId,
-            originAccessIdentityLogicalId,
             originPolicyId,
             cachePolicyId,
             requestFunction,

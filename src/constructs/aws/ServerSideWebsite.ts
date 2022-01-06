@@ -6,7 +6,6 @@ import {
     Distribution,
     FunctionEventType,
     HttpVersion,
-    OriginAccessIdentity,
     OriginProtocolPolicy,
     OriginRequestCookieBehavior,
     OriginRequestHeaderBehavior,
@@ -106,10 +105,6 @@ export class ServerSideWebsite extends AwsConstruct {
             // Assets are compiled artifacts, we can clear them on serverless remove
             removalPolicy: RemovalPolicy.DESTROY,
         });
-        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
-            comment: `Identity that represents CloudFront for the ${id} website.`,
-        });
-        bucket.grantRead(cloudFrontOAI);
 
         /**
          * We create custom "Origin Policy" and "Cache Policy" for the backend.
@@ -131,9 +126,6 @@ export class ServerSideWebsite extends AwsConstruct {
             // Authorization is an exception and must be whitelisted in the Cache Policy
             // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
             headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
-        });
-        const s3Origin = new S3Origin(bucket, {
-            originAccessIdentity: cloudFrontOAI,
         });
 
         const apiId =
@@ -172,7 +164,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 ],
             },
             // All the assets paths are created in there
-            additionalBehaviors: this.createCacheBehaviors(s3Origin),
+            additionalBehaviors: this.createCacheBehaviors(bucket),
             errorResponses: this.createErrorResponses(),
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
@@ -368,12 +360,12 @@ export class ServerSideWebsite extends AwsConstruct {
         );
     }
 
-    private createCacheBehaviors(s3Origin: S3Origin): Record<string, BehaviorOptions> {
+    private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
         for (const pattern of Object.keys(this.getAssetPatterns())) {
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: s3Origin,
+                origin: new S3Origin(bucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
