@@ -5,7 +5,6 @@ import {
     Distribution,
     FunctionEventType,
     HttpVersion,
-    OriginAccessIdentity,
     ViewerProtocolPolicy,
 } from "@aws-cdk/aws-cloudfront";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
@@ -95,11 +94,6 @@ export class StaticWebsite extends AwsConstruct {
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        const cloudFrontOAI = new OriginAccessIdentity(this, "OriginAccessIdentity", {
-            comment: `Identity that represents CloudFront for the ${id} static website.`,
-        });
-        bucket.grantRead(cloudFrontOAI);
-
         // Cast the domains to an array
         this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
         const certificate =
@@ -129,9 +123,7 @@ export class StaticWebsite extends AwsConstruct {
             defaultRootObject: "index.html",
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket, {
-                    originAccessIdentity: cloudFrontOAI,
-                }),
+                origin: new S3Origin(bucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
