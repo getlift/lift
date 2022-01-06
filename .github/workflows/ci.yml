@@ -18,6 +18,7 @@ jobs:
                     - 12
                     - 14
                     - 16
+                    - 17
                 serverless:
                     - "2.36.0"
                     - latest
