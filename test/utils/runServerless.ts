@@ -16,7 +16,10 @@ const computeLogicalId = (serverless: Serverless, ...address: string[]): string 
     const foundNode = [...address].reduce((currentNode, nextNodeId) => {
         const nextNode = currentNode.tryFindChild(nextNodeId);
         if (!nextNode) {
-            throw new Error(`No node named ${nextNodeId} found in ${address.join(".")} address.`);
+            const existingNodes = currentNode.children.map((child) => child.node.id).join(", ");
+            throw new Error(
+                `No node named ${nextNodeId} found in ${address.join(".")} address. Existing nodes: ${existingNodes}`
+            );
         }
 
         return nextNode.node;
