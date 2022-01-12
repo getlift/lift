@@ -44,7 +44,8 @@ Lift constructs are production-ready:
 - Messages that still fail to be processed are stored in the SQS dead letter queue
 - Failed messages in the dead letter queue are stored for 14 days (the maximum) to give developers time to deal with them
 - The SQS "Visibility Timeout" setting is configured per AWS recommendations ([more details](#retry-delay))
-- Batch processing is disabled by default ([configurable](#batch-size)): errors are tricky to handle with batching
+- Batch processing is disabled by default ([configurable](#batch-size)): errors need to be handled properly using [partial batch failures](#partial-batch-failures)
+- The event mapping is configured with `ReportBatchItemFailures` enabled by default for [partial batch failures](#partial-batch-failures) to work out of the box
 
 ## Example
 
@@ -328,9 +329,33 @@ constructs:
 
 When the SQS queue contains more than 1 message to process, it can invoke Lambda with a batch of multiple messages at once.
 
-By default, Lift configures Lambda to be invoked with 1 messages at a time. The reason is to simplify error handling: in a batch, any failed message will fail the whole batch.
+By default, Lift configures Lambda to be invoked with 1 messages at a time. The reason is to simplify error handling: in a batch, any failed message will fail the whole batch by default.
+
+Note you can use [partial batch failures](#partial-batch-failures) to avoid failing the whole batch.
 
 It is possible to set the batch size between 1 and 10.
+
+### Partial batch failures
+
+When using message batches, an error thrown in your worker function would consider the whole batch as failed.
+
+If you want to only consider specific messages of the batch as failed, you need to return a specific format in your worker function.
+It contains the identifier of the messages you consider as failed in the `itemIdentifier` key.
+
+```json
+{ 
+  "batchItemFailures": [ 
+        {
+            "itemIdentifier": "id2"
+        },
+        {
+            "itemIdentifier": "id4"
+        }
+    ]
+}
+```
+
+You can learn more in the [official AWS documentation](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#services-sqs-batchfailurereporting).
 
 ### More options
 

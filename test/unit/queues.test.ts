@@ -12,12 +12,15 @@ describe("queues", () => {
     });
 
     it("should create all required resources", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
+        const {
+            cfTemplate,
+            computeLogicalId,
+            serverless: { version },
+        } = await runServerless({
             fixture: "queues",
             configExt: pluginConfigExt,
             command: "package",
         });
-
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -84,6 +87,7 @@ describe("queues", () => {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
                 MaximumBatchingWindowInSeconds: 60,
+                FunctionResponseTypes: (version as string) >= "2.67.0" ? ["ReportBatchItemFailures"] : undefined,
             },
             Type: "AWS::Lambda::EventSourceMapping",
         });

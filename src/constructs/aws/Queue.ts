@@ -247,6 +247,7 @@ export class Queue extends AwsConstruct {
                     batchSize: batchSize,
                     // TODO add setting
                     maximumBatchingWindow: this.queue.fifo ? undefined : 60,
+                    functionResponseType: "ReportBatchItemFailures",
                 },
             },
         ];
