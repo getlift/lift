@@ -26,7 +26,7 @@ describe("static websites", () => {
         });
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("landing", "OriginAccessIdentity");
+        const originAccessIdentityLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3Origin");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
@@ -35,8 +35,8 @@ describe("static websites", () => {
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
             bucketPolicyLogicalId,
-            originAccessIdentityLogicalId,
             responseFunction,
+            originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -52,29 +52,14 @@ describe("static websites", () => {
                 PolicyDocument: {
                     Statement: [
                         {
-                            Action: ["s3:GetObject*", "s3:GetBucket*", "s3:List*"],
+                            Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
                                 CanonicalUser: {
                                     "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
                                 },
                             },
-                            Resource: [
-                                {
-                                    "Fn::GetAtt": [bucketLogicalId, "Arn"],
-                                },
-                                {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            {
-                                                "Fn::GetAtt": [bucketLogicalId, "Arn"],
-                                            },
-                                            "/*",
-                                        ],
-                                    ],
-                                },
-                            ],
+                            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
                     ],
                     Version: "2012-10-17",
@@ -85,7 +70,7 @@ describe("static websites", () => {
             Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
             Properties: {
                 CloudFrontOriginAccessIdentityConfig: {
-                    Comment: "Identity that represents CloudFront for the landing static website.",
+                    Comment: `Identity for ${cfOriginId}`,
                 },
             },
         });
