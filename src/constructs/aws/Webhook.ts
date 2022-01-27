@@ -115,7 +115,7 @@ export class Webhook extends AwsConstruct {
             const lambda = Function.fromFunctionArn(
                 this,
                 "LambdaAuthorizer",
-                Fn.getAtt(provider.naming.getLambdaLogicalId(`${id}Authorizer`), "Arn") as unknown as string
+                Fn.getAtt(provider.naming.getLambdaLogicalId(`${id}Authorizer`), "Arn").toString()
             );
             lambda.grantInvoke(apiGatewayRole);
             const authorizer = new CfnAuthorizer(this, "Authorizer", {
