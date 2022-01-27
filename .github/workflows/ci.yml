@@ -20,8 +20,8 @@ jobs:
                     - 17
                 serverless:
                     - "2.36.0"
-                    - latest
-                    - "3"
+                    - "2"
+                    - "latest"
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-node@v2
@@ -35,7 +35,7 @@ jobs:
             - run: npm i serverless@${{ matrix.serverless }}
             - run: npm i @serverless/test@9
               # Only install @serverless/test@9 for Serverless v3
-              if: matrix.serverless == '3'
+              if: matrix.serverless == 'latest'
             - run: npm test
     lint:
         name: Lint
