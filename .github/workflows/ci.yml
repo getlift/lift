@@ -15,13 +15,13 @@ jobs:
             matrix:
                 node:
                     - "12.13.0"
-                    - 12
                     - 14
                     - 16
                     - 17
                 serverless:
                     - "2.36.0"
                     - latest
+                    - pre-3
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-node@v2
@@ -33,6 +33,9 @@ jobs:
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
             - run: npm i
             - run: npm i serverless@${{ matrix.serverless }}
+            - run: npm i @serverless/test@9
+              # Only install @serverless/test@9 for Serverless v3
+              if: matrix.serverless == 'pre-3'
             - run: npm test
     lint:
         name: Lint

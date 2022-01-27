@@ -1,5 +1,7 @@
 service: storage
 configValidationMode: error
+disabledDeprecations:
+    - PROVIDER_IAM_SETTINGS_V3
 
 provider:
     name: aws
