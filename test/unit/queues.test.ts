@@ -70,7 +70,9 @@ describe("queues", () => {
                 Role: {
                     "Fn::GetAtt": ["IamRoleLambdaExecution", "Arn"],
                 },
-                Runtime: "nodejs12.x",
+                // nodejs14 on v3, nodejs12 on v2
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                Runtime: expect.stringContaining("nodejs"),
                 Timeout: 6,
             },
             Type: "AWS::Lambda::Function",
