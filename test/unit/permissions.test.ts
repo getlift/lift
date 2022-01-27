@@ -72,8 +72,7 @@ describe("permissions", () => {
         expectLiftStorageStatementIsAdded(cfTemplate);
     });
 
-    // This test is skipped until we have a workaround for https://github.com/serverless/test/pull/101
-    it.skip("should append permissions when using the deprecated iamRoleStatements", async () => {
+    it("should append permissions when using the deprecated iamRoleStatements", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "permissions",
             configExt: merge({}, pluginConfigExt, {
@@ -88,9 +87,6 @@ describe("permissions", () => {
                 },
             }),
             command: "package",
-            env: {
-                SLS_DEPRECATION_NOTIFICATION_MODE: "warn",
-            },
         });
 
         expectUserDynamoStatementIsAdded(cfTemplate);
