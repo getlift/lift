@@ -1,6 +1,5 @@
 module.exports = class ExtraPlugin {
     constructor() {
-        // V3 variable mechanism
         this.configurationVariablesSources = {
             "custom-var-1": {
                 resolve: () => {
@@ -32,15 +31,6 @@ module.exports = class ExtraPlugin {
                         })(),
                     };
                 },
-            },
-        };
-        // Old variable mechanism
-        this.variableResolvers = {
-            "custom-var-3": () => Promise.resolve("Custom variable 3"),
-            "custom-var-4": {
-                resolver: () => Promise.resolve("Custom variable 4"),
-                serviceName: "dunno what that key is for",
-                isDisabledAtPrepopulation: true,
             },
         };
     }

@@ -31,8 +31,6 @@ describe("variables", () => {
             // Custom variables defined by plugins (using a different API every time
             CUSTOM_VAR1: "Custom variable 1",
             CUSTOM_VAR2: "Custom variable 2",
-            CUSTOM_VAR3: "Custom variable 3",
-            CUSTOM_VAR4: "Custom variable 4",
         });
         // ${construct:bucket.bucketName} should have been resolved
         expect(cfTemplate.Resources.barAlarmTopicSubscription56286022).toHaveProperty("Properties.Endpoint", {
