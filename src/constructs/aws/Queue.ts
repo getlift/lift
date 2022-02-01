@@ -40,6 +40,11 @@ const QUEUE_DEFINITION = {
             minimum: 1,
             maximum: 10,
         },
+        maxBatchingWindow: {
+            type: "number",
+            minimum: 0,
+            maximum: 300,
+        },
         fifo: { type: "boolean" },
         delay: { type: "number" },
     },
@@ -47,6 +52,8 @@ const QUEUE_DEFINITION = {
     required: ["worker"],
 } as const;
 type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
+
+const MAX_BATCHING_WINDOW = 60;
 
 export class Queue extends AwsConstruct {
     public static type = "queue";
@@ -130,6 +137,13 @@ export class Queue extends AwsConstruct {
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
 
+        const maximumBatchingWindow =
+            configuration.fifo === true ? 0 : configuration.maxBatchingWindow ?? MAX_BATCHING_WINDOW;
+
+        // This should be 6 times the lambda function's timeout + MaximumBatchingWindowInSeconds
+        // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
+        const visibilityTimeout = functionTimeout * 6 + maximumBatchingWindow;
+
         const maxRetries = configuration.maxRetries ?? 3;
 
         let delay = undefined;
@@ -155,9 +169,7 @@ export class Queue extends AwsConstruct {
 
         this.queue = new CdkQueue(this, "Queue", {
             queueName: configuration.fifo === true ? `${baseName}.fifo` : `${baseName}`,
-            // This should be 6 times the lambda function's timeout
-            // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-            visibilityTimeout: Duration.seconds(functionTimeout * 6),
+            visibilityTimeout: Duration.seconds(visibilityTimeout),
             deadLetterQueue: {
                 maxReceiveCount: maxRetries,
                 queue: dlq,
@@ -240,6 +252,7 @@ export class Queue extends AwsConstruct {
     private appendFunctions(): void {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
+        const maximumBatchingWindow = this.queue.fifo ? 0 : this.configuration.maxBatchingWindow ?? MAX_BATCHING_WINDOW;
 
         // Override events for the worker
         this.configuration.worker.events = [
@@ -248,8 +261,7 @@ export class Queue extends AwsConstruct {
                 sqs: {
                     arn: this.queue.queueArn,
                     batchSize: batchSize,
-                    // TODO add setting
-                    maximumBatchingWindow: this.queue.fifo ? undefined : 60,
+                    maximumBatchingWindow: maximumBatchingWindow,
                     functionResponseType: "ReportBatchItemFailures",
                 },
             },
