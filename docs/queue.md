@@ -341,7 +341,7 @@ It is possible to set the batch size between 1 and 10.
 constructs:
     my-queue:
         # ...
-        maxBatchingWindow: 5 # SQS will wait 5 seconds (so that it can batch any requests together) before delivering to lambda
+        maxBatchingWindow: 5 # SQS will wait 5 seconds (so that it can batch any messages together) before delivering to lambda
 ```
 
 *Default: 60 seconds*
