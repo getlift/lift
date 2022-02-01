@@ -335,6 +335,22 @@ Note you can use [partial batch failures](#partial-batch-failures) to avoid fail
 
 It is possible to set the batch size between 1 and 10.
 
+### Maximum Batching Window
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        maxBatchingWindow: 5 # SQS will wait 5 seconds (so that it can batch any requests together) before delivering to lambda
+```
+
+*Default: 60 seconds*
+
+The maximum amount of time to gather records before invoking the lambda. This increases the likelihood of a full batch at the cost of delayed processing.
+
+It is possible to set the `maxBatchingWindow` between 0 and 300. 
+
+
 ### Partial batch failures
 
 When using message batches, an error thrown in your worker function would consider the whole batch as failed.
@@ -356,6 +372,7 @@ It contains the identifier of the messages you consider as failed in the `itemId
 ```
 
 You can learn more in the [official AWS documentation](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#services-sqs-batchfailurereporting).
+
 
 ### More options
 
