@@ -53,8 +53,6 @@ const QUEUE_DEFINITION = {
 } as const;
 type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
 
-const MAX_BATCHING_WINDOW = 60;
-
 export class Queue extends AwsConstruct {
     public static type = "queue";
     public static schema = QUEUE_DEFINITION;
@@ -137,12 +135,9 @@ export class Queue extends AwsConstruct {
         // The default function timeout is 6 seconds in the Serverless Framework
         const functionTimeout = configuration.worker.timeout ?? 6;
 
-        const maximumBatchingWindow =
-            configuration.fifo === true ? 0 : configuration.maxBatchingWindow ?? MAX_BATCHING_WINDOW;
-
         // This should be 6 times the lambda function's timeout + MaximumBatchingWindowInSeconds
         // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-        const visibilityTimeout = functionTimeout * 6 + maximumBatchingWindow;
+        const visibilityTimeout = functionTimeout * 6 + (this.getMaximumBatchingWindow() ?? 0);
 
         const maxRetries = configuration.maxRetries ?? 3;
 
@@ -249,10 +244,14 @@ export class Queue extends AwsConstruct {
         return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
     }
 
+    private getMaximumBatchingWindow(): number | undefined {
+        return this.configuration.fifo === true ? undefined : this.configuration.maxBatchingWindow ?? 60;
+    }
+
     private appendFunctions(): void {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
-        const maximumBatchingWindow = this.queue.fifo ? 0 : this.configuration.maxBatchingWindow ?? MAX_BATCHING_WINDOW;
+        const maximumBatchingWindow = this.getMaximumBatchingWindow();
 
         // Override events for the worker
         this.configuration.worker.events = [
