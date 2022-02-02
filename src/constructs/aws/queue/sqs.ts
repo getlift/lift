@@ -8,6 +8,7 @@ import type {
     SendMessageBatchResult,
 } from "aws-sdk/clients/sqs";
 import type { AwsProvider } from "@lift/providers";
+import { chunk } from "lodash";
 import { sleep } from "../../../utils/sleep";
 import { getUtils } from "../../../utils/logger";
 
@@ -89,48 +90,65 @@ export async function retryMessages(
         };
     }
 
-    const sendResult = await aws.request<SendMessageBatchRequest, SendMessageBatchResult>("SQS", "sendMessageBatch", {
-        QueueUrl: queueUrl,
-        Entries: messages.map((message) => {
-            if (message.MessageId === undefined) {
-                throw new Error(`Found a message with no ID`);
-            }
+    const sendBatches = chunk(messages, 10);
+    const sendResults = await Promise.all(
+        sendBatches.map((batch) =>
+            aws.request<SendMessageBatchRequest, SendMessageBatchResult>("SQS", "sendMessageBatch", {
+                QueueUrl: queueUrl,
+                Entries: batch.map((message) => {
+                    if (message.MessageId === undefined) {
+                        throw new Error(`Found a message with no ID`);
+                    }
 
-            return {
-                Id: message.MessageId,
-                MessageAttributes: message.MessageAttributes,
-                MessageBody: message.Body as string,
-            };
-        }),
-    });
+                    return {
+                        Id: message.MessageId,
+                        MessageAttributes: message.MessageAttributes,
+                        MessageBody: message.Body as string,
+                    };
+                }),
+            })
+        )
+    );
+
     const messagesToDelete = messages.filter((message) => {
-        const isMessageInFailedList = sendResult.Failed.some((failedMessage) => message.MessageId === failedMessage.Id);
+        const isMessageInFailedList = sendResults.some(({ Failed }) =>
+            Failed.some((failedMessage) => message.MessageId === failedMessage.Id)
+        );
 
         return !isMessageInFailedList;
     });
 
-    const deletionResult = await aws.request<DeleteMessageBatchRequest, DeleteMessageBatchResult>(
-        "SQS",
-        "deleteMessageBatch",
-        {
-            QueueUrl: dlqUrl,
-            Entries: messagesToDelete.map((message) => {
-                return {
-                    Id: message.MessageId as string,
-                    ReceiptHandle: message.ReceiptHandle as string,
-                };
-            }),
-        }
+    const deleteBatches = chunk(messagesToDelete, 10);
+    const deletionResults = await Promise.all(
+        deleteBatches.map((batch) =>
+            aws.request<DeleteMessageBatchRequest, DeleteMessageBatchResult>("SQS", "deleteMessageBatch", {
+                QueueUrl: dlqUrl,
+                Entries: batch.map((message) => {
+                    return {
+                        Id: message.MessageId as string,
+                        ReceiptHandle: message.ReceiptHandle as string,
+                    };
+                }),
+            })
+        )
     );
-    if (deletionResult.Failed.length > 0) {
+
+    const numberOfMessagesRetried = deletionResults.reduce((total, { Successful }) => total + Successful.length, 0);
+    const numberOfMessagesNotRetried = sendResults.reduce((total, { Failed }) => total + Failed.length, 0);
+    const numberOfMessagesRetriedButNotDeleted = deletionResults.reduce(
+        (total, { Failed }) => total + Failed.length,
+        0
+    );
+
+    if (numberOfMessagesRetriedButNotDeleted > 0) {
         getUtils().log.warning(
-            `${deletionResult.Failed.length} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+            `${numberOfMessagesRetriedButNotDeleted} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
         );
     }
 
     return {
-        numberOfMessagesRetried: deletionResult.Successful.length,
-        numberOfMessagesNotRetried: sendResult.Failed.length,
-        numberOfMessagesRetriedButNotDeleted: deletionResult.Failed.length,
+        numberOfMessagesRetried,
+        numberOfMessagesNotRetried,
+        numberOfMessagesRetriedButNotDeleted,
     };
 }
