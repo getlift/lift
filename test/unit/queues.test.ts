@@ -45,7 +45,7 @@ describe("queues", () => {
                     },
                     maxReceiveCount: 3,
                 },
-                VisibilityTimeout: 96,
+                VisibilityTimeout: 36,
             },
             Type: "AWS::SQS::Queue",
             UpdateReplacePolicy: "Delete",
@@ -88,7 +88,7 @@ describe("queues", () => {
                 FunctionName: {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
-                MaximumBatchingWindowInSeconds: 60,
+                MaximumBatchingWindowInSeconds: 0,
                 FunctionResponseTypes: (version as string) >= "2.67.0" ? ["ReportBatchItemFailures"] : undefined,
             },
             Type: "AWS::Lambda::EventSourceMapping",
@@ -149,7 +149,7 @@ describe("queues", () => {
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
-                VisibilityTimeout: 7 * 6 + 60, // NOTE: 60 is the default batching window size
+                VisibilityTimeout: 7 * 6,
             },
         });
         expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
