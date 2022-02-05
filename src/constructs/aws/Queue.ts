@@ -137,7 +137,7 @@ export class Queue extends AwsConstruct {
 
         // This should be 6 times the lambda function's timeout + MaximumBatchingWindowInSeconds
         // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-        const visibilityTimeout = functionTimeout * 6 + (this.getMaximumBatchingWindow() ?? 0);
+        const visibilityTimeout = functionTimeout * 6 + this.getMaximumBatchingWindow();
 
         const maxRetries = configuration.maxRetries ?? 3;
 
@@ -244,8 +244,8 @@ export class Queue extends AwsConstruct {
         return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
     }
 
-    private getMaximumBatchingWindow(): number | undefined {
-        return this.configuration.fifo === true ? undefined : this.configuration.maxBatchingWindow ?? 60;
+    private getMaximumBatchingWindow(): number {
+        return this.configuration.maxBatchingWindow ?? 0;
     }
 
     private appendFunctions(): void {

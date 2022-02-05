@@ -344,7 +344,7 @@ constructs:
         maxBatchingWindow: 5 # SQS will wait 5 seconds (so that it can batch any messages together) before delivering to lambda
 ```
 
-*Default: 60 seconds*
+*Default: 0 seconds*
 
 The maximum amount of time to gather records before invoking the lambda. This increases the likelihood of a full batch at the cost of delayed processing.
 
