@@ -26,7 +26,6 @@ describe("static websites", () => {
         });
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3Origin");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
@@ -36,13 +35,18 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             responseFunction,
-            originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
+            Properties: {
+                WebsiteConfiguration: {
+                    ErrorDocument: "index.html",
+                    IndexDocument: "index.html",
+                },
+            },
         });
         expect(cfTemplate.Resources[bucketPolicyLogicalId]).toMatchObject({
             Properties: {
@@ -55,9 +59,7 @@ describe("static websites", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: {
-                                    "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
-                                },
+                                AWS: "*",
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
@@ -66,26 +68,10 @@ describe("static websites", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toMatchObject({
-            Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
-            Properties: {
-                CloudFrontOriginAccessIdentityConfig: {
-                    Comment: `Identity for ${cfOriginId}`,
-                },
-            },
-        });
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
-                    CustomErrorResponses: [
-                        {
-                            ErrorCachingMinTTL: 0,
-                            ErrorCode: 404,
-                            ResponseCode: 200,
-                            ResponsePagePath: "/index.html",
-                        },
-                    ],
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS"],
                         Compress: true,
@@ -100,29 +86,25 @@ describe("static websites", () => {
                             },
                         ],
                     },
-                    DefaultRootObject: "index.html",
                     Enabled: true,
                     HttpVersion: "http2",
                     IPV6Enabled: true,
                     Origins: [
                         {
                             DomainName: {
-                                "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
-                            },
-                            Id: cfOriginId,
-                            S3OriginConfig: {
-                                OriginAccessIdentity: {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "origin-access-identity/cloudfront/",
+                                "Fn::Select": [
+                                    2,
+                                    {
+                                        "Fn::Split": [
+                                            "/",
                                             {
-                                                Ref: originAccessIdentityLogicalId,
+                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
                                             },
                                         ],
-                                    ],
-                                },
+                                    },
+                                ],
                             },
+                            Id: cfOriginId,
                         },
                     ],
                 },
@@ -369,19 +351,13 @@ describe("static websites", () => {
                 },
             }),
         });
-        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
-        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+
+        const bucketLogicalId = computeLogicalId("landing", "Bucket");
+
+        expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
             Properties: {
-                DistributionConfig: {
-                    CustomErrorResponses: [
-                        {
-                            // The response code is forced to 404 and changed to /error.html
-                            ErrorCachingMinTTL: 0,
-                            ErrorCode: 404,
-                            ResponseCode: 404,
-                            ResponsePagePath: "/my/custom/error.html",
-                        },
-                    ],
+                WebsiteConfiguration: {
+                    ErrorDocument: "my/custom/error.html",
                 },
             },
         });

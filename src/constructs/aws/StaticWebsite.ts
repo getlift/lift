@@ -9,13 +9,12 @@ import {
 } from "@aws-cdk/aws-cloudfront";
 import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Duration, RemovalPolicy } from "@aws-cdk/core";
+import { CfnOutput, RemovalPolicy } from "@aws-cdk/core";
 import type { FromSchema } from "json-schema-to-ts";
 import chalk from "chalk";
 import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { flatten } from "lodash";
-import type { ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
@@ -91,6 +90,11 @@ export class StaticWebsite extends AwsConstruct {
         }
 
         const bucket = new Bucket(this, "Bucket", {
+            // Enable static website hosting
+            websiteIndexDocument: "index.html",
+            websiteErrorDocument: this.errorResponseDocument(),
+            // Required when static website hosting is enabled
+            publicReadAccess: true,
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         });
@@ -120,8 +124,6 @@ export class StaticWebsite extends AwsConstruct {
 
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
-            // Send all page requests to index.html
-            defaultRootObject: "index.html",
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
                 origin: new S3Origin(bucket),
@@ -132,7 +134,6 @@ export class StaticWebsite extends AwsConstruct {
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 functionAssociations: functionAssociations,
             },
-            errorResponses: [this.errorResponse()],
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
@@ -278,10 +279,10 @@ export class StaticWebsite extends AwsConstruct {
         return this.provider.getStackOutput(this.distributionIdOutput);
     }
 
-    private errorResponse(): ErrorResponse {
+    private errorResponseDocument(): string {
         // Custom error page
         if (this.configuration.errorPage !== undefined) {
-            let errorPath = this.configuration.errorPage;
+            const errorPath = this.configuration.errorPage;
             if (errorPath.startsWith("./") || errorPath.startsWith("../")) {
                 throw new ServerlessError(
                     `The 'errorPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
@@ -289,28 +290,15 @@ export class StaticWebsite extends AwsConstruct {
                     "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
                 );
             }
-            if (!errorPath.startsWith("/")) {
-                errorPath = `/${errorPath}`;
-            }
 
-            return {
-                httpStatus: 404,
-                ttl: Duration.seconds(0),
-                responseHttpStatus: 404,
-                responsePagePath: errorPath,
-            };
+            return errorPath;
         }
 
         /**
          * The default behavior is optimized for SPA: all unknown URLs are served
          * by index.html so that routing can be done client-side.
          */
-        return {
-            httpStatus: 404,
-            ttl: Duration.seconds(0),
-            responseHttpStatus: 200,
-            responsePagePath: "/index.html",
-        };
+        return "index.html";
     }
 
     private createResponseFunction(): cloudfront.Function {
