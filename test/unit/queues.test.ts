@@ -218,6 +218,71 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the encryption to kmsManaged", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        encryption: "kmsManaged",
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                KmsMasterKeyId: "alias/aws/sqs",
+            },
+        });
+    });
+
+    it("allows changing the encryption to kms", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        encryption: "kms",
+                        encryptionKey: "MyKey",
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                KmsMasterKeyId: {
+                    "Fn::GetAtt": [computeLogicalId("emails", "MyKey"), "Arn"],
+                },
+            },
+        });
+    });
+
+    it("should throw an error if encryption is 'kms' but encryptionKey is missing", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            encryption: "kms",
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': 'encryptionKey' must be set if the 'encryption' is set to 'kms'"
+            );
+        }
+    });
+
     it("should throw an error if the delay is invalid", async () => {
         expect.assertions(2);
 

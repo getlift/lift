@@ -316,6 +316,31 @@ constructs:
         delay: 60
 ```
 
+### Encryption
+
+Turn on server-side encryption for the queue.
+
+You can set the `encryption` option to `kmsManaged` to use a SQS managed master key.
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        # Encryption will be enabled and managed by AWS
+        encryption: 'kmsManaged'
+```
+
+Or you can set it to `kms` and provide your own key via `encryptionKey` option.
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        # Encryption will be enabled and managed by AWS
+        encryption: 'kms'
+        encryptionKey: 'MySuperSecretKey'
+```
+
 ### Batch size
 
 ```yaml
