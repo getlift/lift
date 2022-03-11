@@ -290,50 +290,65 @@ describe("static websites", () => {
                 },
             }),
         });
-        const edgeFunction = computeLogicalId("landing", "RequestFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
-        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
-            Type: "AWS::CloudFront::Function",
-            Properties: {
-                FunctionCode: `function handler(event) {
-    var request = event.request;
-    if (request.headers["host"].value !== "www.example.com") {
-        return {
-            statusCode: 301,
-            statusDescription: "Moved Permanently",
-            headers: {
-                location: {
-                    value: "https://www.example.com" + request.uri
+        expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
+            Object {
+              "Properties": Object {
+                "AutoPublish": true,
+                "FunctionCode": "function handler(event) {
+                var request = event.request;
+                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                    return {
+                        statusCode: 301,
+                        statusDescription: \\"Moved Permanently\\",
+                        headers: {
+                            location: {
+                                value: \\"https://www.example.com\\" + request.uri
+                            }
+                        }
+                    };
                 }
+                return request;
+            }",
+                "FunctionConfig": Object {
+                  "Comment": "app-dev-us-east-1-landing-request",
+                  "Runtime": "cloudfront-js-1.0",
+                },
+                "Name": "app-dev-us-east-1-landing-request",
+              },
+              "Type": "AWS::CloudFront::Function",
             }
-        };
-    }
-    return request;
-}`,
-            },
-        });
+        `);
 
         expect(
             get(
                 cfTemplate.Resources[cfDistributionLogicalId],
                 "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
             )
-        ).toMatchObject([
-            {
-                EventType: "viewer-response",
-                FunctionARN: {
-                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
-                },
+        ).toMatchInlineSnapshot(`
+        Array [
+          Object {
+            "EventType": "viewer-response",
+            "FunctionARN": Object {
+              "Fn::GetAtt": Array [
+                "${responseFunction}",
+                "FunctionARN",
+              ],
             },
-            {
-                EventType: "viewer-request",
-                FunctionARN: {
-                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
-                },
+          },
+          Object {
+            "EventType": "viewer-request",
+            "FunctionARN": Object {
+              "Fn::GetAtt": Array [
+                "${requestFunction}",
+                "FunctionARN",
+              ],
             },
-        ]);
+          },
+        ]
+    `);
     });
 
     it("should allow to customize the error page", async () => {
