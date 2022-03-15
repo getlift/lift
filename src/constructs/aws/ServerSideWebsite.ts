@@ -390,7 +390,9 @@ export class ServerSideWebsite extends AwsConstruct {
             "User-Agent",
             "X-Requested-With",
             // This header is set by our CloudFront Function
-            "X-Forwarded-Host"
+            "X-Forwarded-Host",
+            // This header is needed for CORS
+            "Access-Control-Request-Method"
         );
     }
 
