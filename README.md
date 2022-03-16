@@ -34,7 +34,7 @@ provider:
 plugins:
     - serverless-lift
 
-functions: 
+functions:
     # ...
 
 constructs:
@@ -55,9 +55,22 @@ The [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/home.html) is extreme
 
 Lift provides components, aka "**constructs**", specifically selected for serverless applications. They are all built using the CDK and its best practices, with unique features to provide an awesome developer experience.
 
+### [Single page app](docs/single-page-app.md)
+
+Deploy single-page applications, for example React, VueJS or Angular apps.
+
+```yaml
+constructs:
+    landing:
+        type: single-page-app
+        path: dist
+```
+
+[Read more...](docs/single-page-app.md)
+
 ### [Static website](docs/static-website.md)
 
-Deploy static websites and single-page applications, for example React, VueJS or Angular apps.
+Deploy static websites.
 
 ```yaml
 constructs:

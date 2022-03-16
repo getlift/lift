@@ -1,5 +1,6 @@
 export { DatabaseDynamoDBSingleTable } from "./DatabaseDynamoDBSingleTable";
 export { Queue } from "./Queue";
+export { SinglePageApp } from "./SinglePageApp";
 export { StaticWebsite } from "./StaticWebsite";
 export { Storage } from "./Storage";
 export { Vpc } from "./Vpc";
