@@ -88,7 +88,7 @@ describe("queues", () => {
                 FunctionName: {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
-                MaximumBatchingWindowInSeconds: 60,
+                MaximumBatchingWindowInSeconds: 0,
                 FunctionResponseTypes: (version as string) >= "2.67.0" ? ["ReportBatchItemFailures"] : undefined,
             },
             Type: "AWS::Lambda::EventSourceMapping",
@@ -133,7 +133,7 @@ describe("queues", () => {
         });
     });
 
-    it("sets the SQS visibility timeout to 6 times the function timeout", async () => {
+    it("sets the SQS visibility timeout to 6 times the function timeout + max batching window in seconds", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
             configExt: merge(pluginConfigExt, {
@@ -150,6 +150,33 @@ describe("queues", () => {
         expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
             Properties: {
                 VisibilityTimeout: 7 * 6,
+            },
+        });
+        expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
+            Properties: {
+                Timeout: 7,
+            },
+        });
+    });
+
+    it("sets the SQS visibility timeout to 6 times the function timeout + max batching window in seconds when using custom maxBatchingWindow", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge(pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        maxBatchingWindow: 5,
+                        worker: {
+                            timeout: 7,
+                        },
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                VisibilityTimeout: 7 * 6 + 5, // NOTE: 5 is the maxBatchingWindow
             },
         });
         expect(cfTemplate.Resources.EmailsWorkerLambdaFunction).toMatchObject({
