@@ -1,4 +1,5 @@
-import { Queue as CdkQueue } from "@aws-cdk/aws-sqs";
+import { Key } from "@aws-cdk/aws-kms";
+import { Queue as CdkQueue, QueueEncryption } from "@aws-cdk/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
 import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
@@ -7,6 +8,7 @@ import type { Construct as CdkConstruct } from "@aws-cdk/core";
 import { CfnOutput, Duration } from "@aws-cdk/core";
 import chalk from "chalk";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
+import { isNil } from "lodash";
 import type { Ora } from "ora";
 import ora from "ora";
 import { spawnSync } from "child_process";
@@ -47,6 +49,8 @@ const QUEUE_DEFINITION = {
         },
         fifo: { type: "boolean" },
         delay: { type: "number" },
+        encryption: { type: "string" },
+        encryptionKey: { type: "string" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -153,6 +157,29 @@ export class Queue extends AwsConstruct {
             delay = Duration.seconds(configuration.delay);
         }
 
+        let encryption = undefined;
+        if (isNil(configuration.encryption) || configuration.encryption.length === 0) {
+            encryption = {};
+        } else if (configuration.encryption === "kmsManaged") {
+            encryption = { encryption: QueueEncryption.KMS_MANAGED };
+        } else if (configuration.encryption === "kms") {
+            if (isNil(configuration.encryptionKey) || configuration.encryptionKey.length === 0) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'encryptionKey' must be set if the 'encryption' is set to 'kms'`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            encryption = {
+                encryption: QueueEncryption.KMS,
+                encryptionMasterKey: new Key(this, configuration.encryptionKey),
+            };
+        } else {
+            throw new ServerlessError(
+                `Invalid configuration in 'constructs.${this.id}': 'encryption' must be one of 'kms', 'kmsManaged', null, '${configuration.encryption}' given.`,
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
+
         const baseName = `${this.provider.stackName}-${id}`;
 
         const dlq = new CdkQueue(this, "Dlq", {
@@ -160,6 +187,7 @@ export class Queue extends AwsConstruct {
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
             fifo: configuration.fifo,
+            ...encryption,
         });
 
         this.queue = new CdkQueue(this, "Queue", {
@@ -172,6 +200,7 @@ export class Queue extends AwsConstruct {
             fifo: configuration.fifo,
             deliveryDelay: delay,
             contentBasedDeduplication: configuration.fifo,
+            ...encryption,
         });
 
         const alarmEmail = configuration.alarm;
