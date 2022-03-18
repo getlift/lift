@@ -10,3 +10,11 @@ providers:
         profile: myProfile
     stripeProviderWithoutProfile:
         type: stripe
+
+constructs:
+    monWebhook:
+        type: webhook
+        provider: stripeProviderWithProfile
+        url: test
+        enabledEvents:
+            - payin

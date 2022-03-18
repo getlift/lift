@@ -12,7 +12,6 @@ import ServerlessError from "../../utils/error";
 const WEBHOOK_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "webhook" },
         authorizer: {
             type: "object",
             properties: {

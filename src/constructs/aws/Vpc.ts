@@ -6,9 +6,7 @@ import type { ConstructInterface } from "@lift/constructs";
 
 const VPC_DEFINITION = {
     type: "object",
-    properties: {
-        type: { const: "vpc" },
-    },
+    properties: {},
     additionalProperties: false,
     required: [],
 } as const;

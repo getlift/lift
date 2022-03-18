@@ -27,7 +27,6 @@ import { getUtils } from "../../utils/logger";
 const QUEUE_DEFINITION = {
     type: "object",
     properties: {
-        type: { const: "queue" },
         worker: {
             type: "object",
             properties: {
