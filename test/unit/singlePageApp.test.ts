@@ -7,7 +7,7 @@ describe("single page app", () => {
         sinon.restore();
     });
 
-    it("should allow to redirect to the main domain", async () => {
+    it("should define a request function that redirects nested uris to index.html", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
             config: Object.assign(baseConfig, {
@@ -33,9 +33,12 @@ describe("single page app", () => {
 
             function handler(event) {
                 var uri = event.request.uri;
+                var request = event.request;
                 var isUriToRedirect = REDIRECT_REGEX.test(uri);
 
-                if (isUriToRedirect) event.request.uri = \\"/index.html\\";
+                if (isUriToRedirect) {
+                    request.uri = \\"/index.html\\";
+                }
 
                 return event.request;
             }",
@@ -75,6 +78,51 @@ describe("single page app", () => {
                 },
               },
             ]
+        `);
+    });
+
+    it("should allow to redirect to the main domain", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "single-page-app",
+                        path: ".",
+                        domain: ["www.example.com", "example.com"],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        redirectToMainDomain: true,
+                    },
+                },
+            }),
+        });
+        const requestFunction = computeLogicalId("landing", "RequestFunction");
+        expect(cfTemplate.Resources[requestFunction].Properties.FunctionCode).toMatchInlineSnapshot(`
+            "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/;
+
+            function handler(event) {
+                var uri = event.request.uri;
+                var request = event.request;
+                var isUriToRedirect = REDIRECT_REGEX.test(uri);
+
+                if (isUriToRedirect) {
+                    request.uri = \\"/index.html\\";
+                }
+                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                    return {
+                        statusCode: 301,
+                        statusDescription: \\"Moved Permanently\\",
+                        headers: {
+                            location: {
+                                value: \\"https://www.example.com\\" + request.uri
+                            }
+                        }
+                    };
+                }
+
+                return event.request;
+            }"
         `);
     });
 });

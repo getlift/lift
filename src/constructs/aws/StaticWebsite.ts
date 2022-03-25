@@ -2,30 +2,19 @@ import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import { FunctionEventType } from "@aws-cdk/aws-cloudfront";
 import type { Construct as CdkConstruct } from "@aws-cdk/core";
 import type { AwsProvider } from "@lift/providers";
-import type { FromSchema } from "json-schema-to-ts";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
+import type { CommonStaticWebsiteConfiguration } from "./abstracts/StaticWebsiteAbstract";
 import { COMMON_STATIC_WEBSITE_DEFINITION, StaticWebsiteAbstract } from "./abstracts/StaticWebsiteAbstract";
 
-const STATIC_WEBSITE_DEFINITION = {
-    type: "object",
-    properties: {
-        ...COMMON_STATIC_WEBSITE_DEFINITION.properties,
-        redirectToMainDomain: { type: "boolean" },
-    },
-    additionalProperties: false,
-    required: COMMON_STATIC_WEBSITE_DEFINITION.required,
-} as const;
-
-type Configuration = FromSchema<typeof STATIC_WEBSITE_DEFINITION>;
 export class StaticWebsite extends StaticWebsiteAbstract {
     public static type = "static-website";
-    public static schema = STATIC_WEBSITE_DEFINITION;
+    public static schema = COMMON_STATIC_WEBSITE_DEFINITION;
 
     constructor(
         scope: CdkConstruct,
         protected readonly id: string,
-        protected readonly configuration: Configuration,
+        protected readonly configuration: CommonStaticWebsiteConfiguration,
         protected readonly provider: AwsProvider
     ) {
         super(scope, id, configuration, provider);

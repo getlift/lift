@@ -2,28 +2,19 @@ import * as cloudfront from "@aws-cdk/aws-cloudfront";
 import { FunctionEventType } from "@aws-cdk/aws-cloudfront";
 import type { Construct as CdkConstruct } from "@aws-cdk/core";
 import type { AwsProvider } from "@lift/providers";
-import type { FromSchema } from "json-schema-to-ts";
-import { omit } from "lodash";
+import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
+import type { CommonStaticWebsiteConfiguration } from "./abstracts/StaticWebsiteAbstract";
 import { COMMON_STATIC_WEBSITE_DEFINITION, StaticWebsiteAbstract } from "./abstracts/StaticWebsiteAbstract";
-
-const SINGLE_PAGE_APP_DEFINITION = {
-    type: "object",
-    properties: omit(COMMON_STATIC_WEBSITE_DEFINITION.properties, ["redirectToMainDomain"]),
-    additionalProperties: false,
-    required: COMMON_STATIC_WEBSITE_DEFINITION.required,
-} as const;
-
-type Configuration = FromSchema<typeof SINGLE_PAGE_APP_DEFINITION>;
 
 export class SinglePageApp extends StaticWebsiteAbstract {
     public static type = "single-page-app";
-    public static schema = SINGLE_PAGE_APP_DEFINITION;
+    public static schema = COMMON_STATIC_WEBSITE_DEFINITION;
 
     constructor(
         scope: CdkConstruct,
         protected readonly id: string,
-        protected readonly configuration: Configuration,
+        protected readonly configuration: CommonStaticWebsiteConfiguration,
         protected readonly provider: AwsProvider
     ) {
         super(scope, id, configuration, provider);
@@ -40,6 +31,12 @@ export class SinglePageApp extends StaticWebsiteAbstract {
     }
 
     private createRequestFunction(): cloudfront.Function {
+        let additionalCode = "";
+
+        if (this.configuration.redirectToMainDomain === true) {
+            additionalCode += redirectToMainDomain(this.domains);
+        }
+
         /**
          * CloudFront function that redirects nested paths to /index.html and
          * let static files pass.
@@ -50,9 +47,12 @@ export class SinglePageApp extends StaticWebsiteAbstract {
 
 function handler(event) {
     var uri = event.request.uri;
+    var request = event.request;
     var isUriToRedirect = REDIRECT_REGEX.test(uri);
 
-    if (isUriToRedirect) event.request.uri = "/index.html";
+    if (isUriToRedirect) {
+        request.uri = "/index.html";
+    }${additionalCode}
 
     return event.request;
 }`;

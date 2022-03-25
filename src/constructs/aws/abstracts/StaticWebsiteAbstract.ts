@@ -54,7 +54,7 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
     required: ["path"],
 } as const;
 
-type AbstractStaticWebsiteConfiguration = FromSchema<typeof COMMON_STATIC_WEBSITE_DEFINITION>;
+export type CommonStaticWebsiteConfiguration = FromSchema<typeof COMMON_STATIC_WEBSITE_DEFINITION>;
 
 export abstract class StaticWebsiteAbstract extends AwsConstruct {
     public static commands: ConstructCommands = {
@@ -74,7 +74,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     constructor(
         scope: CdkConstruct,
         protected readonly id: string,
-        protected readonly configuration: AbstractStaticWebsiteConfiguration,
+        protected readonly configuration: CommonStaticWebsiteConfiguration,
         protected readonly provider: AwsProvider
     ) {
         super(scope, id);
