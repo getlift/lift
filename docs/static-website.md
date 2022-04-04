@@ -1,6 +1,8 @@
 # Static website
 
-The `static-website` construct deploys **plain static websites** composed of HTML files and assets (CSS, JS…)
+The `static-website` construct deploys **plain static websites** composed of HTML files and assets (CSS, JS…).
+
+*Note: to deploy single-page applications (like React), use the [`single-page-app` construct instead](./single-page-app.md).*
 
 ## Quick start
 
