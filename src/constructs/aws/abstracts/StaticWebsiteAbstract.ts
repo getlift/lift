@@ -49,6 +49,7 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
         },
         errorPage: { type: "string" },
         redirectToMainDomain: { type: "boolean" },
+        webAclId: { type: "string" },
     },
     additionalProperties: false,
     required: ["path"],
@@ -125,6 +126,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
             domainNames: this.domains,
+            webAclId: configuration.webAclId,
         });
 
         // CloudFormation outputs

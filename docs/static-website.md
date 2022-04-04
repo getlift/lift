@@ -192,6 +192,19 @@ constructs:
 
 The first domain in the list will be considered the main domain. In this case, `mywebsite.com` will redirect to `www.mywebsite.com`.
 
+### Web ACL
+
+If you have a Web ACL configured in WAF2 or WAF Classing you can link it to the cloudfront distribution:
+
+```yaml
+constructs:
+    website:
+        # ...
+        webAclId: arn:aws:wafv2:us-east-1:{account}:global/webacl/{webacl_name}/{webacl_id}
+```
+
+NOTE: For WAF2, you need to specify the arn as demonstrated in the example. For WAF Classic you must set the ID. 
+
 ### Error page
 
 By default, all 404 requests are redirected to `index.html` with a 200 response status. This behavior is optimized for Single-Page Applications: it allows doing client-side URL routing with JavaScript frameworks.

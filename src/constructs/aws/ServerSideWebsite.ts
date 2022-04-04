@@ -59,6 +59,7 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        webAclId: { type: "string" },
     },
     additionalProperties: false,
 } as const;
@@ -172,6 +173,7 @@ export class ServerSideWebsite extends AwsConstruct {
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
             domainNames: this.domains,
+            webAclId: configuration.webAclId,
         });
 
         // CloudFormation outputs
