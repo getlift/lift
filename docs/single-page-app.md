@@ -1,6 +1,6 @@
-# Static website
+# Single page app
 
-The `static-website` construct deploys **plain static websites** composed of HTML files and assets (CSS, JS…)
+The `single-page-app` construct deploys **single-page applications**, for example React or VueJS applications
 
 ## Quick start
 
@@ -15,7 +15,7 @@ provider:
 
 constructs:
     landing:
-        type: static-website
+        type: single-page-app
         path: public
 
 plugins:
@@ -43,19 +43,35 @@ Additionally, every time `serverless deploy` runs, Lift:
 - uploads all files from the configured directory to the S3 bucket
 - invalidates the CloudFront cache so that the new version of the website is live
 
-To learn more about the architecture of this construct, [read this article](https://medium.com/serverless-transformation/static-websites-on-aws-designing-lift-1db94574ba3b).
-
 _Note: the S3 bucket is entirely managed by Lift. Do not store or upload files to the bucket, they will be removed by Lift on the next deployment. Instead, create a separate bucket to store any extra file._
 
-## Example
+## React
 
-To deploy a static website, use the following configuration:
+To deploy a [React](https://reactjs.org/) app, use the following configuration:
 
 ```yaml
 constructs:
-    landing:
-        type: static-website
-        path: public
+    react:
+        type: single-page-app
+        path: build
+```
+
+To deploy, run:
+
+```
+npm run build
+serverless deploy
+```
+
+## Vue
+
+To deploy a [Vue](https://vuejs.org/) app, use the following configuration:
+
+```yaml
+constructs:
+    vue:
+        type: single-page-app
+        path: dist
 ```
 
 To deploy, run:
@@ -82,7 +98,7 @@ This command only takes seconds: it directly uploads files to S3 and clears the 
 
 ## Variables
 
-All static-website constructs expose the following variables:
+All single-page-app constructs expose the following variables:
 
 - `cname`: the domain name of the resource, such as `d111111abcdef8.cloudfront.net`
 
@@ -91,7 +107,7 @@ This can be used to reference the bucket from Route53 configuration, for example
 ```yaml
 constructs:
     landing:
-        type: static-website
+        type: single-page-app
         path: public
 
 resources:
@@ -116,11 +132,11 @@ _How it works: the `${construct:landing.cname}` variable will automatically be r
 ```yaml
 constructs:
     landing:
-        type: static-website
+        type: single-page-app
         path: public
 ```
 
-The `path` option should point to the local directory containing the static website. Use `path: .` to upload the content of the current directory.
+The `path` option should point to the local directory containing the single page application. Use `path: .` to upload the content of the current directory.
 
 All files in that directory will be deployed and made available publicly.
 
@@ -190,26 +206,9 @@ constructs:
 
 The first domain in the list will be considered the main domain. In this case, `mywebsite.com` will redirect to `www.mywebsite.com`.
 
-### Error page
-
-By default, all 404 requests are redirected to `index.html` with a 200 response status. This behavior is optimized for Single-Page Applications: it allows doing client-side URL routing with JavaScript frameworks.
-
-For static websites that _are not SPA_, it is possible to serve a custom "Not found" error page:
-
-```yaml
-constructs:
-    landing:
-        # ...
-        errorPage: error.html # can be any HTML file in your project
-```
-
-When a browser requests the URL of a non-existing file, the `error.html` file will be served with a 404 response status.
-
-Do not use this setting when doing JavaScript URL routing: this will break URL routing.
-
 ### Allow iframes
 
-By default, as recommended [for security reasons](https://scotthelme.co.uk/hardening-your-http-response-headers/#x-frame-options), the static website cannot be embedded in an iframe.
+By default, as recommended [for security reasons](https://scotthelme.co.uk/hardening-your-http-response-headers/#x-frame-options), the single page application cannot be embedded in an iframe.
 
 To allow embedding the website in an iframe, set it up explicitly:
 

@@ -7,8 +7,8 @@ import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAss
 import type { CommonStaticWebsiteConfiguration } from "./abstracts/StaticWebsiteAbstract";
 import { COMMON_STATIC_WEBSITE_DEFINITION, StaticWebsiteAbstract } from "./abstracts/StaticWebsiteAbstract";
 
-export class StaticWebsite extends StaticWebsiteAbstract {
-    public static type = "static-website";
+export class SinglePageApp extends StaticWebsiteAbstract {
+    public static type = "single-page-app";
     public static schema = COMMON_STATIC_WEBSITE_DEFINITION;
 
     constructor(
@@ -22,10 +22,6 @@ export class StaticWebsite extends StaticWebsiteAbstract {
         const cfnDistribution = this.distribution.node.defaultChild as cloudfront.CfnDistribution;
         const requestFunction = this.createRequestFunction();
 
-        if (requestFunction === null) {
-            return;
-        }
-
         const defaultBehaviorFunctionAssociations = getCfnFunctionAssociations(cfnDistribution);
 
         cfnDistribution.addOverride("Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations", [
@@ -34,20 +30,31 @@ export class StaticWebsite extends StaticWebsiteAbstract {
         ]);
     }
 
-    private createRequestFunction(): cloudfront.Function | null {
+    private createRequestFunction(): cloudfront.Function {
         let additionalCode = "";
 
         if (this.configuration.redirectToMainDomain === true) {
             additionalCode += redirectToMainDomain(this.domains);
         }
 
-        if (additionalCode === "") {
-            return null;
-        }
+        /**
+         * CloudFront function that redirects nested paths to /index.html and
+         * let static files pass.
+         *
+         * Files extensions list taken from: https://docs.aws.amazon.com/amplify/latest/userguide/redirects.html#redirects-for-single-page-web-apps-spa
+         */
+        const code = `var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/;
 
-        const code = `function handler(event) {
-    var request = event.request;${additionalCode}
-    return request;
+function handler(event) {
+    var uri = event.request.uri;
+    var request = event.request;
+    var isUriToRedirect = REDIRECT_REGEX.test(uri);
+
+    if (isUriToRedirect) {
+        request.uri = "/index.html";
+    }${additionalCode}
+
+    return event.request;
 }`;
 
         return new cloudfront.Function(this, "RequestFunction", {

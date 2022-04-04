@@ -1,0 +1,10 @@
+service: storage
+configValidationMode: error
+
+provider:
+    name: aws
+
+constructs:
+    landing:
+        type: single-page-app
+        path: public

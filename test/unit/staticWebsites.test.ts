@@ -26,6 +26,7 @@ describe("static websites", () => {
         });
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
+        const originAccessIdentityLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3Origin");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
@@ -35,18 +36,13 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             responseFunction,
+            originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
-            Properties: {
-                WebsiteConfiguration: {
-                    ErrorDocument: "index.html",
-                    IndexDocument: "index.html",
-                },
-            },
         });
         expect(cfTemplate.Resources[bucketPolicyLogicalId]).toMatchObject({
             Properties: {
@@ -59,7 +55,9 @@ describe("static websites", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                AWS: "*",
+                                CanonicalUser: {
+                                    "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
+                                },
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
@@ -68,10 +66,26 @@ describe("static websites", () => {
                 },
             },
         });
+        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            Properties: {
+                CloudFrontOriginAccessIdentityConfig: {
+                    Comment: `Identity for ${cfOriginId}`,
+                },
+            },
+        });
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
+                    CustomErrorResponses: [
+                        {
+                            ErrorCachingMinTTL: 0,
+                            ErrorCode: 404,
+                            ResponseCode: 200,
+                            ResponsePagePath: "/index.html",
+                        },
+                    ],
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS"],
                         Compress: true,
@@ -86,25 +100,29 @@ describe("static websites", () => {
                             },
                         ],
                     },
+                    DefaultRootObject: "index.html",
                     Enabled: true,
                     HttpVersion: "http2",
                     IPV6Enabled: true,
                     Origins: [
                         {
                             DomainName: {
-                                "Fn::Select": [
-                                    2,
-                                    {
-                                        "Fn::Split": [
-                                            "/",
-                                            {
-                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
-                                            },
-                                        ],
-                                    },
-                                ],
+                                "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
                             },
                             Id: cfOriginId,
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "origin-access-identity/cloudfront/",
+                                            {
+                                                Ref: originAccessIdentityLogicalId,
+                                            },
+                                        ],
+                                    ],
+                                },
+                            },
                         },
                     ],
                 },
@@ -290,50 +308,65 @@ describe("static websites", () => {
                 },
             }),
         });
-        const edgeFunction = computeLogicalId("landing", "RequestFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
-        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
-            Type: "AWS::CloudFront::Function",
-            Properties: {
-                FunctionCode: `function handler(event) {
-    var request = event.request;
-    if (request.headers["host"].value !== "www.example.com") {
-        return {
-            statusCode: 301,
-            statusDescription: "Moved Permanently",
-            headers: {
-                location: {
-                    value: "https://www.example.com" + request.uri
+        expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
+            Object {
+              "Properties": Object {
+                "AutoPublish": true,
+                "FunctionCode": "function handler(event) {
+                var request = event.request;
+                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                    return {
+                        statusCode: 301,
+                        statusDescription: \\"Moved Permanently\\",
+                        headers: {
+                            location: {
+                                value: \\"https://www.example.com\\" + request.uri
+                            }
+                        }
+                    };
                 }
+                return request;
+            }",
+                "FunctionConfig": Object {
+                  "Comment": "app-dev-us-east-1-landing-request",
+                  "Runtime": "cloudfront-js-1.0",
+                },
+                "Name": "app-dev-us-east-1-landing-request",
+              },
+              "Type": "AWS::CloudFront::Function",
             }
-        };
-    }
-    return request;
-}`,
-            },
-        });
+        `);
 
         expect(
             get(
                 cfTemplate.Resources[cfDistributionLogicalId],
                 "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
             )
-        ).toMatchObject([
-            {
-                EventType: "viewer-response",
-                FunctionARN: {
-                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
-                },
+        ).toMatchInlineSnapshot(`
+        Array [
+          Object {
+            "EventType": "viewer-response",
+            "FunctionARN": Object {
+              "Fn::GetAtt": Array [
+                "${responseFunction}",
+                "FunctionARN",
+              ],
             },
-            {
-                EventType: "viewer-request",
-                FunctionARN: {
-                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
-                },
+          },
+          Object {
+            "EventType": "viewer-request",
+            "FunctionARN": Object {
+              "Fn::GetAtt": Array [
+                "${requestFunction}",
+                "FunctionARN",
+              ],
             },
-        ]);
+          },
+        ]
+    `);
     });
 
     it("should allow to customize the error page", async () => {
@@ -352,12 +385,19 @@ describe("static websites", () => {
             }),
         });
 
-        const bucketLogicalId = computeLogicalId("landing", "Bucket");
-
-        expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
             Properties: {
-                WebsiteConfiguration: {
-                    ErrorDocument: "my/custom/error.html",
+                DistributionConfig: {
+                    CustomErrorResponses: [
+                        {
+                            // The response code is forced to 404 and changed to /error.html
+                            ErrorCachingMinTTL: 0,
+                            ErrorCode: 404,
+                            ResponseCode: 404,
+                            ResponsePagePath: "/my/custom/error.html",
+                        },
+                    ],
                 },
             },
         });

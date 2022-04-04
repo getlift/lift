@@ -156,7 +156,7 @@ class LiftPlugin {
     }
 
     private defineSchemaWithType(type: string, configSchema: Record<string, unknown>): Record<string, unknown> {
-        return merge(configSchema, { properties: { type: { const: type } } });
+        return merge({}, configSchema, { properties: { type: { const: type } } });
     }
 
     private registerConfigSchema() {
