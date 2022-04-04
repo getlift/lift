@@ -47,7 +47,13 @@ const QUEUE_DEFINITION = {
             minimum: 0,
             maximum: 300,
         },
+        visibilityTimeout: {
+            type: "number",
+            minimum: 0,
+            maximum: 43200,
+        },
         fifo: { type: "boolean" },
+        contentBasedDeduplication: { type: "boolean" },
         delay: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
@@ -141,7 +147,8 @@ export class Queue extends AwsConstruct {
 
         // This should be 6 times the lambda function's timeout + MaximumBatchingWindowInSeconds
         // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
-        const visibilityTimeout = functionTimeout * 6 + this.getMaximumBatchingWindow();
+        const visibilityTimeout =
+            configuration.visibilityTimeout ?? functionTimeout * 6 + this.getMaximumBatchingWindow();
 
         const maxRetries = configuration.maxRetries ?? 3;
 
@@ -199,7 +206,7 @@ export class Queue extends AwsConstruct {
             },
             fifo: configuration.fifo,
             deliveryDelay: delay,
-            contentBasedDeduplication: configuration.fifo,
+            contentBasedDeduplication: configuration.contentBasedDeduplication ?? configuration.fifo,
             ...encryption,
         });
 
