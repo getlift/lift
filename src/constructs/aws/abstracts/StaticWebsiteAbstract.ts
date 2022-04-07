@@ -49,6 +49,7 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
         },
         errorPage: { type: "string" },
         redirectToMainDomain: { type: "boolean" },
+        comment: { type: "string" },
     },
     additionalProperties: false,
     required: ["path"],
@@ -107,7 +108,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         ];
 
         this.distribution = new Distribution(this, "CDN", {
-            comment: `${provider.stackName} ${id} website CDN`,
+            comment: configuration.comment ?? `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
             defaultRootObject: "index.html",
             defaultBehavior: {

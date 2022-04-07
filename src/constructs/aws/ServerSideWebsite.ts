@@ -59,6 +59,7 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        comment: { type: "string" },
     },
     additionalProperties: false,
 } as const;
@@ -144,7 +145,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 : undefined;
 
         this.distribution = new Distribution(this, "CDN", {
-            comment: `${provider.stackName} ${id} website CDN`,
+            comment: configuration.comment ?? `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
                 origin: new HttpOrigin(apiGatewayDomain, {

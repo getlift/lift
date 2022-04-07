@@ -403,6 +403,30 @@ describe("static websites", () => {
         });
     });
 
+    it("should allow to define the distribution comment", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        comment: "My Project Cloudfront distrib",
+                    },
+                },
+            }),
+        });
+
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    Comment: "My Project Cloudfront distrib",
+                },
+            },
+        });
+    });
+
     it("should validate the error page path", async () => {
         await expect(() => {
             return runServerless({

@@ -346,6 +346,43 @@ constructs:
 
 CloudFront accepts maximum 10 headers.
 
+### Define the Distribution comment
+
+By default, the generated comment for the distribution will be `SERVICE-STAGE ID website CDN`.
+The comment will be `my-app-prod website website CDN` if you use that configuration (with `prod` stage):
+
+```yaml
+service: my-app
+provider:
+    name: aws
+
+functions:
+    home:
+        handler: home.handler
+        events:
+            -   httpApi: 'GET /'
+    # ...
+
+constructs:
+    website:
+        type: server-side-website
+        assets:
+            '/css/*': public/css
+            '/js/*': public/js
+
+plugins:
+    - serverless-lift
+```
+
+You can customize that comment by providing it:
+
+```yaml
+constructs:
+    website:
+        # ...
+        comment: My App Cloudfront distrib
+```
+
 ### More options
 
 Looking for more options in the construct configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).

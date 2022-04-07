@@ -223,6 +223,34 @@ constructs:
             allowIframe: true
 ```
 
+### Define the Distribution comment
+
+By default, the generated comment for the distribution will be `SERVICE-STAGE ID website CDN`.
+The comment will be `my-app-prod landing website CDN` if you use that configuration (with `prod` stage):
+
+```yaml
+service: my-app
+provider:
+    name: aws
+
+constructs:
+    landing:
+        type: static-website
+        path: public
+
+plugins:
+    - serverless-lift
+```
+
+You can customize that comment by providing it:
+
+```yaml
+constructs:
+    landing:
+        # ...
+        comment: My App Cloudfront distrib
+```
+
 ### More options
 
 Looking for more options in the construct configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).
