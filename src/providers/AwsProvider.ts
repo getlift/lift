@@ -6,6 +6,7 @@ import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import {
     CustomCdk,
+    CustomLift,
     DatabaseDynamoDBSingleTable,
     Queue,
     ServerSideWebsite,
@@ -176,5 +177,6 @@ AwsProvider.registerConstructs(
     Vpc,
     DatabaseDynamoDBSingleTable,
     ServerSideWebsite,
-    CustomCdk
+    CustomCdk,
+    CustomLift
 );

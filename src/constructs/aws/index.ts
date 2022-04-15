@@ -7,3 +7,4 @@ export { Vpc } from "./Vpc";
 export { Webhook } from "./Webhook";
 export { ServerSideWebsite } from "./ServerSideWebsite";
 export { CustomCdk } from "./CustomCdk";
+export { CustomLift } from "./CustomLift";
