@@ -5,6 +5,7 @@ import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescrip
 import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import {
+    CustomCdk,
     DatabaseDynamoDBSingleTable,
     Queue,
     ServerSideWebsite,
@@ -174,5 +175,6 @@ AwsProvider.registerConstructs(
     StaticWebsite,
     Vpc,
     DatabaseDynamoDBSingleTable,
-    ServerSideWebsite
+    ServerSideWebsite,
+    CustomCdk
 );
