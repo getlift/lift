@@ -59,6 +59,13 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        cloudfrontFunctions: {
+            type: "object",
+            properties: {
+                viewerRequest: { type: "string" },
+                viewerResponse: { type: "string" },
+            },
+        },
     },
     additionalProperties: false,
 } as const;
@@ -416,6 +423,13 @@ export class ServerSideWebsite extends AwsConstruct {
 
         if (this.configuration.redirectToMainDomain === true) {
             additionalCode += redirectToMainDomain(this.domains);
+        }
+
+        if (
+            this.configuration.cloudfrontFunctions &&
+            this.configuration.cloudfrontFunctions.viewerRequest !== undefined
+        ) {
+            additionalCode += this.configuration.cloudfrontFunctions.viewerRequest;
         }
 
         /**

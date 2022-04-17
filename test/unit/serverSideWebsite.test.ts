@@ -490,6 +490,35 @@ describe("server-side website", () => {
         });
     });
 
+    it("should allow additional viewer request cloudfront function code", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        cloudfrontFunctions: {
+                            viewerRequest: `
+    request.headers["x-powered-by"] = "Serverless Lift";`,
+                        },
+                    },
+                },
+            }),
+        });
+        const edgeFunction = computeLogicalId("backend", "RequestFunction");
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                FunctionCode: `function handler(event) {
+    var request = event.request;
+    request.headers["x-forwarded-host"] = request.headers["host"];
+    request.headers["x-powered-by"] = "Serverless Lift";
+    return request;
+}`,
+            },
+        });
+    });
+
     it("should allow to override the forwarded headers", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
