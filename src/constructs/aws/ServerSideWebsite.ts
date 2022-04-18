@@ -170,6 +170,10 @@ export class ServerSideWebsite extends AwsConstruct {
                         function: this.createRequestFunction(),
                         eventType: FunctionEventType.VIEWER_REQUEST,
                     },
+                    {
+                        function: this.createResponseFunction(),
+                        eventType: FunctionEventType.VIEWER_RESPONSE,
+                    },
                 ],
             },
             // All the assets paths are created in there
@@ -416,6 +420,22 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         return behaviors;
+    }
+
+    private createResponseFunction(): cloudfront.Function {
+        let code = "";
+
+        if (
+            this.configuration.cloudfrontFunctions &&
+            this.configuration.cloudfrontFunctions.viewerResponse !== undefined
+        ) {
+            code += this.configuration.cloudfrontFunctions.viewerResponse;
+        }
+
+        return new cloudfront.Function(this, "ResponseFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
     }
 
     private createRequestFunction(): cloudfront.Function {

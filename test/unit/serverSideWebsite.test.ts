@@ -34,6 +34,7 @@ describe("server-side website", () => {
         const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
         const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
         const requestFunction = computeLogicalId("backend", "RequestFunction");
+        const responseFunction = computeLogicalId("backend", "ResponseFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -42,6 +43,7 @@ describe("server-side website", () => {
             originPolicyId,
             cachePolicyId,
             requestFunction,
+            responseFunction,
             originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
@@ -97,6 +99,12 @@ describe("server-side website", () => {
                                 EventType: "viewer-request",
                                 FunctionARN: {
                                     "Fn::GetAtt": [requestFunction, "FunctionARN"],
+                                },
+                            },
+                            {
+                                EventType: "viewer-response",
+                                FunctionARN: {
+                                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
                                 },
                             },
                         ],
@@ -224,6 +232,7 @@ describe("server-side website", () => {
         const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
         const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
         const requestFunction = computeLogicalId("backend", "RequestFunction");
+        const responseFunction = computeLogicalId("backend", "ResponseFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
@@ -231,6 +240,7 @@ describe("server-side website", () => {
             originPolicyId,
             cachePolicyId,
             requestFunction,
+            responseFunction,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toStrictEqual({
@@ -253,6 +263,10 @@ describe("server-side website", () => {
                             {
                                 EventType: "viewer-request",
                                 FunctionARN: { "Fn::GetAtt": [requestFunction, "FunctionARN"] },
+                            },
+                            {
+                                EventType: "viewer-response",
+                                FunctionARN: { "Fn::GetAtt": [responseFunction, "FunctionARN"] },
                             },
                         ],
                     },
@@ -490,7 +504,44 @@ describe("server-side website", () => {
         });
     });
 
-    it("should allow additional viewer request cloudfront function code", async () => {
+    it("should allow additional viewer response cloudfront function", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        cloudfrontFunctions: {
+                            viewerResponse: `function handler(event)  {
+    var response  = event.response;
+    var headers  = response.headers;
+    if (!headers['access-control-allow-origin']) {
+        headers['access-control-allow-origin'] = {value: "*"};
+    }
+    return response;
+}`,
+                        },
+                    },
+                },
+            }),
+        });
+        const edgeFunction = computeLogicalId("backend", "ResponseFunction");
+        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                FunctionCode: `function handler(event)  {
+    var response  = event.response;
+    var headers  = response.headers;
+    if (!headers['access-control-allow-origin']) {
+        headers['access-control-allow-origin'] = {value: "*"};
+    }
+    return response;
+}`,
+            },
+        });
+    });
+
+    it("should allow additional viewer request cloudfront function", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
             config: Object.assign(baseConfig, {
