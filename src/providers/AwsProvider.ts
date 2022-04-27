@@ -1,5 +1,5 @@
-import type { CfnOutput } from "@aws-cdk/core";
-import { App, Stack } from "@aws-cdk/core";
+import type { CfnOutput } from "aws-cdk-lib";
+import { App, Stack } from "aws-cdk-lib";
 import { get, merge } from "lodash";
 import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";

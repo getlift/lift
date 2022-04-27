@@ -1,4 +1,4 @@
-import { Bucket } from "@aws-cdk/aws-s3";
+import { Bucket } from "aws-cdk-lib/aws-s3";
 import {
     AllowedMethods,
     CacheHeaderBehavior,
@@ -12,17 +12,17 @@ import {
     OriginRequestPolicy,
     OriginRequestQueryStringBehavior,
     ViewerProtocolPolicy,
-} from "@aws-cdk/aws-cloudfront";
-import type { Construct } from "@aws-cdk/core";
-import { CfnOutput, Duration, Fn, RemovalPolicy } from "@aws-cdk/core";
+} from "aws-cdk-lib/aws-cloudfront";
+import type { Construct } from "constructs";
+import { CfnOutput, Duration, Fn, RemovalPolicy } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
-import { HttpOrigin, S3Origin } from "@aws-cdk/aws-cloudfront-origins";
-import * as acm from "@aws-cdk/aws-certificatemanager";
-import type { BehaviorOptions, ErrorResponse } from "@aws-cdk/aws-cloudfront/lib/distribution";
+import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import type { BehaviorOptions, ErrorResponse } from "aws-cdk-lib/aws-cloudfront/lib/distribution";
 import * as path from "path";
 import * as fs from "fs";
 import { flatten } from "lodash";
-import * as cloudfront from "@aws-cdk/aws-cloudfront";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";

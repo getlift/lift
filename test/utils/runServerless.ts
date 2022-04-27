@@ -1,5 +1,5 @@
 import path from "path";
-import { Names } from "@aws-cdk/core";
+import { Names } from "aws-cdk-lib";
 import type originalRunServerless from "@serverless/test/run-serverless";
 import setupRunServerlessFixturesEngine from "@serverless/test/setup-run-serverless-fixtures-engine";
 import type { AWS } from "@serverless/typescript";

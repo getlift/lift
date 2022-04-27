@@ -1,4 +1,4 @@
-import type { CfnDistribution } from "@aws-cdk/aws-cloudfront";
+import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 
 interface CfnFunctionAssociation {
     EventType: string;

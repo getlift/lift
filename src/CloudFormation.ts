@@ -1,6 +1,6 @@
 import type { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
-import type { CfnOutput } from "@aws-cdk/core";
-import { Stack } from "@aws-cdk/core";
+import type { CfnOutput } from "aws-cdk-lib";
+import { Stack } from "aws-cdk-lib";
 import type { AwsProvider } from "@lift/providers";
 import { getUtils } from "./utils/logger";
 

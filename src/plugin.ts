@@ -3,7 +3,7 @@ import type { AwsIamPolicyStatements } from "@serverless/typescript";
 import * as path from "path";
 import { readFileSync } from "fs";
 import { dump } from "js-yaml";
-import { DefaultTokenResolver, Lazy, StringConcat, Tokenization } from "@aws-cdk/core";
+import { DefaultTokenResolver, Lazy, StringConcat, Tokenization } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import type { ProviderInterface, StaticProviderInterface } from "@lift/providers";
 import { AwsProvider, StripeProvider } from "@lift/providers";

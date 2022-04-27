@@ -1,5 +1,5 @@
 import type { AWS } from "@serverless/typescript";
-import type { Stack } from "@aws-cdk/core";
+import type { Stack } from "aws-cdk-lib";
 
 export type Hook = () => void | Promise<void>;
 

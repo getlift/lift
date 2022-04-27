@@ -1,10 +1,11 @@
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Fn } from "@aws-cdk/core";
-import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "@aws-cdk/aws-apigatewayv2";
-import { Function } from "@aws-cdk/aws-lambda";
-import { EventBus } from "@aws-cdk/aws-events";
+import type { Construct as CdkConstruct } from "constructs";
+import { CfnOutput, Fn } from "aws-cdk-lib";
+import { CfnAuthorizer, CfnIntegration, CfnRoute } from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpApi } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Function } from "aws-cdk-lib/aws-lambda";
+import { EventBus } from "aws-cdk-lib/aws-events";
 import type { FromSchema } from "json-schema-to-ts";
-import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "@aws-cdk/aws-iam";
+import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import ServerlessError from "../../utils/error";

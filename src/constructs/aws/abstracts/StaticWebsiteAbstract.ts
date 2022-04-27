@@ -1,6 +1,6 @@
-import * as acm from "@aws-cdk/aws-certificatemanager";
-import * as cloudfront from "@aws-cdk/aws-cloudfront";
-import type { ErrorResponse } from "@aws-cdk/aws-cloudfront";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import type { ErrorResponse } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
@@ -8,12 +8,12 @@ import {
     FunctionEventType,
     HttpVersion,
     ViewerProtocolPolicy,
-} from "@aws-cdk/aws-cloudfront";
-import { S3Origin } from "@aws-cdk/aws-cloudfront-origins";
-import { Bucket } from "@aws-cdk/aws-s3";
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { Duration } from "@aws-cdk/core";
-import { CfnOutput, RemovalPolicy } from "@aws-cdk/core";
+} from "aws-cdk-lib/aws-cloudfront";
+import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { Bucket } from "aws-cdk-lib/aws-s3";
+import type { Construct as CdkConstruct } from "constructs";
+import { Duration } from "aws-cdk-lib";
+import { CfnOutput, RemovalPolicy } from "aws-cdk-lib";
 import type { ConstructCommands } from "@lift/constructs";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { AwsProvider } from "@lift/providers";

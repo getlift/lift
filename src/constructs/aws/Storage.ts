@@ -1,6 +1,6 @@
-import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "@aws-cdk/aws-s3";
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
+import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "aws-cdk-lib/aws-s3";
+import type { Construct as CdkConstruct } from "constructs";
+import { CfnOutput, Duration, Fn, Stack } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";

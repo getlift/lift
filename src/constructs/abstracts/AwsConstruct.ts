@@ -1,4 +1,4 @@
-import { Construct as CdkConstruct } from "@aws-cdk/core";
+import { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
 import type { ConstructInterface } from "@lift/constructs";
 
