@@ -1,5 +1,5 @@
 import type { CfnOutput } from "aws-cdk-lib";
-import { App, Stack } from "aws-cdk-lib";
+import { App, DefaultStackSynthesizer, Stack } from "aws-cdk-lib";
 import { get, merge } from "lodash";
 import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";
@@ -69,7 +69,11 @@ export class AwsProvider implements ProviderInterface {
     constructor(private readonly serverless: Serverless) {
         this.stackName = serverless.getProvider("aws").naming.getStackName();
         this.app = new App();
-        this.stack = new Stack(this.app);
+        this.stack = new Stack(this.app, undefined, {
+            synthesizer: new DefaultStackSynthesizer({
+                generateBootstrapVersionRule: false,
+            }),
+        });
         this.legacyProvider = serverless.getProvider("aws");
         this.naming = this.legacyProvider.naming;
         this.region = serverless.getProvider("aws").getRegion();
