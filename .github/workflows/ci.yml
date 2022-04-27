@@ -14,10 +14,9 @@ jobs:
         strategy:
             matrix:
                 node:
-                    - "12.13.0"
                     - 14
                     - 16
-                    - 17
+                    - 18
                 serverless:
                     - "2.36.0"
                     - "2"

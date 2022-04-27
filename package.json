@@ -54,7 +54,7 @@
     "typescript": "^4.3.4"
   },
   "engines": {
-    "node": ">=12.13 <18"
+    "node": ">=14.15.0 <19"
   },
   "files": [
     "/dist"
