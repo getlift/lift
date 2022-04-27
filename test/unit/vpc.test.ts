@@ -17,7 +17,7 @@ describe("vpc", () => {
         >;
         expect(vpcConfig).toHaveProperty("SecurityGroupIds");
         expect((vpcConfig.SecurityGroupIds as AwsCfInstruction[])[0]).toMatchObject({
-            Ref: computeLogicalId("vpc", "AppSecurityGroup"),
+            "Fn::GetAtt": [computeLogicalId("vpc", "AppSecurityGroup"), "GroupId"],
         });
         expect(vpcConfig).toHaveProperty("SubnetIds");
         expect(vpcConfig.SubnetIds).toContainEqual({
