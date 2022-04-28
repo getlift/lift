@@ -337,7 +337,7 @@ describe("server-side website", () => {
                     ViewerCertificate: {
                         AcmCertificateArn:
                             "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
-                        MinimumProtocolVersion: "TLSv1.2_2019",
+                        MinimumProtocolVersion: "TLSv1.2_2021",
                         SslSupportMethod: "sni-only",
                     },
                 },

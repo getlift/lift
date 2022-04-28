@@ -1,6 +1,6 @@
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Fn, Stack } from "@aws-cdk/core";
-import { AttributeType, BillingMode, StreamViewType, Table } from "@aws-cdk/aws-dynamodb";
+import type { Construct as CdkConstruct } from "constructs";
+import { CfnOutput, Fn, Stack } from "aws-cdk-lib";
+import { AttributeType, BillingMode, StreamViewType, Table } from "aws-cdk-lib/aws-dynamodb";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";

@@ -1,11 +1,11 @@
-import { Key } from "@aws-cdk/aws-kms";
-import { Queue as CdkQueue, QueueEncryption } from "@aws-cdk/aws-sqs";
+import { Key } from "aws-cdk-lib/aws-kms";
+import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
-import { Alarm, ComparisonOperator, Metric } from "@aws-cdk/aws-cloudwatch";
-import { Subscription, SubscriptionProtocol, Topic } from "@aws-cdk/aws-sns";
-import type { AlarmActionConfig } from "@aws-cdk/aws-cloudwatch/lib/alarm-action";
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Duration } from "@aws-cdk/core";
+import { Alarm, ComparisonOperator, Metric } from "aws-cdk-lib/aws-cloudwatch";
+import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
+import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
+import type { Construct as CdkConstruct } from "constructs";
+import { CfnOutput, Duration } from "aws-cdk-lib";
 import chalk from "chalk";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import { isNil } from "lodash";
@@ -221,7 +221,7 @@ export class Queue extends AwsConstruct {
                 metric: new Metric({
                     namespace: "AWS/SQS",
                     metricName: "ApproximateNumberOfMessagesVisible",
-                    dimensions: {
+                    dimensionsMap: {
                         QueueName: dlq.queueName,
                     },
                     statistic: "Sum",

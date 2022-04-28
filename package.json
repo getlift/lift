@@ -5,26 +5,13 @@
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
-    "@aws-cdk/aws-apigatewayv2": "^1.138",
-    "@aws-cdk/aws-apigatewayv2-integrations": "^1.138",
-    "@aws-cdk/aws-certificatemanager": "^1.138",
-    "@aws-cdk/aws-cloudfront": "^1.138",
-    "@aws-cdk/aws-cloudfront-origins": "^1.138",
-    "@aws-cdk/aws-cloudwatch": "^1.138",
-    "@aws-cdk/aws-dynamodb": "^1.138",
-    "@aws-cdk/aws-ec2": "^1.138",
-    "@aws-cdk/aws-events": "^1.138",
-    "@aws-cdk/aws-iam": "^1.138",
-    "@aws-cdk/aws-kms": "^1.138",
-    "@aws-cdk/aws-lambda": "^1.138",
-    "@aws-cdk/aws-s3": "^1.138",
-    "@aws-cdk/aws-sns": "^1.138",
-    "@aws-cdk/aws-sqs": "^1.138",
-    "@aws-cdk/core": "^1.138",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
+    "aws-cdk-lib": "^2.21.1",
     "aws-sdk": "^2.942.0",
     "chalk": "^4.1.1",
     "change-case": "^4.1.2",
     "cidr-split": "^0.1.2",
+    "constructs": "^10.0.127",
     "inquirer": "^7.3.3",
     "js-yaml": "^3.14.1",
     "lodash": "^4.17.21",
@@ -67,7 +54,7 @@
     "typescript": "^4.3.4"
   },
   "engines": {
-    "node": ">=12.13 <18"
+    "node": ">=14.15.0 <19"
   },
   "files": [
     "/dist"

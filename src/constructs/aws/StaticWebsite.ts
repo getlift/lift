@@ -1,6 +1,6 @@
-import * as cloudfront from "@aws-cdk/aws-cloudfront";
-import { FunctionEventType } from "@aws-cdk/aws-cloudfront";
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import { FunctionEventType } from "aws-cdk-lib/aws-cloudfront";
+import type { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
