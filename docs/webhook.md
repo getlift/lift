@@ -101,7 +101,8 @@ _Note: the "authorizer" Lambda function is configured inside the webhook constru
 The only required value is the `handler`: this should point to the code that authenticate 3rd party notification. The handler will receive an event from API Gateway using [payload format v2](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html#http-api-lambda-authorizer.payload-format). The handler [should be written to return the expected simple payload format](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html#http-api-lambda-authorizer.payload-format-response).
 
 ```js
-const authorizer = (event, context, callback) => {
+// authorizer.js
+export const main = (event, context, callback) => {
   callback(null, {
     "isAuthorized": true,
   });
