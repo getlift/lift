@@ -389,6 +389,9 @@ export class ServerSideWebsite extends AwsConstruct {
             "Referer",
             "User-Agent",
             "X-Requested-With",
+            "X-Forwarded-For",
+            "X-Forwarded-Port",
+            "X-Forwarded-Proto",
             // This header is set by our CloudFront Function
             "X-Forwarded-Host"
         );
