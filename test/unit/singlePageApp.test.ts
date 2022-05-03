@@ -29,7 +29,7 @@ describe("single page app", () => {
             Object {
               "Properties": Object {
                 "AutoPublish": true,
-                "FunctionCode": "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml)$)([^.]+$)/;
+                "FunctionCode": "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml|pdf)$)([^.]+$)/;
 
             function handler(event) {
                 var uri = event.request.uri;
@@ -99,7 +99,7 @@ describe("single page app", () => {
         });
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         expect(cfTemplate.Resources[requestFunction].Properties.FunctionCode).toMatchInlineSnapshot(`
-            "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml)$)([^.]+$)/;
+            "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml|pdf)$)([^.]+$)/;
 
             function handler(event) {
                 var uri = event.request.uri;
