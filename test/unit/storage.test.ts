@@ -54,4 +54,10 @@ describe("storage", () => {
             },
         });
     });
+
+    it("allows overriding bucket properties", () => {
+        expect(cfTemplate.Resources[computeLogicalId("extendedBucket", "Bucket")].Properties).toMatchObject({
+            ObjectLockEnabled: true,
+        });
+    });
 });

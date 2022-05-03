@@ -20,4 +20,13 @@ describe("webhooks", () => {
             },
         });
     });
+
+    it("allows overriding webhook properties", () => {
+        expect(cfTemplate.Resources[computeLogicalId("extendedWebhook", "Bus")].Properties).toMatchObject({
+            Name: "myBus",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("extendedWebhook", "HttpApi")].Properties).toMatchObject({
+            FailOnWarnings: true,
+        });
+    });
 });

@@ -1,10 +1,12 @@
 import { Key } from "aws-cdk-lib/aws-kms";
+import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
 import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
 import { Alarm, ComparisonOperator, Metric } from "aws-cdk-lib/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
 import type { Construct as CdkConstruct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration } from "aws-cdk-lib";
 import chalk from "chalk";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
@@ -114,6 +116,7 @@ export class Queue extends AwsConstruct {
     };
 
     private readonly queue: CdkQueue;
+    private readonly dlq: CdkQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
@@ -182,7 +185,7 @@ export class Queue extends AwsConstruct {
 
         const baseName = `${this.provider.stackName}-${id}`;
 
-        const dlq = new CdkQueue(this, "Dlq", {
+        this.dlq = new CdkQueue(this, "Dlq", {
             queueName: configuration.fifo === true ? `${baseName}-dlq.fifo` : `${baseName}-dlq`,
             // 14 days is the maximum, we want to keep these messages for as long as possible
             retentionPeriod: Duration.days(14),
@@ -195,7 +198,7 @@ export class Queue extends AwsConstruct {
             visibilityTimeout: Duration.seconds(visibilityTimeout),
             deadLetterQueue: {
                 maxReceiveCount: maxRetries,
-                queue: dlq,
+                queue: this.dlq,
             },
             fifo: configuration.fifo,
             deliveryDelay: delay,
@@ -222,7 +225,7 @@ export class Queue extends AwsConstruct {
                     namespace: "AWS/SQS",
                     metricName: "ApproximateNumberOfMessagesVisible",
                     dimensionsMap: {
-                        QueueName: dlq.queueName,
+                        QueueName: this.dlq.queueName,
                     },
                     statistic: "Sum",
                     period: Duration.minutes(1),
@@ -250,7 +253,7 @@ export class Queue extends AwsConstruct {
         });
         this.dlqUrlOutput = new CfnOutput(this, "DlqUrl", {
             description: `URL of the "${id}" SQS dead letter queue.`,
-            value: dlq.queueUrl,
+            value: this.dlq.queueUrl,
         });
 
         this.appendFunctions();
@@ -271,6 +274,14 @@ export class Queue extends AwsConstruct {
 
     permissions(): PolicyStatement[] {
         return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            queue: this.queue.node.defaultChild as CfnQueue,
+            dlq: this.dlq.node.defaultChild as CfnQueue,
+            alarm: this.dlq.node.defaultChild as CfnQueue,
+        };
     }
 
     private getMaximumBatchingWindow(): number {

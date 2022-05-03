@@ -110,4 +110,10 @@ describe("databasesDynamoDBSingleTable", () => {
             })
         );
     });
+
+    it("allows overriding table properties", () => {
+        expect(cfTemplate.Resources[computeLogicalId("extendedDatabase", "Table")].Properties).toMatchObject({
+            TableClass: "STANDARD_INFREQUENT_ACCESS",
+        });
+    });
 });

@@ -52,6 +52,7 @@ const CONSTRUCTS_DEFINITION = {
                     properties: {
                         type: { type: "string" },
                         provider: { type: "string" },
+                        extensions: { type: "object" },
                     },
                     required: ["type"],
                 },
@@ -142,7 +143,9 @@ class LiftPlugin {
             this.constructsSchema.patternProperties[CONSTRUCT_ID_PATTERN].allOf as unknown as Record<string, unknown>[]
         ).push({
             oneOf: this.getAllConstructClasses().map((Construct) => {
-                return this.defineSchemaWithType(Construct.type, Construct.schema);
+                return merge(this.defineSchemaWithType(Construct.type, Construct.schema), {
+                    properties: { extensions: { type: "object" } },
+                });
             }),
         });
     }

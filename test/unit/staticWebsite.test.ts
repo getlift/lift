@@ -574,4 +574,32 @@ describe("static websites", () => {
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
+
+    it("allows overriding static website properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        extensions: {
+                            distribution: {
+                                Properties: {
+                                    DistributionConfig: {
+                                        Comment: "This is my comment",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("landing", "CDN")].Properties).toMatchObject({
+            DistributionConfig: {
+                Comment: "This is my comment",
+            },
+        });
+    });
 });

@@ -649,4 +649,31 @@ describe("server-side website", () => {
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
+
+    it("allows overriding server side website properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        extensions: {
+                            distribution: {
+                                Properties: {
+                                    DistributionConfig: {
+                                        Comment: "This is my comment",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "CDN")].Properties).toMatchObject({
+            DistributionConfig: {
+                Comment: "This is my comment",
+            },
+        });
+    });
 });

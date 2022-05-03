@@ -1,6 +1,8 @@
+import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
 import { CfnOutput, Duration, Fn, Stack } from "aws-cdk-lib";
+import type { CfnResource } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
@@ -30,6 +32,7 @@ export class Storage extends AwsConstruct {
     public static schema = STORAGE_DEFINITION;
 
     private readonly bucket: Bucket;
+    // a remplacer par StorageExtensionsKeys
     private readonly bucketNameOutput: CfnOutput;
 
     constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
@@ -86,6 +89,12 @@ export class Storage extends AwsConstruct {
     outputs(): Record<string, () => Promise<string | undefined>> {
         return {
             bucketName: () => this.getBucketName(),
+        };
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            bucket: this.bucket.node.defaultChild as CfnBucket,
         };
     }
 
