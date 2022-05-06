@@ -10,10 +10,11 @@ import {
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import type { BucketProps } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
-import { Duration } from "aws-cdk-lib";
-import { CfnOutput, RemovalPolicy } from "aws-cdk-lib";
+import { Duration, RemovalPolicy } from "aws-cdk-lib";
+import { CfnOutput } from "aws-cdk-lib";
 import type { ConstructCommands } from "@lift/constructs";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { AwsProvider } from "@lift/providers";
@@ -87,10 +88,9 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             );
         }
 
-        const bucket = new Bucket(this, "Bucket", {
-            // For a static website, the content is code that should be versioned elsewhere
-            removalPolicy: RemovalPolicy.DESTROY,
-        });
+        const bucketProps = this.getBucketProps();
+
+        const bucket = new Bucket(this, "Bucket", bucketProps);
 
         // Cast the domains to an array
         this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
@@ -266,8 +266,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         return this.provider.getStackOutput(this.distributionIdOutput);
     }
 
-    private errorResponse(): ErrorResponse {
-        // Custom error page
+    errorPath(): string | undefined {
         if (this.configuration.errorPage !== undefined) {
             let errorPath = this.configuration.errorPage;
             if (errorPath.startsWith("./") || errorPath.startsWith("../")) {
@@ -281,6 +280,15 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 errorPath = `/${errorPath}`;
             }
 
+            return errorPath;
+        }
+    }
+
+    private errorResponse(): ErrorResponse {
+        const errorPath = this.errorPath();
+
+        // Custom error page
+        if (errorPath !== undefined) {
             return {
                 httpStatus: 404,
                 ttl: Duration.seconds(0),
@@ -325,5 +333,12 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
             code: cloudfront.FunctionCode.fromInline(code),
         });
+    }
+
+    getBucketProps(): BucketProps {
+        return {
+            // For a static website, the content is code that should be versioned elsewhere
+            removalPolicy: RemovalPolicy.DESTROY,
+        };
     }
 }
