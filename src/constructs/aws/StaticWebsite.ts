@@ -57,11 +57,6 @@ export class StaticWebsite extends StaticWebsiteAbstract {
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }
-    /**
-     * Overrides the default `getBucketProps` from the abstract class
-     *
-     * @returns bucketProps
-     */
 
     getBucketProps(): BucketProps {
         return {
