@@ -26,7 +26,6 @@ describe("static websites", () => {
         });
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3Origin");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
@@ -36,15 +35,20 @@ describe("static websites", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             responseFunction,
-            originAccessIdentityLogicalId,
             cfDistributionLogicalId,
         ]);
-        expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
+        expect(cfTemplate.Resources[bucketLogicalId]).toStrictEqual({
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
+            Properties: {
+                WebsiteConfiguration: {
+                    IndexDocument: "index.html",
+                },
+            },
         });
-        expect(cfTemplate.Resources[bucketPolicyLogicalId]).toMatchObject({
+        expect(cfTemplate.Resources[bucketPolicyLogicalId]).toStrictEqual({
+            Type: "AWS::S3::BucketPolicy",
             Properties: {
                 Bucket: {
                     Ref: bucketLogicalId,
@@ -55,9 +59,7 @@ describe("static websites", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: {
-                                    "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"],
-                                },
+                                AWS: "*",
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
@@ -66,20 +68,14 @@ describe("static websites", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toMatchObject({
-            Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
-            Properties: {
-                CloudFrontOriginAccessIdentityConfig: {
-                    Comment: `Identity for ${cfOriginId}`,
-                },
-            },
-        });
-        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toStrictEqual({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
+                    Comment: "app-dev landing website CDN",
                     CustomErrorResponses: [
                         {
+                            // The response code is forced to 200 and changed to /index.html
                             ErrorCachingMinTTL: 0,
                             ErrorCode: 404,
                             ResponseCode: 200,
@@ -88,6 +84,7 @@ describe("static websites", () => {
                     ],
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                        CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
                         Compress: true,
                         TargetOriginId: cfOriginId,
                         ViewerProtocolPolicy: "redirect-to-https",
@@ -106,23 +103,24 @@ describe("static websites", () => {
                     IPV6Enabled: true,
                     Origins: [
                         {
-                            DomainName: {
-                                "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
+                            CustomOriginConfig: {
+                                OriginProtocolPolicy: "http-only",
+                                OriginSSLProtocols: ["TLSv1.2"],
                             },
-                            Id: cfOriginId,
-                            S3OriginConfig: {
-                                OriginAccessIdentity: {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "origin-access-identity/cloudfront/",
+                            DomainName: {
+                                "Fn::Select": [
+                                    2,
+                                    {
+                                        "Fn::Split": [
+                                            "/",
                                             {
-                                                Ref: originAccessIdentityLogicalId,
+                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
                                             },
                                         ],
-                                    ],
-                                },
+                                    },
+                                ],
                             },
+                            Id: cfOriginId,
                         },
                     ],
                 },
@@ -154,7 +152,7 @@ describe("static websites", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[responseFunction]).toMatchObject({
+        expect(cfTemplate.Resources[responseFunction]).toStrictEqual({
             Type: "AWS::CloudFront::Function",
             Properties: {
                 AutoPublish: true,
@@ -162,6 +160,24 @@ describe("static websites", () => {
                     Comment: "app-dev-us-east-1-landing-response",
                     Runtime: "cloudfront-js-1.0",
                 },
+                FunctionCode: `function handler(event) {
+    var response = event.response;
+    response.headers = Object.assign({}, {
+    "x-frame-options": {
+        "value": "SAMEORIGIN"
+    },
+    "x-content-type-options": {
+        "value": "nosniff"
+    },
+    "x-xss-protection": {
+        "value": "1; mode=block"
+    },
+    "strict-transport-security": {
+        "value": "max-age=63072000"
+    }
+}, response.headers);
+    return response;
+}`,
                 Name: "app-dev-us-east-1-landing-response",
             },
         });
@@ -269,9 +285,10 @@ describe("static websites", () => {
             }),
         });
         const edgeFunction = computeLogicalId("landing", "ResponseFunction");
-        expect(cfTemplate.Resources[edgeFunction]).toMatchObject({
+        expect(cfTemplate.Resources[edgeFunction]).toStrictEqual({
             Type: "AWS::CloudFront::Function",
             Properties: {
+                AutoPublish: true,
                 // Check that the `x-frame-options` header is not set
                 FunctionCode: `function handler(event) {
     var response = event.response;
@@ -288,6 +305,11 @@ describe("static websites", () => {
 }, response.headers);
     return response;
 }`,
+                FunctionConfig: {
+                    Comment: "app-dev-us-east-1-landing-response",
+                    Runtime: "cloudfront-js-1.0",
+                },
+                Name: "app-dev-us-east-1-landing-response",
             },
         });
     });
@@ -386,9 +408,14 @@ describe("static websites", () => {
         });
 
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
-        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+        const bucketLogicalId = computeLogicalId("landing", "Bucket");
+        const responseFunction = computeLogicalId("landing", "ResponseFunction");
+        const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toStrictEqual({
+            Type: "AWS::CloudFront::Distribution",
             Properties: {
                 DistributionConfig: {
+                    Comment: "app-dev landing website CDN",
                     CustomErrorResponses: [
                         {
                             // The response code is forced to 404 and changed to /error.html
@@ -396,6 +423,47 @@ describe("static websites", () => {
                             ErrorCode: 404,
                             ResponseCode: 404,
                             ResponsePagePath: "/my/custom/error.html",
+                        },
+                    ],
+                    DefaultCacheBehavior: {
+                        AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                        CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                        Compress: true,
+                        TargetOriginId: cfOriginId,
+                        ViewerProtocolPolicy: "redirect-to-https",
+                        FunctionAssociations: [
+                            {
+                                EventType: "viewer-response",
+                                FunctionARN: {
+                                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
+                                },
+                            },
+                        ],
+                    },
+                    DefaultRootObject: "index.html",
+                    Enabled: true,
+                    HttpVersion: "http2",
+                    IPV6Enabled: true,
+                    Origins: [
+                        {
+                            CustomOriginConfig: {
+                                OriginProtocolPolicy: "http-only",
+                                OriginSSLProtocols: ["TLSv1.2"],
+                            },
+                            DomainName: {
+                                "Fn::Select": [
+                                    2,
+                                    {
+                                        "Fn::Split": [
+                                            "/",
+                                            {
+                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            Id: cfOriginId,
                         },
                     ],
                 },

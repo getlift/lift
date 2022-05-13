@@ -2,6 +2,8 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { FunctionEventType } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
+import type { BucketProps } from "aws-cdk-lib/aws-s3";
+import { RemovalPolicy } from "aws-cdk-lib";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
 import type { CommonStaticWebsiteConfiguration } from "./abstracts/StaticWebsiteAbstract";
@@ -54,5 +56,17 @@ export class StaticWebsite extends StaticWebsiteAbstract {
             functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
             code: cloudfront.FunctionCode.fromInline(code),
         });
+    }
+
+    getBucketProps(): BucketProps {
+        return {
+            // Enable static website hosting
+            websiteIndexDocument: "index.html",
+            websiteErrorDocument: this.errorPath(),
+            // public read access is required when enabling static website hosting
+            publicReadAccess: true,
+            // For a static website, the content is code that should be versioned elsewhere
+            removalPolicy: RemovalPolicy.DESTROY,
+        };
     }
 }
