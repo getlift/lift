@@ -99,6 +99,7 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
     variables(): Record<string, unknown> {
         return {
             tableName: this.table.tableName,
+            tableArn: this.table.tableArn,
             tableStreamArn: this.table.tableStreamArn,
         };
     }
