@@ -39,6 +39,7 @@ The `database/dynamodb-single-table` construct creates and configures the table 
 All database constructs expose the following variables:
 
 - `tableName`: the name of the deployed DynamoDB table
+- `tableArn`: the arn of the deployed DynamoDB table
 - `tableStreamArn`: the ARN of the stream of the deployed DynamoDB table
 
 This can be used to inject the tableName to a Lambda functions using the SDK to read or write data from the table, for example:
