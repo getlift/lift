@@ -315,6 +315,9 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             "x-content-type-options": { value: "nosniff" },
             "x-xss-protection": { value: "1; mode=block" },
             "strict-transport-security": { value: "max-age=63072000" },
+            "content-security-policy": {
+                value: "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'",
+            },
         };
         if (this.configuration.security?.allowIframe === true) {
             delete securityHeaders["x-frame-options"];

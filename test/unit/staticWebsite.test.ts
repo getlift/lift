@@ -174,6 +174,9 @@ describe("static websites", () => {
     },
     "strict-transport-security": {
         "value": "max-age=63072000"
+    },
+    "content-security-policy": {
+        "value": "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
     }
 }, response.headers);
     return response;
@@ -301,6 +304,9 @@ describe("static websites", () => {
     },
     "strict-transport-security": {
         "value": "max-age=63072000"
+    },
+    "content-security-policy": {
+        "value": "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
     }
 }, response.headers);
     return response;
