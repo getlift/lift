@@ -27,7 +27,9 @@ describe("storage", () => {
                         ],
                     },
                     {
-                        NoncurrentVersionExpirationInDays: 30,
+                        NoncurrentVersionExpiration: {
+                            NoncurrentDays: 30,
+                        },
                         Status: "Enabled",
                     },
                 ],
