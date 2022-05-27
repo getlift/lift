@@ -80,3 +80,5 @@ export type CommandsDefinition = Record<
 >;
 
 export type CliOptions = Record<string, string | boolean | string[]>;
+
+export type LambdaFunction = Exclude<AWS["functions"], undefined>[string];

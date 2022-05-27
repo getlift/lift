@@ -15,7 +15,12 @@ import {
     Webhook,
 } from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
-import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
+import type {
+    CloudformationTemplate,
+    LambdaFunction,
+    Provider as LegacyAwsProvider,
+    Serverless,
+} from "../types/serverless";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
 
@@ -94,7 +99,7 @@ export class AwsProvider implements ProviderInterface {
         return Construct.create(this, id, configuration);
     }
 
-    addFunction(functionName: string, functionConfig: unknown): void {
+    addFunction(functionName: string, functionConfig?: LambdaFunction): void {
         if (!this.serverless.configurationInput.functions) {
             // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
             this.serverless.configurationInput.functions = {};
