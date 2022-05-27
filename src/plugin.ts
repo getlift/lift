@@ -495,6 +495,7 @@ class LiftPlugin {
 
 export type Lift = {
     constructs: FromSchema<typeof CONSTRUCTS_DEFINITION>;
+    lift: FromSchema<typeof LIFT_CONFIG_SCHEMA>;
 };
 
 LiftPlugin.registerProviders(AwsProvider, StripeProvider);
