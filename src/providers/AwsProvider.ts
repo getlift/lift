@@ -100,9 +100,9 @@ export class AwsProvider implements ProviderInterface {
     }
 
     addFunction(functionName: string, functionConfig?: LambdaFunction): void {
-        if (!this.serverless.configurationInput.functions) {
+        if (!this.serverless.service.functions) {
             // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
-            this.serverless.configurationInput.functions = {};
+            this.serverless.service.functions = {};
         }
 
         Object.assign(this.serverless.service.functions, {
