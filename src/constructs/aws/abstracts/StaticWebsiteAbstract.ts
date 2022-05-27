@@ -94,9 +94,14 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         const bucket = new Bucket(this, "Bucket", bucketProps);
 
         // Cast the domains to an array
-        this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
+        // if configuration.domain is an empty array or an empty string, ignore it
+        this.domains =
+            configuration.domain !== undefined && configuration.domain.length > 0
+                ? flatten([configuration.domain])
+                : undefined;
+        // if configuration.certificate is an empty string, ignore it
         const certificate =
-            configuration.certificate !== undefined
+            configuration.certificate !== undefined && configuration.certificate !== ""
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
 
@@ -134,9 +139,9 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             value: bucket.bucketName,
         });
         let websiteDomain: string = this.distribution.distributionDomainName;
-        if (configuration.domain !== undefined) {
+        if (this.domains !== undefined) {
             // In case of multiple domains, we take the first one
-            websiteDomain = typeof configuration.domain === "string" ? configuration.domain : configuration.domain[0];
+            websiteDomain = this.domains[0];
         }
         this.domainOutput = new CfnOutput(this, "Domain", {
             description: "Website domain name.",
