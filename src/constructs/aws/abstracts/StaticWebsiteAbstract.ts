@@ -81,14 +81,6 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     ) {
         super(scope, id);
 
-        if (configuration.domain !== undefined && configuration.certificate === undefined) {
-            throw new ServerlessError(
-                `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
-                    "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-            );
-        }
-
         const bucketProps = this.getBucketProps();
 
         const bucket = new Bucket(this, "Bucket", bucketProps);
@@ -104,6 +96,14 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             configuration.certificate !== undefined && configuration.certificate !== ""
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
+
+        if (this.domains !== undefined && certificate === undefined) {
+            throw new ServerlessError(
+                `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
+                    "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
 
         const functionAssociations = [
             {
