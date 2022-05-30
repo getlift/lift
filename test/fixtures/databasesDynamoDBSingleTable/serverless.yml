@@ -13,3 +13,9 @@ constructs:
     databaseWithGlobalSecondaryIndexes:
         type: database/dynamodb-single-table
         gsiCount: 2
+    extendedDatabase:
+        type: database/dynamodb-single-table
+        extensions:
+            table:
+                Properties:
+                    TableClass: STANDARD_INFREQUENT_ACCESS

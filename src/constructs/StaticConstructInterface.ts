@@ -12,7 +12,11 @@ export interface StaticConstructInterface {
         [k: string]: unknown;
     };
     commands?: ConstructCommands;
-    create(provider: ProviderInterface, id: string, configuration: Record<string, unknown>): ConstructInterface;
+    create(
+        provider: ProviderInterface,
+        id: string,
+        configuration: { extensions?: Record<string, unknown> } & Record<string, unknown>
+    ): ConstructInterface;
 }
 
 export type ConstructCommands = Record<string, ConstructCommandDefinition>;

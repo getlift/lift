@@ -1,13 +1,16 @@
 import type { Construct as CdkConstruct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Fn } from "aws-cdk-lib";
 import { CfnAuthorizer, CfnIntegration, CfnRoute } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpApi } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Function } from "aws-cdk-lib/aws-lambda";
+import type { CfnEventBus } from "aws-cdk-lib/aws-events";
 import { EventBus } from "aws-cdk-lib/aws-events";
 import type { FromSchema } from "json-schema-to-ts";
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
+import type { CfnHttpApi } from "aws-cdk-lib/aws-sam";
 import ServerlessError from "../../utils/error";
 
 const WEBHOOK_DEFINITION = {
@@ -39,6 +42,7 @@ export class Webhook extends AwsConstruct {
     public static type = "webhook";
     public static schema = WEBHOOK_DEFINITION;
 
+    private readonly api: HttpApi;
     private readonly bus: EventBus;
     private readonly apiEndpointOutput: CfnOutput;
     private readonly endpointPathOutput: CfnOutput;
@@ -51,12 +55,11 @@ export class Webhook extends AwsConstruct {
     ) {
         super(scope, id);
 
-        const api = new HttpApi(this, "HttpApi");
+        this.api = new HttpApi(this, "HttpApi");
         this.apiEndpointOutput = new CfnOutput(this, "HttpApiEndpoint", {
-            value: api.apiEndpoint,
+            value: this.api.apiEndpoint,
         });
-        const bus = new EventBus(this, "Bus");
-        this.bus = bus;
+        this.bus = new EventBus(this, "Bus");
         const apiGatewayRole = new Role(this, "ApiGatewayRole", {
             assumedBy: new ServicePrincipal("apigateway.amazonaws.com"),
             inlinePolicies: {
@@ -64,7 +67,7 @@ export class Webhook extends AwsConstruct {
                     statements: [
                         new PolicyStatement({
                             actions: ["events:PutEvents"],
-                            resources: [bus.eventBusArn],
+                            resources: [this.bus.eventBusArn],
                         }),
                     ],
                 }),
@@ -92,7 +95,7 @@ export class Webhook extends AwsConstruct {
         }
 
         const eventBridgeIntegration = new CfnIntegration(this, "Integration", {
-            apiId: api.apiId,
+            apiId: this.api.apiId,
             connectionType: "INTERNET",
             credentialsArn: apiGatewayRole.roleArn,
             integrationSubtype: "EventBridge-PutEvents",
@@ -102,11 +105,11 @@ export class Webhook extends AwsConstruct {
                 DetailType: resolvedConfiguration.eventType ?? "Webhook",
                 Detail: "$request.body",
                 Source: id,
-                EventBusName: bus.eventBusName,
+                EventBusName: this.bus.eventBusName,
             },
         });
         const route = new CfnRoute(this, "Route", {
-            apiId: api.apiId,
+            apiId: this.api.apiId,
             routeKey: `POST ${resolvedConfiguration.path}`,
             target: Fn.join("/", ["integrations", eventBridgeIntegration.ref]),
             authorizationType: "NONE",
@@ -120,7 +123,7 @@ export class Webhook extends AwsConstruct {
             );
             lambda.grantInvoke(apiGatewayRole);
             const authorizer = new CfnAuthorizer(this, "Authorizer", {
-                apiId: api.apiId,
+                apiId: this.api.apiId,
                 authorizerPayloadFormatVersion: "2.0",
                 authorizerType: "REQUEST",
                 name: `${id}-authorizer`,
@@ -154,6 +157,13 @@ export class Webhook extends AwsConstruct {
     variables(): Record<string, unknown> {
         return {
             busName: this.bus.eventBusName,
+        };
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            api: this.api.node.defaultChild as CfnHttpApi,
+            bus: this.bus.node.defaultChild as CfnEventBus,
         };
     }
 

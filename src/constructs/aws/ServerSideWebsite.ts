@@ -1,4 +1,5 @@
 import { Bucket } from "aws-cdk-lib/aws-s3";
+import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CacheHeaderBehavior,
@@ -14,6 +15,7 @@ import {
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration, Fn, RemovalPolicy } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
@@ -211,6 +213,12 @@ export class ServerSideWebsite extends AwsConstruct {
         return {
             url: Fn.join("", ["https://", domain]),
             cname: this.distribution.distributionDomainName,
+        };
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            distribution: this.distribution.node.defaultChild as CfnDistribution,
         };
     }
 

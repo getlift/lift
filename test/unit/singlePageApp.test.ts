@@ -125,4 +125,32 @@ describe("single page app", () => {
             }"
         `);
     });
+
+    it("allows overriding single page app properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "single-page-app",
+                        path: ".",
+                        extensions: {
+                            distribution: {
+                                Properties: {
+                                    DistributionConfig: {
+                                        Comment: "This is my comment",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("landing", "CDN")].Properties).toMatchObject({
+            DistributionConfig: {
+                Comment: "This is my comment",
+            },
+        });
+    });
 });

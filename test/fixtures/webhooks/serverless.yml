@@ -13,3 +13,14 @@ constructs:
         type: webhook
         insecure: true
         path: /insecure
+    extendedWebhook:
+        type: webhook
+        insecure: true
+        path: /extended
+        extensions:
+            api:
+                Properties:
+                    FailOnWarnings: true
+            bus:
+                Properties:
+                    Name: myBus

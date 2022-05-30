@@ -5,14 +5,9 @@ provider:
     name: aws
 
 constructs:
-    default:
-        type: storage
-    kmsEncryption:
-        type: storage
-        encryption: kms
-    extendedBucket:
+    nonExistingKeyExtension:
         type: storage
         extensions:
-            bucket:
+            notExisting:
                 Properties:
                     ObjectLockEnabled: True

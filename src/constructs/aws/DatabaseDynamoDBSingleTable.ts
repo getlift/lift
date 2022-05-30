@@ -1,5 +1,7 @@
 import type { Construct as CdkConstruct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Fn, Stack } from "aws-cdk-lib";
+import type { CfnTable } from "aws-cdk-lib/aws-dynamodb";
 import { AttributeType, BillingMode, StreamViewType, Table } from "aws-cdk-lib/aws-dynamodb";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
@@ -101,6 +103,12 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
             tableName: this.table.tableName,
             tableArn: this.table.tableArn,
             tableStreamArn: this.table.tableStreamArn,
+        };
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            table: this.table.node.defaultChild as CfnTable,
         };
     }
 

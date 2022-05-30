@@ -136,7 +136,7 @@ describe("queues", () => {
     it("sets the SQS visibility timeout to 6 times the function timeout + max batching window in seconds", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         worker: {
@@ -162,7 +162,7 @@ describe("queues", () => {
     it("sets the SQS visibility timeout to 6 times the function timeout + max batching window in seconds when using custom maxBatchingWindow", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         maxBatchingWindow: 5,
@@ -189,7 +189,7 @@ describe("queues", () => {
     it("allows changing the number of retries", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         maxRetries: 1,
@@ -210,7 +210,7 @@ describe("queues", () => {
     it("allows changing the batch size", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         batchSize: 10,
@@ -229,7 +229,7 @@ describe("queues", () => {
     it("allows changing the delivery delay", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         delay: 10,
@@ -337,7 +337,7 @@ describe("queues", () => {
     it("allows defining a DLQ email alarm", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         alarm: "alerting@example.com",
@@ -539,7 +539,7 @@ describe("queues", () => {
     it("should create FIFO queues", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         fifo: true,
@@ -568,7 +568,7 @@ describe("queues", () => {
 
         await runServerless({
             fixture: "queues",
-            configExt: merge(pluginConfigExt, {
+            configExt: merge({}, pluginConfigExt, {
                 constructs: {
                     emails: {
                         fifo: true,
@@ -587,6 +587,37 @@ describe("queues", () => {
             QueueUrl: "queue-url",
             MessageGroupId: "123",
             MessageBody: "Message body",
+        });
+    });
+
+    it("allows overriding queue properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        extensions: {
+                            queue: {
+                                Properties: {
+                                    MaximumMessageSize: 1024,
+                                },
+                            },
+                            dlq: {
+                                Properties: {
+                                    MaximumMessageSize: 1024,
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")].Properties).toMatchObject({
+            MaximumMessageSize: 1024,
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")].Properties).toMatchObject({
+            MaximumMessageSize: 1024,
         });
     });
 });

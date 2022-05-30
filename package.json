@@ -19,7 +19,8 @@
     "ora": "^5.4.1",
     "pascal-case": "^3.1.2",
     "stripe": "^8.160.0",
-    "toml": "^3.0.0"
+    "toml": "^3.0.0",
+    "traverse": "^0.6.6"
   },
   "devDependencies": {
     "@serverless/test": "^8.3.0",
@@ -32,6 +33,7 @@
     "@types/mime-types": "^2.1.0",
     "@types/node": "^10.17.28",
     "@types/sinon": "^10.0.2",
+    "@types/traverse": "^0.6.32",
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
     "chai": "^4.3.4",

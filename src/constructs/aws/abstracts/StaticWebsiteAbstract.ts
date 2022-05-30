@@ -1,6 +1,6 @@
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
-import type { ErrorResponse } from "aws-cdk-lib/aws-cloudfront";
+import type { CfnDistribution, ErrorResponse } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
@@ -13,6 +13,7 @@ import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import type { BucketProps } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib";
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { CfnOutput } from "aws-cdk-lib";
 import type { ConstructCommands } from "@lift/constructs";
@@ -161,6 +162,12 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         return {
             url: () => this.getUrl(),
             cname: () => this.getCName(),
+        };
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            distribution: this.distribution.node.defaultChild as CfnDistribution,
         };
     }
 
