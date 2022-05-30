@@ -105,7 +105,7 @@ export class AwsProvider implements ProviderInterface {
             this.serverless.service.functions = {};
         }
 
-        Object.assign(this.serverless.service.functions, {
+        merge(this.serverless.service.functions, {
             [functionName]: functionConfig,
         });
         /**
