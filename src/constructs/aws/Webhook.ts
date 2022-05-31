@@ -127,7 +127,6 @@ export class Webhook extends AwsConstruct {
                 authorizerPayloadFormatVersion: "2.0",
                 authorizerType: "REQUEST",
                 name: `${id}-authorizer`,
-                identitySource: ["$request.header.Authorization"],
                 enableSimpleResponses: true,
                 authorizerUri: Fn.join("/", [
                     `arn:aws:apigateway:${this.provider.region}:lambda:path/2015-03-31/functions`,
