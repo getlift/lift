@@ -16,3 +16,19 @@ constructs:
             bucket:
                 Properties:
                     ObjectLockEnabled: True
+    extendedBucketWithArray:
+        type: storage
+        extensions:
+            bucket:
+                Properties:
+                    CorsConfiguration:
+                        CorsRules:
+                            - AllowedOrigins:
+                                  - "*"
+                              AllowedHeaders:
+                                  - "*"
+                              AllowedMethods:
+                                  - GET
+                                  - HEAD
+                                  - PUT
+                                  - POST
