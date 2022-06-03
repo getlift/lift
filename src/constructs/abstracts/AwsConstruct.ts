@@ -1,7 +1,7 @@
 import { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
 import type { ConstructInterface } from "@lift/constructs";
-import { get, isEmpty, isObject } from "lodash";
+import { get, isArray, isEmpty, isObject } from "lodash";
 import { paths } from "traverse";
 import type { CfnResource } from "aws-cdk-lib";
 import ServerlessError from "../../utils/error";
@@ -22,12 +22,33 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
                 );
             }
             if (isObject(extensionObject)) {
+                const accumulatedPathsPointingToArray: string[] = [];
                 paths(extensionObject)
                     .filter((path) => !isEmpty(path))
                     .map((path) => {
                         return path.join(".");
                     })
-                    .filter((path) => !isObject(get(extensionObject, path)))
+                    .filter((path) => {
+                        if (
+                            accumulatedPathsPointingToArray.some((previouslySelectedPath) =>
+                                path.startsWith(previouslySelectedPath)
+                            )
+                        ) {
+                            return false;
+                        }
+
+                        const pointedValue: unknown = get(extensionObject, path);
+                        const isPathPointingToArray = isArray(pointedValue);
+                        if (isPathPointingToArray) {
+                            accumulatedPathsPointingToArray.push(path);
+
+                            return true;
+                        }
+
+                        const isPathPointingToLeaf = !isObject(pointedValue);
+
+                        return isPathPointingToLeaf;
+                    })
                     .map((path) => {
                         availableExtensions[extensionKey].addOverride(path, get(extensionObject, path));
                     });
