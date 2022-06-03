@@ -1,3 +1,4 @@
+import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import {
@@ -78,6 +79,7 @@ export class ServerSideWebsite extends AwsConstruct {
     };
 
     private readonly distribution: Distribution;
+    private readonly bucket: Bucket;
     private readonly domains: string[] | undefined;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
@@ -105,7 +107,7 @@ export class ServerSideWebsite extends AwsConstruct {
             );
         }
 
-        const bucket = new Bucket(this, "Assets", {
+        this.bucket = new Bucket(this, "Assets", {
             // Assets are compiled artifacts, we can clear them on serverless remove
             removalPolicy: RemovalPolicy.DESTROY,
         });
@@ -168,7 +170,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 ],
             },
             // All the assets paths are created in there
-            additionalBehaviors: this.createCacheBehaviors(bucket),
+            additionalBehaviors: this.createCacheBehaviors(this.bucket),
             errorResponses: this.createErrorResponses(),
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
@@ -179,7 +181,7 @@ export class ServerSideWebsite extends AwsConstruct {
         // CloudFormation outputs
         this.bucketNameOutput = new CfnOutput(this, "AssetsBucketName", {
             description: "Name of the bucket that stores the website assets.",
-            value: bucket.bucketName,
+            value: this.bucket.bucketName,
         });
         let websiteDomain = this.getMainCustomDomain();
         if (websiteDomain === undefined) {
@@ -219,6 +221,7 @@ export class ServerSideWebsite extends AwsConstruct {
     extend(): Record<string, CfnResource> {
         return {
             distribution: this.distribution.node.defaultChild as CfnDistribution,
+            bucket: this.bucket.node.defaultChild as CfnBucket,
         };
     }
 
