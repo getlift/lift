@@ -665,6 +665,11 @@ describe("server-side website", () => {
                                     },
                                 },
                             },
+                            bucket: {
+                                Properties: {
+                                    ObjectLockEnabled: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -674,6 +679,9 @@ describe("server-side website", () => {
             DistributionConfig: {
                 Comment: "This is my comment",
             },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "Assets")].Properties).toMatchObject({
+            ObjectLockEnabled: true,
         });
     });
 });

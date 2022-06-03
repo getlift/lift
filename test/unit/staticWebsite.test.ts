@@ -591,6 +591,11 @@ describe("static websites", () => {
                                     },
                                 },
                             },
+                            bucket: {
+                                Properties: {
+                                    ObjectLockEnabled: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -600,6 +605,9 @@ describe("static websites", () => {
             DistributionConfig: {
                 Comment: "This is my comment",
             },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("landing", "Bucket")].Properties).toMatchObject({
+            ObjectLockEnabled: true,
         });
     });
 });

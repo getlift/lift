@@ -142,6 +142,11 @@ describe("single page app", () => {
                                     },
                                 },
                             },
+                            bucket: {
+                                Properties: {
+                                    ObjectLockEnabled: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -151,6 +156,9 @@ describe("single page app", () => {
             DistributionConfig: {
                 Comment: "This is my comment",
             },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("landing", "Bucket")].Properties).toMatchObject({
+            ObjectLockEnabled: true,
         });
     });
 });
