@@ -62,4 +62,18 @@ describe("storage", () => {
             ObjectLockEnabled: true,
         });
     });
+
+    it("allows overriding bucket properties with array", () => {
+        expect(cfTemplate.Resources[computeLogicalId("extendedBucketWithArray", "Bucket")].Properties).toMatchObject({
+            CorsConfiguration: {
+                CorsRules: [
+                    {
+                        AllowedOrigins: ["*"],
+                        AllowedHeaders: ["*"],
+                        AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
+                    },
+                ],
+            },
+        });
+    });
 });
