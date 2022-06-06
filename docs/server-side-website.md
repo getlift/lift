@@ -368,6 +368,7 @@ constructs:
 | Extension key 	| CloudFormation resource       	| CloudFormation documentation                                                                                           	|
 |---------------	|-------------------------------	|------------------------------------------------------------------------------------------------------------------------	|
 | distribution  	| AWS::CloudFront::Distribution 	| [Link](https://docs.aws.amazon.com/fr_fr/AWSCloudFormation/latest/UserGuide/aws-resource-cloudfront-distribution.html) 	|
+| bucket        	| AWS::S3::Bucket         	        | [Link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html) 	                        |
 
 ### More options
 

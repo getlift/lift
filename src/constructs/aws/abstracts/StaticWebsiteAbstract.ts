@@ -10,7 +10,7 @@ import {
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
-import type { BucketProps } from "aws-cdk-lib/aws-s3";
+import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
@@ -67,6 +67,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     };
 
     protected readonly distribution: Distribution;
+    protected readonly bucket: Bucket;
     protected readonly domains: string[] | undefined;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
@@ -83,7 +84,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
 
         const bucketProps = this.getBucketProps();
 
-        const bucket = new Bucket(this, "Bucket", bucketProps);
+        this.bucket = new Bucket(this, "Bucket", bucketProps);
 
         // Cast the domains to an array
         // if configuration.domain is an empty array or an empty string, ignore it
@@ -118,7 +119,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             defaultRootObject: "index.html",
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket),
+                origin: new S3Origin(this.bucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
@@ -136,7 +137,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         // CloudFormation outputs
         this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             description: "Name of the bucket that stores the static website.",
-            value: bucket.bucketName,
+            value: this.bucket.bucketName,
         });
         let websiteDomain: string = this.distribution.distributionDomainName;
         if (this.domains !== undefined) {
@@ -173,6 +174,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     extend(): Record<string, CfnResource> {
         return {
             distribution: this.distribution.node.defaultChild as CfnDistribution,
+            bucket: this.bucket.node.defaultChild as CfnBucket,
         };
     }
 
