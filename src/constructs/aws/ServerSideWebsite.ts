@@ -2,7 +2,9 @@ import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
+    CacheCookieBehavior,
     CacheHeaderBehavior,
+    CacheQueryStringBehavior,
     CachePolicy,
     Distribution,
     FunctionEventType,
@@ -122,6 +124,21 @@ export class ServerSideWebsite extends AwsConstruct {
             queryStringBehavior: OriginRequestQueryStringBehavior.all(),
             headerBehavior: this.headersToForward(),
         });
+        const backendCachePolicy = new CachePolicy(this, "BackendCachePolicy", {
+            cachePolicyName: `${this.provider.stackName}-${id}`,
+            comment: `Cache policy for the ${id} website.`,
+            // For the backend we disable all caching by default
+            defaultTtl: Duration.seconds(0),
+            minTtl: Duration.seconds(0),
+            // 0 maxTtl produces "The parameter HeaderBehavior is invalid for policy with caching disabled."
+            maxTtl: Duration.seconds(1),
+            // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
+            queryStringBehavior: CacheQueryStringBehavior.all(),
+            cookieBehavior: CacheCookieBehavior.all(),
+            // Authorization is an exception and must be whitelisted in the Cache Policy
+            // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
+            headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
+        });
 
         const apiId =
             configuration.apiGateway === "rest"
@@ -146,7 +163,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,
-                cachePolicy: CachePolicy.CACHING_DISABLED,
+                cachePolicy: backendCachePolicy,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 // Forward all values (query strings, headers, and cookies) to the backend app
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
