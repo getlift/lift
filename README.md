@@ -149,6 +149,10 @@ constructs:
 
 More constructs are coming soon! Got suggestions? [Open and upvote drafts](https://github.com/getlift/lift/discussions/categories/constructs).
 
+## Lift-specific configuration
+
+Lift default behaviors can be override and configured as per your likings using the `lift` property at the root of your `serverless.yml` file. This property is optional as well as all the [configurable options within](docs/configuration.md). Configurations specified at this level affect all constructs defined within the same service file.
+
 ## Ejecting
 
 You can eject from Lift at any time: Lift is based on CloudFormation. That allows anyone to kickstart a project with Lift, and fallback to CloudFormation if you ever grow out of it.
