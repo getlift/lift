@@ -1,4 +1,4 @@
-# Lift TypeScript definitions
+# Lift-specific configuration
 
 While YAML remains the most popular declarative syntax for Serverless service file definition - a.k.a `serverless.yml` - you can also use Javascript/TypeScript definitions - i.e. `serverless.js` and `serverless.ts`. You can find more information on using JS/TS service file in the [Serverless official documentation](https://www.serverless.com/framework/docs/providers/aws/guide/intro#services).
 
@@ -15,6 +15,9 @@ const serverlessConfiguration: AWS & Lift = {
   service: 'myService',
   frameworkVersion: '2',
   plugins: ['serverless-lift'],
+  lift: {
+    automaticPermissions: false,
+  },
   constructs: {
     avatars: {
       type: 'storage',
