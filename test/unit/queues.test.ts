@@ -245,6 +245,25 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the retention period", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        retentionPeriod: 120,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                MessageRetentionPeriod: 120,
+            },
+        });
+    });
+
     it("allows changing the encryption to kmsManaged", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
