@@ -51,7 +51,11 @@ const QUEUE_DEFINITION = {
         },
         fifo: { type: "boolean" },
         delay: { type: "number" },
-        retentionPeriod: { type: "number" },
+        retentionPeriod: {
+            type: "number",
+            minimum: 60,
+            maximum: 1209600,
+        },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
     },
