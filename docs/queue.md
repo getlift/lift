@@ -320,7 +320,7 @@ constructs:
 
 When a message is sent to the queue, it will be retained for up to 4 days before being automatically deleted.
 
-You can adjust this rentention period to be shorter or longer by specifing a time a seconds.
+You can adjust this rentention period to be shorter or longer by specifing a time in seconds.
 
 The maximum value is 1209600 seconds (14 days) and the minimum value is 60 seconds (1 minute).
 
