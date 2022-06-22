@@ -51,6 +51,7 @@ const QUEUE_DEFINITION = {
         },
         fifo: { type: "boolean" },
         delay: { type: "number" },
+        retentionPeriod: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
     },
@@ -203,6 +204,10 @@ export class Queue extends AwsConstruct {
             fifo: configuration.fifo,
             deliveryDelay: delay,
             contentBasedDeduplication: configuration.fifo,
+            retentionPeriod:
+                typeof configuration.retentionPeriod === "number"
+                    ? Duration.seconds(configuration.retentionPeriod)
+                    : Duration.days(4),
             ...encryption,
         });
 
