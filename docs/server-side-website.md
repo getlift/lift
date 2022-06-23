@@ -360,7 +360,8 @@ constructs:
         extensions:
             distribution:
                 Properties:
-                    Comment: Landing distribution
+                    DistributionConfig:
+                        Comment: Landing distribution
 ```
 
 ### Available extensions
