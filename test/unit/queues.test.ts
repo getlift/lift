@@ -620,4 +620,144 @@ describe("queues", () => {
             MaximumMessageSize: 1024,
         });
     });
+
+    it("should set custom queue name when provided", async () => {
+        const queueCustomName = "test-queue-custom-name";
+
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        name: queueCustomName,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                QueueName: queueCustomName,
+            },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")]).toMatchObject({
+            Properties: {
+                QueueName: `${queueCustomName}-dlq`,
+            },
+        });
+    });
+
+    it("should set fifo custom queue name when provided and fifo is set to true", async () => {
+        const queueCustomName = "test-queue-custom-name";
+
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        fifo: true,
+                        name: queueCustomName,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Queue")]).toMatchObject({
+            Properties: {
+                QueueName: `${queueCustomName}.fifo`,
+            },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")]).toMatchObject({
+            Properties: {
+                QueueName: `${queueCustomName}-dlq.fifo`,
+            },
+        });
+    });
+
+    it("should throw an error when custom queue name with invalid characters provided", async () => {
+        const queueCustomName = "%test-queue-custom-name%";
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            name: queueCustomName,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': queue names must contain alphanumeric " +
+                    "characters, hyphens or underscores and no more than 80 characters including suffixes"
+            );
+        }
+    });
+
+    it("should throw an error when custom queue name with more than 76 characters length provided", async () => {
+        let queueCustomName = "";
+        for (let i = 0; i < 77; i++) {
+            // limit is 80 - 4 from '-dql' suffix
+            queueCustomName += "a";
+        }
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            name: queueCustomName,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': queue names must contain alphanumeric " +
+                    "characters, hyphens or underscores and no more than 80 characters including suffixes"
+            );
+        }
+    });
+
+    it("should throw an error custom queue name with more than 71 characters length provided and is fifo queue", async () => {
+        let queueCustomName = "";
+        for (let i = 0; i < 72; i++) {
+            // limit is 80 - 4 - 5 from '-dql' and .fifo suffixes
+            queueCustomName += "a";
+        }
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            fifo: true,
+                            name: queueCustomName,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': queue names must contain alphanumeric " +
+                    "characters, hyphens or underscores and no more than 80 characters including suffixes"
+            );
+        }
+    });
 });
