@@ -53,6 +53,7 @@ const QUEUE_DEFINITION = {
         delay: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
+        name: { type: "string" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -183,7 +184,19 @@ export class Queue extends AwsConstruct {
             );
         }
 
-        const baseName = `${this.provider.stackName}-${id}`;
+        const baseName = configuration.name !== undefined ? configuration.name : `${this.provider.stackName}-${id}`;
+
+        const nonFifoValidationRule = new RegExp(/^[a-zA-Z0-9-_]{1,76}$/);
+        const fifoValidationRule = new RegExp(/^[a-zA-Z0-9-_]{1,71}$/);
+        const validationRule = configuration.fifo === true ? fifoValidationRule : nonFifoValidationRule;
+
+        if (!validationRule.test(baseName)) {
+            throw new ServerlessError(
+                `Invalid configuration in 'constructs.${this.id}': queue names must contain alphanumeric ` +
+                    "characters, hyphens or underscores and no more than 80 characters including suffixes",
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
 
         this.dlq = new CdkQueue(this, "Dlq", {
             queueName: configuration.fifo === true ? `${baseName}-dlq.fifo` : `${baseName}-dlq`,
