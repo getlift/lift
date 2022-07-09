@@ -451,6 +451,26 @@ describe("server-side website", () => {
         );
     });
 
+    it("should validate the assets configuration", async () => {
+        await expect(() => {
+            return runServerless({
+                command: "package",
+                config: Object.assign(baseConfig, {
+                    constructs: {
+                        backend: {
+                            type: "server-side-website",
+                            assets: {
+                                "/": "public",
+                            },
+                        },
+                    },
+                }),
+            });
+        }).rejects.toThrowError(
+            "Invalid key in 'constructs.backend.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'."
+        );
+    });
+
     it("should allow to redirect to the main domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
