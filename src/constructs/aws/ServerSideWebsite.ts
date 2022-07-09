@@ -408,6 +408,12 @@ export class ServerSideWebsite extends AwsConstruct {
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
         for (const pattern of Object.keys(this.getAssetPatterns())) {
+            if (pattern === "/" || pattern === "/*") {
+                throw new ServerlessError(
+                    `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
                 origin: new S3Origin(bucket),
