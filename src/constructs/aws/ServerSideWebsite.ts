@@ -3,7 +3,9 @@ import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
+    CacheCookieBehavior,
     CacheHeaderBehavior,
+    CacheQueryStringBehavior,
     CachePolicy,
     Distribution,
     FunctionEventType,
@@ -129,6 +131,12 @@ export class ServerSideWebsite extends AwsConstruct {
             comment: `Cache policy for the ${id} website.`,
             // For the backend we disable all caching by default
             defaultTtl: Duration.seconds(0),
+            minTtl: Duration.seconds(0),
+            // 0 maxTtl produces "The parameter HeaderBehavior is invalid for policy with caching disabled."
+            maxTtl: Duration.seconds(1),
+            // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
+            queryStringBehavior: CacheQueryStringBehavior.all(),
+            cookieBehavior: CacheCookieBehavior.all(),
             // Authorization is an exception and must be whitelisted in the Cache Policy
             // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
             headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
