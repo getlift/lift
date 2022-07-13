@@ -5,8 +5,8 @@ import {
     AllowedMethods,
     CacheCookieBehavior,
     CacheHeaderBehavior,
-    CacheQueryStringBehavior,
     CachePolicy,
+    CacheQueryStringBehavior,
     Distribution,
     FunctionEventType,
     HttpVersion,
@@ -131,9 +131,8 @@ export class ServerSideWebsite extends AwsConstruct {
             comment: `Cache policy for the ${id} website.`,
             // For the backend we disable all caching by default
             defaultTtl: Duration.seconds(0),
-            minTtl: Duration.seconds(0),
-            // 0 maxTtl produces "The parameter HeaderBehavior is invalid for policy with caching disabled."
-            maxTtl: Duration.seconds(1),
+            // Prevent request collapsing by letting CloudFront understand that requests with
+            // different cookies or query strings are not the same request
             // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
             queryStringBehavior: CacheQueryStringBehavior.all(),
             cookieBehavior: CacheCookieBehavior.all(),
