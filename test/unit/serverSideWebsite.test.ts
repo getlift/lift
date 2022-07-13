@@ -175,8 +175,8 @@ describe("server-side website", () => {
                     MinTTL: 0,
                     Name: "app-dev-backend",
                     ParametersInCacheKeyAndForwardedToOrigin: {
-                        CookiesConfig: { CookieBehavior: "none" },
-                        QueryStringsConfig: { QueryStringBehavior: "none" },
+                        CookiesConfig: { CookieBehavior: "all" },
+                        QueryStringsConfig: { QueryStringBehavior: "all" },
                         HeadersConfig: {
                             HeaderBehavior: "whitelist",
                             Headers: ["Authorization"],
