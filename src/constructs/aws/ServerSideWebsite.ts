@@ -222,6 +222,7 @@ export class ServerSideWebsite extends AwsConstruct {
         return {
             url: Fn.join("", ["https://", domain]),
             cname: this.distribution.distributionDomainName,
+            assetsBucketName: this.bucket.bucketName,
         };
     }
 
