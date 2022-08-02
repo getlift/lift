@@ -23,8 +23,8 @@
     "traverse": "^0.6.6"
   },
   "devDependencies": {
-    "@serverless/test": "^8.3.0",
-    "@serverless/typescript": "^2.49.0",
+    "@serverless/test": "^11.0.1",
+    "@serverless/typescript": "^3.21.0",
     "@types/chai": "^4.2.21",
     "@types/inquirer": "^7.3.3",
     "@types/jest": "^27.0.1",
@@ -48,7 +48,7 @@
     "lint-staged": "^11.0.0",
     "nodemon": "^2.0.10",
     "prettier": "^2.3.2",
-    "serverless": "^2.54.0",
+    "serverless": "^3.21.0",
     "sinon": "^11.1.1",
     "stdout-stderr": "^0.1.13",
     "ts-jest": "^27.0.3",
