@@ -159,6 +159,24 @@ resources:
                     DNSName: ${construct:website.cname}
 ```
 
+- `assetsBucketName`: the S3 assets bucketname
+
+This can be used to configure a S3 bucket policy for example:
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        # ...
+resources:
+    Resources:
+        BucketPolicy:
+            Type: AWS::S3::BucketPolicy
+            Properties:
+                Bucket: ${construct:website.assetsBucketName}
+                # ...
+```
+
 ## Commands
 
 `serverless deploy` deploys everything configured in `serverless.yml` and uploads assets.
