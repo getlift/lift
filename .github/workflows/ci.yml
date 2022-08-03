@@ -32,9 +32,9 @@ jobs:
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
             - run: npm i
             - run: npm i serverless@${{ matrix.serverless }}
-            - run: npm i @serverless/test@9
-              # Only install @serverless/test@9 for Serverless v3
-              if: matrix.serverless == 'latest'
+            - run: npm i @serverless/test@8
+              # Only install @serverless/test@8 for Serverless v2
+              if: matrix.serverless != 'latest'
             - run: npm test
     lint:
         name: Lint
