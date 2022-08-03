@@ -457,7 +457,6 @@ export class ServerSideWebsite extends AwsConstruct {
 }`;
 
         return new cloudfront.Function(this, "RequestFunction", {
-            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }
