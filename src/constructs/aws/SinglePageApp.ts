@@ -4,6 +4,7 @@ import type { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
+import { ensureNameMaxLength } from "../../utils/naming";
 import type { CommonStaticWebsiteConfiguration } from "./abstracts/StaticWebsiteAbstract";
 import { COMMON_STATIC_WEBSITE_DEFINITION, StaticWebsiteAbstract } from "./abstracts/StaticWebsiteAbstract";
 
@@ -58,8 +59,13 @@ function handler(event) {
     return event.request;
 }`;
 
+        const functionName = ensureNameMaxLength(
+            `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
+            64
+        );
+
         return new cloudfront.Function(this, "RequestFunction", {
-            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
+            functionName,
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }
