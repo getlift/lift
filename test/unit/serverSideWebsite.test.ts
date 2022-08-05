@@ -187,6 +187,17 @@ describe("server-side website", () => {
                 },
             },
         });
+        expect(cfTemplate.Resources[requestFunction]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                Name: "app-dev-us-east-1-backend-request",
+                FunctionConfig: {
+                    Comment: "app-dev-us-east-1-backend-request",
+                    Runtime: "cloudfront-js-1.0",
+                },
+                AutoPublish: true,
+            },
+        });
         expect(cfTemplate.Outputs).toMatchObject({
             [computeLogicalId("backend", "AssetsBucketName")]: {
                 Description: "Name of the bucket that stores the website assets.",
@@ -702,6 +713,28 @@ describe("server-side website", () => {
         });
         expect(cfTemplate.Resources[computeLogicalId("backend", "Assets")].Properties).toMatchObject({
             ObjectLockEnabled: true,
+        });
+    });
+
+    it("trims CloudFront function names to stay under the limit", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            options: {
+                stage: "super-long-stage-name",
+            },
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    "suuuper-long-construct-name": {
+                        type: "server-side-website",
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("suuuper-long-construct-name", "RequestFunction")]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                Name: "app-super-long-stage-name-us-east-1-suuuper-long-construc-f3b7e1",
+            },
         });
     });
 });

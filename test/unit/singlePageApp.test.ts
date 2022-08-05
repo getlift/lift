@@ -161,4 +161,35 @@ describe("single page app", () => {
             ObjectLockEnabled: true,
         });
     });
+
+    it("trims CloudFront function names to stay under the limit", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            options: {
+                stage: "super-long-stage-name",
+            },
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    "suuuper-long-construct-name": {
+                        type: "single-page-app",
+                        path: ".",
+                    },
+                },
+            }),
+        });
+        expect(cfTemplate.Resources[computeLogicalId("suuuper-long-construct-name", "RequestFunction")]).toMatchObject({
+            Type: "AWS::CloudFront::Function",
+            Properties: {
+                Name: "app-super-long-stage-name-us-east-1-suuuper-long-construc-f3b7e1",
+            },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("suuuper-long-construct-name", "ResponseFunction")]).toMatchObject(
+            {
+                Type: "AWS::CloudFront::Function",
+                Properties: {
+                    Name: "app-super-long-stage-name-us-east-1-suuuper-long-construc-8c1f76",
+                },
+            }
+        );
+    });
 });

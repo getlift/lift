@@ -26,6 +26,7 @@ import { emptyBucket, invalidateCloudFrontCache } from "../../../classes/aws";
 import ServerlessError from "../../../utils/error";
 import type { Progress } from "../../../utils/logger";
 import { getUtils } from "../../../utils/logger";
+import { ensureNameMaxLength } from "../../../utils/naming";
 import { s3Sync } from "../../../utils/s3-sync";
 
 export const COMMON_STATIC_WEBSITE_DEFINITION = {
@@ -343,8 +344,13 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     return response;
 }`;
 
+        const functionName = ensureNameMaxLength(
+            `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            64
+        );
+
         return new cloudfront.Function(this, "ResponseFunction", {
-            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            functionName,
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }

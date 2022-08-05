@@ -31,6 +31,7 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";
+import { ensureNameMaxLength } from "../../utils/naming";
 import { s3Put, s3Sync } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 import ServerlessError from "../../utils/error";
@@ -456,7 +457,13 @@ export class ServerSideWebsite extends AwsConstruct {
     return request;
 }`;
 
+        const functionName = ensureNameMaxLength(
+            `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
+            64
+        );
+
         return new cloudfront.Function(this, "RequestFunction", {
+            functionName,
             code: cloudfront.FunctionCode.fromInline(code),
         });
     }
