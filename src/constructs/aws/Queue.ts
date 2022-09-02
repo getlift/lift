@@ -53,6 +53,7 @@ const QUEUE_DEFINITION = {
         delay: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
+        encryptionKeyArn: { type: "string" },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -176,9 +177,26 @@ export class Queue extends AwsConstruct {
                 encryption: QueueEncryption.KMS,
                 encryptionMasterKey: new Key(this, configuration.encryptionKey),
             };
-        } else {
+        }  else if (configuration.encryption === "kmsExisting") {
+            if (isNil(configuration.encryptionKey) || configuration.encryptionKey.length === 0) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'encryptionKey' must be set if the 'encryption' is set to 'kmsExisting'`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            } else if (isNil(configuration.encryptionKeyArn) || configuration.encryptionKeyArn.length === 0) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'encryptionKeyArn' must be set if the 'encryption' is set to 'kmsExisting'`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            encryption = {
+                encryption: QueueEncryption.KMS,
+                encryptionMasterKey: Key.fromKeyArn(this, configuration.encryptionKey, configuration.encryptionKeyArn),
+            };
+        }
+        else {
             throw new ServerlessError(
-                `Invalid configuration in 'constructs.${this.id}': 'encryption' must be one of 'kms', 'kmsManaged', null, '${configuration.encryption}' given.`,
+                `Invalid configuration in 'constructs.${this.id}': 'encryption' must be one of 'kms', 'kmsManaged', 'kmsExisting', null, '${configuration.encryption}' given.`,
                 "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
