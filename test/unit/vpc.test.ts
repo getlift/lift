@@ -163,6 +163,10 @@ describe("vpc", () => {
 
         expect(cfTemplate.Resources[computeLogicalId("vpc", "PublicSubnet1", "NATGateway")]).toStrictEqual({
             Type: "AWS::EC2::NatGateway",
+            DependsOn: [
+                computeLogicalId("vpc", "PublicSubnet1", "DefaultRoute"),
+                computeLogicalId("vpc", "PublicSubnet1", "RouteTableAssociation"),
+            ],
             Properties: {
                 AllocationId: { "Fn::GetAtt": [computeLogicalId("vpc", "PublicSubnet1", "EIP"), "AllocationId"] },
                 SubnetId: { Ref: computeLogicalId("vpc", "PublicSubnet1", "Subnet") },
