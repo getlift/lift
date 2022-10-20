@@ -25,11 +25,8 @@ declare const SCHEMA: {
         };
         readonly dynamic_assets: {
             readonly type: "array";
-            readonly additionalProperties: {
+            readonly items: {
                 readonly type: "string";
-            };
-            readonly propertyNames: {
-                readonly pattern: "^/.*$";
             };
         };
         readonly errorPage: {
@@ -87,11 +84,8 @@ export declare class ServerSideWebsite extends AwsConstruct {
             };
             readonly dynamic_assets: {
                 readonly type: "array";
-                readonly additionalProperties: {
+                readonly items: {
                     readonly type: "string";
-                };
-                readonly propertyNames: {
-                    readonly pattern: "^/.*$";
                 };
             };
             readonly errorPage: {

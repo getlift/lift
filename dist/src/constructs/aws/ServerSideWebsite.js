@@ -55,10 +55,7 @@ const SCHEMA = {
     },
     dynamic_assets: {
       type: "array",
-      additionalProperties: { type: "string" },
-      propertyNames: {
-        pattern: "^/.*$"
-      }
+      items: { type: "string" }
     },
     errorPage: { type: "string" },
     domain: {
