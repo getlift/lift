@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/utils/getDefaultCfnFunctionAssociations.ts"],
+  "sourcesContent": ["import type { CfnDistribution } from \"aws-cdk-lib/aws-cloudfront\";\n\ninterface CfnFunctionAssociation {\n    EventType: string;\n    FunctionARN: string;\n}\n\nfunction cdkFunctionAssociationToCfnFunctionAssociation({\n    eventType,\n    functionArn,\n}: CfnDistribution.FunctionAssociationProperty): CfnFunctionAssociation {\n    if (eventType === undefined || functionArn === undefined) {\n        throw new Error(\"eventType and functionArn must be defined\");\n    }\n\n    return {\n        EventType: eventType,\n        FunctionARN: functionArn,\n    };\n}\n\nexport function getCfnFunctionAssociations(distribution: CfnDistribution): CfnFunctionAssociation[] {\n    const defaultBehavior = (distribution.distributionConfig as CfnDistribution.DistributionConfigProperty)\n        .defaultCacheBehavior as CfnDistribution.DefaultCacheBehaviorProperty;\n\n    return (defaultBehavior.functionAssociations as Array<CfnDistribution.FunctionAssociationProperty>).map(\n        cdkFunctionAssociationToCfnFunctionAssociation\n    );\n}\n"],
+  "mappings": ";;;;;;;AAAA;AAAA;AAAA;AAOA,wDAAwD;AAAA,EACpD;AAAA,EACA;AAAA,GACoE;AACpE,MAAI,cAAc,UAAa,gBAAgB,QAAW;AACtD,UAAM,IAAI,MAAM;AAAA;AAGpB,SAAO;AAAA,IACH,WAAW;AAAA,IACX,aAAa;AAAA;AAAA;AAId,oCAAoC,cAAyD;AAChG,QAAM,kBAAmB,aAAa,mBACjC;AAEL,SAAQ,gBAAgB,qBAA4E,IAChG;AAAA;",
+  "names": []
+}

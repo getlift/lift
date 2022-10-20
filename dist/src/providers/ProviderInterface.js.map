@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/providers/ProviderInterface.ts"],
+  "sourcesContent": ["import type { ConstructInterface } from \"@lift/constructs\";\n\nexport interface ProviderInterface {\n    createConstruct(type: string, id: string): ConstructInterface;\n}\n"],
+  "mappings": ";;AAAA;",
+  "names": []
+}

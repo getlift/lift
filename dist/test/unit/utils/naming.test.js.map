@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../test/unit/utils/naming.test.ts"],
+  "sourcesContent": ["import { ensureNameMaxLength } from \"../../../src/utils/naming\";\n\ndescribe(\"naming\", () => {\n    it(\"should not change names shorter than the limit\", () => {\n        expect(ensureNameMaxLength(\"foo\", 3)).toEqual(\"foo\");\n    });\n\n    it(\"should trim names with a unique suffix to stay under the limit\", () => {\n        expect(ensureNameMaxLength(\"foobarfoobarfoobarfoobar\", 15)).toEqual(\"foobarfo-7ca709\");\n        expect(ensureNameMaxLength(\"foobarfoobarfoobarfoobar\", 15)).toHaveLength(15);\n        // The suffix changes based on teh full string to avoid duplicates\n        expect(ensureNameMaxLength(\"foobarfoofoofoofoofoofoo\", 15)).not.toEqual(\"foobarfo-7ca709\");\n    });\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA,oBAAoC;AAEpC,SAAS,UAAU,MAAM;AACrB,KAAG,kDAAkD,MAAM;AACvD,WAAO,uCAAoB,OAAO,IAAI,QAAQ;AAAA;AAGlD,KAAG,kEAAkE,MAAM;AACvE,WAAO,uCAAoB,4BAA4B,KAAK,QAAQ;AACpE,WAAO,uCAAoB,4BAA4B,KAAK,aAAa;AAEzE,WAAO,uCAAoB,4BAA4B,KAAK,IAAI,QAAQ;AAAA;AAAA;",
+  "names": []
+}

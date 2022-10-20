@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/utils/naming.ts"],
+  "sourcesContent": ["import crypto from \"crypto\";\n\nexport function ensureNameMaxLength(name: string, maxLength: number): string {\n    if (name.length <= maxLength) {\n        return name;\n    }\n\n    const uniqueSuffix = crypto.createHash(\"md5\").update(name).digest(\"hex\").slice(0, 6);\n\n    return name.slice(0, maxLength - uniqueSuffix.length - 1) + \"-\" + uniqueSuffix;\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,oBAAmB;AAEZ,6BAA6B,MAAc,WAA2B;AACzE,MAAI,KAAK,UAAU,WAAW;AAC1B,WAAO;AAAA;AAGX,QAAM,eAAe,sBAAO,WAAW,OAAO,OAAO,MAAM,OAAO,OAAO,MAAM,GAAG;AAElF,SAAO,KAAK,MAAM,GAAG,YAAY,aAAa,SAAS,KAAK,MAAM;AAAA;",
+  "names": []
+}

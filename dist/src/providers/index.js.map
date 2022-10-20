@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/providers/index.ts"],
+  "sourcesContent": ["export type { ProviderInterface } from \"./ProviderInterface\";\nexport type { StaticProviderInterface } from \"./StaticProviderInterface\";\n\nexport { AwsProvider } from \"./AwsProvider\";\nexport { StripeProvider } from \"./StripeProvider\";\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAGA,yBAA4B;AAC5B,4BAA+B;",
+  "names": []
+}

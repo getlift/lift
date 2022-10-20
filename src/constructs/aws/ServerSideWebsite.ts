@@ -285,12 +285,14 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
                 }
-                const { hasChanges } = s3PathPrefix.indexOf('upload') === 0 ? false : await s3Sync({
-                    aws: this.provider,
-                    localPath: filePath,
-                    targetPathPrefix: s3PathPrefix,
-                    bucketName,
-                });
+                const { hasChanges } = s3PathPrefix.startsWith("upload")
+                    ? { hasChanges: false }
+                    : await s3Sync({
+                          aws: this.provider,
+                          localPath: filePath,
+                          targetPathPrefix: s3PathPrefix,
+                          bucketName,
+                      });
                 invalidate = invalidate || hasChanges;
             } else {
                 // File

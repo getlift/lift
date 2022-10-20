@@ -1,6 +1,7 @@
 *-debug.log
 *-error.log
-dist
+# remove dist tmp
+# dist
 node_modules
 .serverless/
 package-lock.json

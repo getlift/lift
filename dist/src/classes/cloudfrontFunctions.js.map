@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/classes/cloudfrontFunctions.ts"],
+  "sourcesContent": ["import ServerlessError from \"../utils/error\";\n\nexport function redirectToMainDomain(domains: string[] | undefined): string {\n    if (domains === undefined || domains.length < 2) {\n        throw new ServerlessError(\n            `Invalid value in 'redirectToMainDomain': you must have at least 2 domains configured to enable redirection to the main domain.`,\n            \"LIFT_INVALID_CONSTRUCT_CONFIGURATION\"\n        );\n    }\n\n    const mainDomain = domains[0];\n\n    return `\n    if (request.headers[\"host\"].value !== \"${mainDomain}\") {\n        return {\n            statusCode: 301,\n            statusDescription: \"Moved Permanently\",\n            headers: {\n                location: {\n                    value: \"https://${mainDomain}\" + request.uri\n                }\n            }\n        };\n    }`;\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,mBAA4B;AAErB,8BAA8B,SAAuC;AACxE,MAAI,YAAY,UAAa,QAAQ,SAAS,GAAG;AAC7C,UAAM,IAAI,qBACN,kIACA;AAAA;AAIR,QAAM,aAAa,QAAQ;AAE3B,SAAO;AAAA,6CACkC;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,sCAMP;AAAA;AAAA;AAAA;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../test/utils/mockAws.ts"],
+  "sourcesContent": ["import * as sinon from \"sinon\";\nimport type { SinonStub } from \"sinon\";\nimport * as AWS from \"../../src/classes/aws\";\nimport type { Provider as LegacyAwsProvider } from \"../../src/types/serverless\";\n\n/**\n * Helper to mock the AWS SDK\n */\nexport function mockAws(): AwsMock {\n    const awsMock = sinon.stub(AWS, \"awsRequest\") as AwsMock;\n\n    awsMock.mockService = (service: string, method: string) => {\n        return awsMock.withArgs(sinon.match.any, service, method, sinon.match.any).resolves();\n    };\n\n    return awsMock;\n}\n\ntype AwsMock = SinonAwsMock & ExtendedAwsMock;\n\ntype SinonAwsMock = SinonStub<\n    [service: string, method: string, params: unknown, provider: LegacyAwsProvider],\n    Promise<unknown>\n>;\n\ninterface ExtendedAwsMock {\n    mockService(service: string, method: string): SinonAwsMock;\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,YAAuB;AAEvB,UAAqB;AAMd,mBAA4B;AAC/B,QAAM,UAAU,MAAM,KAAK,KAAK;AAEhC,UAAQ,cAAc,CAAC,SAAiB,WAAmB;AACvD,WAAO,QAAQ,SAAS,MAAM,MAAM,KAAK,SAAS,QAAQ,MAAM,MAAM,KAAK;AAAA;AAG/E,SAAO;AAAA;",
+  "names": []
+}

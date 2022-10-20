@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/constructs/StaticConstructInterface.ts"],
+  "sourcesContent": ["import type { ConstructInterface } from \"@lift/constructs\";\nimport type { ProviderInterface } from \"@lift/providers\";\nimport type { CliOptions } from \"../types/serverless\";\n\n/**\n * Defines which static properties and methods a Lift construct must expose.\n */\nexport interface StaticConstructInterface {\n    type: string;\n    schema: {\n        type: \"object\";\n        [k: string]: unknown;\n    };\n    commands?: ConstructCommands;\n    create(\n        provider: ProviderInterface,\n        id: string,\n        configuration: { extensions?: Record<string, unknown> } & Record<string, unknown>\n    ): ConstructInterface;\n}\n\nexport type ConstructCommands = Record<string, ConstructCommandDefinition>;\ntype ConstructCommandDefinition = {\n    usage: string;\n    handler: (options: CliOptions) => void | Promise<void>;\n    options?: {\n        [name: string]: {\n            usage: string;\n            type: string;\n            required?: boolean;\n            shortcut?: string;\n        };\n    };\n};\n"],
+  "mappings": ";;AAAA;",
+  "names": []
+}

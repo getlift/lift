@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../test/unit/extensions.test.ts"],
+  "sourcesContent": ["import { pluginConfigExt, runServerless } from \"../utils/runServerless\";\n\ndescribe(\"extensions\", () => {\n    it(\"should error if wrong extension key is used\", async () => {\n        await expect(() => {\n            return runServerless({\n                fixture: \"extensions\",\n                configExt: pluginConfigExt,\n                command: \"package\",\n            });\n        }).rejects.toThrowError(\n            \"There is no extension 'notExisting' available on this construct. Available extensions are: bucket.\"\n        );\n    });\n});\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA,2BAA+C;AAE/C,SAAS,cAAc,MAAM;AACzB,KAAG,+CAA+C,YAAY;AAC1D,UAAM,OAAO,MAAM;AACf,aAAO,wCAAc;AAAA,QACjB,SAAS;AAAA,QACT,WAAW;AAAA,QACX,SAAS;AAAA;AAAA,OAEd,QAAQ,aACP;AAAA;AAAA;",
+  "names": []
+}

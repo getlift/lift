@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/utils/sleep.ts"],
+  "sourcesContent": ["export function sleep(ms: number): Promise<void> {\n    return new Promise((resolve) => setTimeout(resolve, ms));\n}\n"],
+  "mappings": ";;;;;;;AAAA;AAAA;AAAA;AAAO,eAAe,IAA2B;AAC7C,SAAO,IAAI,QAAQ,CAAC,YAAY,WAAW,SAAS;AAAA;",
+  "names": []
+}

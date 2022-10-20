@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/utils/error.ts"],
+  "sourcesContent": ["/**\n * Represents a user error.\n *\n * This class mirrors the official ServerlessError class:\n * https://github.com/serverless/serverless/blob/f4c9b58b10a45ae342934e9a61dcdea0c2ef11e2/lib/serverless-error.js\n * The original class is available via `serverless.classes.Error` but that means\n * we must hold an instance of the `serverless` object to use it.\n * That isn't always the case, for example in constructs, which are decoupled from the `serverless` object.\n */\nexport default class ServerlessError extends Error {\n    private code: string;\n    constructor(message: string, code: string) {\n        super(message);\n        this.name = \"ServerlessError\";\n        this.code = code;\n    }\n}\n"],
+  "mappings": ";;;;;;;AAAA;AAAA;AAAA;AASA,8BAA6C,MAAM;AAAA,EAE/C,YAAY,SAAiB,MAAc;AACvC,UAAM;AACN,SAAK,OAAO;AACZ,SAAK,OAAO;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../src/constructs/aws/index.ts"],
+  "sourcesContent": ["export { DatabaseDynamoDBSingleTable } from \"./DatabaseDynamoDBSingleTable\";\nexport { Queue } from \"./Queue\";\nexport { SinglePageApp } from \"./SinglePageApp\";\nexport { StaticWebsite } from \"./StaticWebsite\";\nexport { Storage } from \"./Storage\";\nexport { Vpc } from \"./Vpc\";\nexport { Webhook } from \"./Webhook\";\nexport { ServerSideWebsite } from \"./ServerSideWebsite\";\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,yCAA4C;AAC5C,mBAAsB;AACtB,2BAA8B;AAC9B,2BAA8B;AAC9B,qBAAwB;AACxB,iBAAoB;AACpB,qBAAwB;AACxB,+BAAkC;",
+  "names": []
+}

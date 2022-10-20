@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/providers/StaticProviderInterface.ts"],
+  "sourcesContent": ["import type { StaticConstructInterface } from \"@lift/constructs\";\nimport type { ProviderInterface } from \"@lift/providers\";\nimport type { Serverless } from \"src/types/serverless\";\n\nexport interface StaticProviderInterface {\n    type: string;\n    schema: {\n        type: \"object\";\n        [k: string]: unknown;\n    };\n    getConstructClass(type: string): StaticConstructInterface | undefined;\n    getAllConstructClasses(): StaticConstructInterface[];\n    create(serverless: Serverless, id: string, configuration: Record<string, unknown>): ProviderInterface;\n}\n"],
+  "mappings": ";;AAAA;",
+  "names": []
+}

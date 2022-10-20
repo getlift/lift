@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/constructs/index.ts"],
+  "sourcesContent": ["export type { ConstructInterface } from \"./ConstructInterface\";\nexport type { StaticConstructInterface, ConstructCommands } from \"./StaticConstructInterface\";\n"],
+  "mappings": ";;AAAA;",
+  "names": []
+}

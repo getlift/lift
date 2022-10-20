@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/constructs/ConstructInterface.ts"],
+  "sourcesContent": ["import type { PolicyStatement } from \"../CloudFormation\";\n\n/**\n * Defines which methods a Lift construct must expose.\n */\nexport interface ConstructInterface {\n    /**\n     * Values shown in the CLI output.\n     */\n    outputs?(): Record<string, () => Promise<string | undefined>>;\n\n    /**\n     * serverless.yml variables\n     */\n    variables?(): Record<string, unknown>;\n\n    /**\n     * Post-CloudFormation deployment\n     */\n    postDeploy?(): Promise<void>;\n\n    /**\n     * Pre-CloudFormation deletion\n     */\n    preRemove?(): Promise<void>;\n\n    /**\n     * IAM permissions to add to Lambda functions of the stack\n     */\n    permissions?(): PolicyStatement[];\n}\n"],
+  "mappings": ";;AAAA;",
+  "names": []
+}

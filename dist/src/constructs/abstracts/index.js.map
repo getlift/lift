@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../src/constructs/abstracts/index.ts"],
+  "sourcesContent": ["export { AwsConstruct } from \"./AwsConstruct\";\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA,0BAA6B;",
+  "names": []
+}
