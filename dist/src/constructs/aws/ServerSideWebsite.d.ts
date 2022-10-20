@@ -23,6 +23,15 @@ declare const SCHEMA: {
             };
             readonly minProperties: 1;
         };
+        readonly dynamic_assets: {
+            readonly type: "array";
+            readonly additionalProperties: {
+                readonly type: "string";
+            };
+            readonly propertyNames: {
+                readonly pattern: "^/.*$";
+            };
+        };
         readonly errorPage: {
             readonly type: "string";
         };
@@ -75,6 +84,15 @@ export declare class ServerSideWebsite extends AwsConstruct {
                     readonly pattern: "^/.*$";
                 };
                 readonly minProperties: 1;
+            };
+            readonly dynamic_assets: {
+                readonly type: "array";
+                readonly additionalProperties: {
+                    readonly type: "string";
+                };
+                readonly propertyNames: {
+                    readonly pattern: "^/.*$";
+                };
             };
             readonly errorPage: {
                 readonly type: "string";
@@ -132,6 +150,7 @@ export declare class ServerSideWebsite extends AwsConstruct {
     private createRequestFunction;
     private createErrorResponses;
     private getAssetPatterns;
+    private isDynamicAssetPattern;
     private getErrorPageFileName;
 }
 export {};

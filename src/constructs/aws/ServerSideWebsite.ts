@@ -52,6 +52,13 @@ const SCHEMA = {
             },
             minProperties: 1,
         },
+        dynamic_assets: {
+            type: "array",
+            additionalProperties: { type: "string" },
+            propertyNames: {
+                pattern: "^/.*$",
+            },
+        },
         errorPage: { type: "string" },
         domain: {
             anyOf: [
@@ -285,7 +292,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
                 }
-                const { hasChanges } = s3PathPrefix.startsWith("upload")
+                const { hasChanges } = this.isDynamicAssetPattern(s3PathPrefix)
                     ? { hasChanges: false }
                     : await s3Sync({
                           aws: this.provider,
@@ -500,6 +507,12 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         return assetPatterns;
+    }
+
+    private isDynamicAssetPattern(pattern: string): boolean {
+        const assetPatterns = this.configuration.dynamic_assets ?? [];
+
+        return assetPatterns.indexOf(pattern) !== -1;
     }
 
     private getErrorPageFileName(): string {

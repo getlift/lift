@@ -224,6 +224,21 @@ With the example above:
 - `https://<domain>/images/*` -> serves the files uploaded from the local `assets/animations` directory
 - `https://<domain>/favicon.ico` -> serves the file uploaded from `public/favicon.ico`
 
+### Assets
+
+```yaml
+constructs:
+    website:
+        # ...
+        assets:
+            '/assets/*': dist/
+            '/upload/*': upload/
+        dynamic_assets: ['/upload/*']
+```
+
+The `dynamic_assets` section lets users define all directories for which uploaded images will never be deleted (except in case of destroy).
+
+
 ### API Gateway
 
 API Gateway provides 2 versions of APIs:
