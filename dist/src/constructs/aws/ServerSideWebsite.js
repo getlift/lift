@@ -209,7 +209,7 @@ const _ServerSideWebsite = class extends import_abstracts.AwsConstruct {
         } else {
           (0, import_logger.getUtils)().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
         }
-        const { hasChanges } = this.isDynamicAssetPattern(s3PathPrefix) ? { hasChanges: false } : await (0, import_s3_sync.s3Sync)({
+        const { hasChanges } = this.isDynamicAssetPattern(pattern) ? { hasChanges: false } : await (0, import_s3_sync.s3Sync)({
           aws: this.provider,
           localPath: filePath,
           targetPathPrefix: s3PathPrefix,

@@ -289,7 +289,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
                 }
-                const { hasChanges } = this.isDynamicAssetPattern(s3PathPrefix)
+                const { hasChanges } = this.isDynamicAssetPattern(pattern)
                     ? { hasChanges: false }
                     : await s3Sync({
                           aws: this.provider,
