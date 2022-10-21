@@ -53,6 +53,14 @@ const SCHEMA = {
       },
       minProperties: 1
     },
+    dynamic_assets: {
+      type: "object",
+      additionalProperties: { type: "string" },
+      propertyNames: {
+        pattern: "^/.*$"
+      },
+      minProperties: 0
+    },
     errorPage: { type: "string" },
     domain: {
       anyOf: [
@@ -205,7 +213,7 @@ const _ServerSideWebsite = class extends import_abstracts.AwsConstruct {
         } else {
           (0, import_logger.getUtils)().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
         }
-        const { hasChanges } = s3PathPrefix.startsWith("upload") ? { hasChanges: false } : await (0, import_s3_sync.s3Sync)({
+        const { hasChanges } = this.isDynamicAssetPattern(pattern) ? { hasChanges: false } : await (0, import_s3_sync.s3Sync)({
           aws: this.provider,
           localPath: filePath,
           targetPathPrefix: s3PathPrefix,
@@ -340,12 +348,18 @@ const _ServerSideWebsite = class extends import_abstracts.AwsConstruct {
     ];
   }
   getAssetPatterns() {
-    var _a;
+    var _a, _b;
     const assetPatterns = (_a = this.configuration.assets) != null ? _a : {};
+    const dynamicAssetPatterns = (_b = this.configuration.dynamic_assets) != null ? _b : {};
     if (this.configuration.errorPage !== void 0) {
       assetPatterns[`/${this.getErrorPageFileName()}`] = this.configuration.errorPage;
     }
-    return assetPatterns;
+    return { ...assetPatterns, ...dynamicAssetPatterns };
+  }
+  isDynamicAssetPattern(pattern) {
+    var _a;
+    const assetPatterns = (_a = this.configuration.dynamic_assets) != null ? _a : {};
+    return pattern in assetPatterns;
   }
   getErrorPageFileName() {
     return this.configuration.errorPage !== void 0 ? path.basename(this.configuration.errorPage) : "";
