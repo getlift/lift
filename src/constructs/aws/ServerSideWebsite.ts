@@ -293,7 +293,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
                 }
-                const { hasChanges } = this.isDynamicAssetPattern(pattern)
+                const { hasChanges } = this.isDynamicAsset(pattern)
                     ? { hasChanges: false }
                     : await s3Sync({
                           aws: this.provider,
@@ -511,10 +511,10 @@ export class ServerSideWebsite extends AwsConstruct {
         return { ...assetPatterns, ...dynamicAssetPatterns };
     }
 
-    private isDynamicAssetPattern(pattern: string): boolean {
-        const assetPatterns = this.configuration.dynamic_assets ?? {};
+    private isDynamicAsset(pattern: string): boolean {
+        const dynamicAssetPatterns = this.configuration.dynamic_assets ?? {};
 
-        return pattern in assetPatterns;
+        return pattern in dynamicAssetPatterns;
     }
 
     private getErrorPageFileName(): string {
