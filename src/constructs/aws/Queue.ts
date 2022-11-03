@@ -37,6 +37,13 @@ const QUEUE_DEFINITION = {
             },
             additionalProperties: true,
         },
+        dlqWorker: {
+            type: "object",
+            properties: {
+                timeout: { type: "number" },
+            },
+            additionalProperties: true,
+        },
         maxRetries: { type: "number" },
         alarm: { type: "string" },
         batchSize: {
@@ -119,6 +126,7 @@ export class Queue extends AwsConstruct {
     private readonly dlq: CdkQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
+    private readonly dlqArnOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
 
     constructor(
@@ -251,6 +259,10 @@ export class Queue extends AwsConstruct {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
         });
+        this.dlqArnOutput = new CfnOutput(this, "DlqArn", {
+            description: `ARN of the "${id}" SQS dead letter queue.`,
+            value: this.dlq.queueArn,
+        });
         this.dlqUrlOutput = new CfnOutput(this, "DlqUrl", {
             description: `URL of the "${id}" SQS dead letter queue.`,
             value: this.dlq.queueUrl,
@@ -269,6 +281,8 @@ export class Queue extends AwsConstruct {
         return {
             queueUrl: this.queue.queueUrl,
             queueArn: this.queue.queueArn,
+            dlqUrl: this.dlq.queueUrl,
+            dlqArn: this.dlq.queueArn,
         };
     }
 
@@ -293,9 +307,9 @@ export class Queue extends AwsConstruct {
         const batchSize = this.configuration.batchSize ?? 1;
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
 
-        // Override events for the worker
+        // Override events for the queue worker
         this.configuration.worker.events = [
-            // Subscribe the worker to the SQS queue
+            // Subscribe the queue worker to the SQS queue
             {
                 sqs: {
                     arn: this.queue.queueArn,
@@ -306,6 +320,23 @@ export class Queue extends AwsConstruct {
             },
         ];
         this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
+
+        if (this.configuration.dlqWorker) {
+            // Override events for the dlq worker
+            this.configuration.dlqWorker.events = [
+                // Subscribe the dlq worker to the SQS queue
+                {
+                    sqs: {
+                        arn: this.dlq.queueArn,
+                        batchSize: batchSize,
+                        maximumBatchingWindow: maximumBatchingWindow,
+                        functionResponseType: "ReportBatchItemFailures",
+                    },
+                },
+            ];
+
+            this.provider.addFunction(`${this.id}DlqWorker`, this.configuration.dlqWorker);
+        }
     }
 
     private async getQueueUrl(): Promise<string | undefined> {
