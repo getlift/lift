@@ -33,7 +33,6 @@ The `queue` construct deploys the following resources:
 - A `worker` Lambda function: this function processes every message sent to the queue.
 - An SQS "[dead letter queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)": this queue stores all the messages that failed to be processed.
 - Optionally, a CloudWatch alarm that sends an email when the dead letter queue contains failed messages.
-- Optionally, a dead letter queue worker that can process messages sent to the dlq
 
 <img src="img/queue.png" width="600"/>
 
@@ -116,6 +115,8 @@ All queue constructs expose the following variables:
 
 - `queueUrl`: the URL of the deployed SQS queue
 - `queueArn`: the ARN of the deployed SQS queue
+- `dlqUrl`: the URL of the deployed SQS dead letter queue
+- `queueArn`: the ARN of the deployed SQS dead letter queue
 
 These can be used to reference the queue from other Lambda functions, for example:
 
@@ -238,21 +239,6 @@ constructs:
 ```
 
 _Note: Lift will automatically configure the function to be triggered by SQS. It is not necessary to define `events` on the function._
-
-### Dead Letter Queue Worker
-```yaml
-constructs:
-    my-queue:
-        type: queue
-        worker:
-            # The main Lambda function is configured here
-            handler: src/worker.handler
-        dlqWorker:
-            # The DLQ Lambda function is configured here
-            handler: src/dlqWorker.handler
-```
-
-The dead letter queue worker syntax is identical to the main worker. Messages sent to the dead letter queue will be handled by the worker specified under `dlqWorker` 
 
 ### Alarm
 
