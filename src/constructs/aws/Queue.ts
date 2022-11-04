@@ -37,13 +37,6 @@ const QUEUE_DEFINITION = {
             },
             additionalProperties: true,
         },
-        dlqWorker: {
-            type: "object",
-            properties: {
-                timeout: { type: "number" },
-            },
-            additionalProperties: true,
-        },
         maxRetries: { type: "number" },
         alarm: { type: "string" },
         batchSize: {
@@ -307,9 +300,9 @@ export class Queue extends AwsConstruct {
         const batchSize = this.configuration.batchSize ?? 1;
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
 
-        // Override events for the queue worker
+        // Override events for the worker
         this.configuration.worker.events = [
-            // Subscribe the queue worker to the SQS queue
+            // Subscribe the worker to the SQS queue
             {
                 sqs: {
                     arn: this.queue.queueArn,
@@ -320,23 +313,6 @@ export class Queue extends AwsConstruct {
             },
         ];
         this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
-
-        if (this.configuration.dlqWorker) {
-            // Override events for the dlq worker
-            this.configuration.dlqWorker.events = [
-                // Subscribe the dlq worker to the SQS queue
-                {
-                    sqs: {
-                        arn: this.dlq.queueArn,
-                        batchSize: batchSize,
-                        maximumBatchingWindow: maximumBatchingWindow,
-                        functionResponseType: "ReportBatchItemFailures",
-                    },
-                },
-            ];
-
-            this.provider.addFunction(`${this.id}DlqWorker`, this.configuration.dlqWorker);
-        }
     }
 
     private async getQueueUrl(): Promise<string | undefined> {
