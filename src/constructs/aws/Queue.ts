@@ -119,7 +119,6 @@ export class Queue extends AwsConstruct {
     private readonly dlq: CdkQueue;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
-    private readonly dlqArnOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
 
     constructor(
@@ -251,10 +250,6 @@ export class Queue extends AwsConstruct {
         this.queueUrlOutput = new CfnOutput(this, "QueueUrl", {
             description: `URL of the "${id}" SQS queue.`,
             value: this.queue.queueUrl,
-        });
-        this.dlqArnOutput = new CfnOutput(this, "DlqArn", {
-            description: `ARN of the "${id}" SQS dead letter queue.`,
-            value: this.dlq.queueArn,
         });
         this.dlqUrlOutput = new CfnOutput(this, "DlqUrl", {
             description: `URL of the "${id}" SQS dead letter queue.`,
