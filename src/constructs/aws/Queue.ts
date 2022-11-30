@@ -269,6 +269,8 @@ export class Queue extends AwsConstruct {
         return {
             queueUrl: this.queue.queueUrl,
             queueArn: this.queue.queueArn,
+            dlqUrl: this.dlq.queueUrl,
+            dlqArn: this.dlq.queueArn,
         };
     }
 

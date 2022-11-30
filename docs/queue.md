@@ -115,6 +115,8 @@ All queue constructs expose the following variables:
 
 - `queueUrl`: the URL of the deployed SQS queue
 - `queueArn`: the ARN of the deployed SQS queue
+- `dlqUrl`: the URL of the deployed SQS dead letter queue
+- `dlqArn`: the ARN of the deployed SQS dead letter queue
 
 These can be used to reference the queue from other Lambda functions, for example:
 
