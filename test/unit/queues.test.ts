@@ -405,6 +405,80 @@ describe("queues", () => {
         });
     });
 
+    it("allows defining a DLQ alarm on existing SNS topic", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        alarm: "arn:aws:sns:us-east-1:123456789012:alarm-alerts",
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
+            "ServerlessDeploymentBucket",
+            "ServerlessDeploymentBucketPolicy",
+            "EmailsWorkerLogGroup",
+            "IamRoleLambdaExecution",
+            "EmailsWorkerLambdaFunction",
+            "EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A",
+            "emailsDlq47F8494C",
+            "emailsQueueF057328A",
+            // Alarm
+            "emailsAlarm1821C14F",
+        ]);
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Alarm")]).toMatchObject({
+            Properties: {
+                AlarmActions: ["arn:aws:sns:us-east-1:123456789012:alarm-alerts"],
+                AlarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                AlarmName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm/),
+                ComparisonOperator: "GreaterThanThreshold",
+                Dimensions: [
+                    {
+                        Name: "QueueName",
+                        Value: {
+                            "Fn::GetAtt": [computeLogicalId("emails", "Dlq"), "QueueName"],
+                        },
+                    },
+                ],
+                EvaluationPeriods: 1,
+                MetricName: "ApproximateNumberOfMessagesVisible",
+                Namespace: "AWS/SQS",
+                OKActions: ["arn:aws:sns:us-east-1:123456789012:alarm-alerts"],
+                Period: 60,
+                Statistic: "Sum",
+                Threshold: 0,
+            },
+        });
+    });
+
+    it("should throw an error if alarm is not an email or does not start with arn:aws:sns:", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            alarm: "not-a-valid-target",
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': 'alarm' must be an SNS topic ARN that starts with 'arn:aws:sns:' or an email address with '@' present, 'not-a-valid-target' given."
+            );
+        }
+    });
+
     it("should purge messages from the DLQ", async () => {
         const awsMock = mockAws();
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("queue-url");

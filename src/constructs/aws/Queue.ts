@@ -206,17 +206,31 @@ export class Queue extends AwsConstruct {
             ...encryption,
         });
 
-        const alarmEmail = configuration.alarm;
-        if (alarmEmail !== undefined) {
-            const alarmTopic = new Topic(this, "AlarmTopic", {
-                topicName: `${this.provider.stackName}-${id}-dlq-alarm-topic`,
-                displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
-            });
-            new Subscription(this, "AlarmTopicSubscription", {
-                topic: alarmTopic,
-                protocol: SubscriptionProtocol.EMAIL,
-                endpoint: alarmEmail,
-            });
+        if (configuration.alarm !== undefined) {
+            let alarmArn: string;
+            let alarmExistingTopic = undefined;
+            if (configuration.alarm.startsWith("arn:aws:sns:")) {
+                alarmArn = configuration.alarm;
+                alarmExistingTopic = true;
+            } else if (configuration.alarm.includes("@")) {
+                const alarmEmail = configuration.alarm;
+                const alarmTopic = new Topic(this, "AlarmTopic", {
+                    topicName: `${this.provider.stackName}-${id}-dlq-alarm-topic`,
+                    displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
+                });
+                new Subscription(this, "AlarmTopicSubscription", {
+                    topic: alarmTopic,
+                    protocol: SubscriptionProtocol.EMAIL,
+                    endpoint: alarmEmail,
+                });
+                alarmArn = alarmTopic.topicArn;
+                alarmExistingTopic = false;
+            } else {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'alarm' must be an SNS topic ARN that starts with 'arn:aws:sns:' or an email address with '@' present, '${configuration.alarm}' given.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
 
             const alarm = new Alarm(this, "Alarm", {
                 alarmName: `${this.provider.stackName}-${id}-dlq-alarm`,
@@ -237,9 +251,16 @@ export class Queue extends AwsConstruct {
             });
             alarm.addAlarmAction({
                 bind(): AlarmActionConfig {
-                    return { alarmActionArn: alarmTopic.topicArn };
+                    return { alarmActionArn: alarmArn };
                 },
             });
+            if (alarmExistingTopic) {
+                alarm.addOkAction({
+                    bind(): AlarmActionConfig {
+                        return { alarmActionArn: alarmArn };
+                    },
+                });
+            }
         }
 
         // CloudFormation outputs

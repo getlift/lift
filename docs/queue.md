@@ -242,16 +242,27 @@ _Note: Lift will automatically configure the function to be triggered by SQS. It
 
 ### Alarm
 
+It is possible to configure email alerts in case messages end up in the dead letter queue.
+
+After the first deployment, an email will be sent to the email address to confirm the subscription.
+
 ```yaml
 constructs:
     my-queue:
         # ...
+        # Email alerts will be sent to alerting@mycompany.com
         alarm: alerting@mycompany.com
 ```
 
-It is possible to configure email alerts in case messages end up in the dead letter queue.
+Or you can specify an existing SNS topic for alerts. The alarm will send to the existing topic for `Alarm` and `OK` messages.
 
-After the first deployment, an email will be sent to the email address to confirm the subscription.
+```yaml
+constructs:
+    my-queue:
+        # ...
+        # Alarm and Ok messages will be sent to an existing SNS topic
+        alarm: arn:aws:sns:us-east-1:123456789012:alarm-alerts
+```
 
 ### FIFO (First-In-First-Out)
 
