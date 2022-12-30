@@ -67,7 +67,7 @@ In order to achieve our goals, we first drew a picture of the current AWS server
 | **Feature**: Database | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Feature**: Real-time feedback | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Feature**: File storage | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Feature**: Static website | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
-| **Feature**: Server-side rendering | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Feature**: Static website | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| **Feature**: Server-side rendering | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
 | **Feature**: HTTP API | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Feature**: Webhook | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
