@@ -65,6 +65,13 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        cloudfrontFunctions: {
+            type: "object",
+            properties: {
+                viewerRequest: { type: "string" },
+                viewerResponse: { type: "string" },
+            },
+        },
     },
     additionalProperties: false,
 } as const;
@@ -174,6 +181,10 @@ export class ServerSideWebsite extends AwsConstruct {
                     {
                         function: this.createRequestFunction(),
                         eventType: FunctionEventType.VIEWER_REQUEST,
+                    },
+                    {
+                        function: this.createResponseFunction(),
+                        eventType: FunctionEventType.VIEWER_RESPONSE,
                     },
                 ],
             },
@@ -437,11 +448,34 @@ export class ServerSideWebsite extends AwsConstruct {
         return behaviors;
     }
 
+    private createResponseFunction(): cloudfront.Function {
+        let code = "";
+
+        if (
+            this.configuration.cloudfrontFunctions &&
+            this.configuration.cloudfrontFunctions.viewerResponse !== undefined
+        ) {
+            code += this.configuration.cloudfrontFunctions.viewerResponse;
+        }
+
+        return new cloudfront.Function(this, "ResponseFunction", {
+            functionName: `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
+            code: cloudfront.FunctionCode.fromInline(code),
+        });
+    }
+
     private createRequestFunction(): cloudfront.Function {
         let additionalCode = "";
 
         if (this.configuration.redirectToMainDomain === true) {
             additionalCode += redirectToMainDomain(this.domains);
+        }
+
+        if (
+            this.configuration.cloudfrontFunctions &&
+            this.configuration.cloudfrontFunctions.viewerRequest !== undefined
+        ) {
+            additionalCode += this.configuration.cloudfrontFunctions.viewerRequest;
         }
 
         /**
