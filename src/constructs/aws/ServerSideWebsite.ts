@@ -1,6 +1,6 @@
 import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
-import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
+import type { CfnDistribution, IOriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CacheCookieBehavior,
@@ -31,6 +31,8 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";
+import type { ICachePolicy } from "aws-cdk-lib/aws-cloudfront/lib/cache-policy";
+import type { IFunction } from "aws-cdk-lib/aws-cloudfront/lib/function";
 import { ensureNameMaxLength } from "../../utils/naming";
 import { s3Put, s3Sync } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
@@ -65,6 +67,9 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        backendOriginPolicy: { type: "string" },
+        backendCachePolicy: { type: "string" },
+        cloudfrontFunctionArn: { type: "string" },
     },
     additionalProperties: false,
 } as const;
@@ -115,33 +120,6 @@ export class ServerSideWebsite extends AwsConstruct {
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        /**
-         * We create custom "Origin Policy" and "Cache Policy" for the backend.
-         * "All URL query strings, HTTP headers, and cookies that you include in the cache key (using a cache policy) are automatically included in origin requests. Use the origin request policy to specify the information that you want to include in origin requests, but not include in the cache key."
-         * https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-origin-requests.html
-         */
-        const backendOriginPolicy = new OriginRequestPolicy(this, "BackendOriginPolicy", {
-            originRequestPolicyName: `${this.provider.stackName}-${id}`,
-            comment: `Origin request policy for the ${id} website.`,
-            cookieBehavior: OriginRequestCookieBehavior.all(),
-            queryStringBehavior: OriginRequestQueryStringBehavior.all(),
-            headerBehavior: this.headersToForward(),
-        });
-        const backendCachePolicy = new CachePolicy(this, "BackendCachePolicy", {
-            cachePolicyName: `${this.provider.stackName}-${id}`,
-            comment: `Cache policy for the ${id} website.`,
-            // For the backend we disable all caching by default
-            defaultTtl: Duration.seconds(0),
-            // Prevent request collapsing by letting CloudFront understand that requests with
-            // different cookies or query strings are not the same request
-            // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
-            queryStringBehavior: CacheQueryStringBehavior.all(),
-            cookieBehavior: CacheCookieBehavior.all(),
-            // Authorization is an exception and must be whitelisted in the Cache Policy
-            // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
-            headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
-        });
-
         const apiId =
             configuration.apiGateway === "rest"
                 ? this.provider.naming.getRestApiLogicalId()
@@ -165,11 +143,11 @@ export class ServerSideWebsite extends AwsConstruct {
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,
-                cachePolicy: backendCachePolicy,
+                cachePolicy: this.createBackendCachePolicy(),
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 // Forward all values (query strings, headers, and cookies) to the backend app
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
-                originRequestPolicy: backendOriginPolicy,
+                originRequestPolicy: this.createBackendOriginPolicy(),
                 functionAssociations: [
                     {
                         function: this.createRequestFunction(),
@@ -437,7 +415,14 @@ export class ServerSideWebsite extends AwsConstruct {
         return behaviors;
     }
 
-    private createRequestFunction(): cloudfront.Function {
+    private createRequestFunction(): cloudfront.Function | IFunction {
+        if (this.configuration.cloudfrontFunctionArn != null) {
+            return cloudfront.Function.fromFunctionAttributes(this, "RequestFunction", {
+                functionArn: this.configuration.cloudfrontFunctionArn,
+                functionName: "RequestFunction",
+            });
+        }
+
         let additionalCode = "";
 
         if (this.configuration.redirectToMainDomain === true) {
@@ -502,5 +487,46 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private getErrorPageFileName(): string {
         return this.configuration.errorPage !== undefined ? path.basename(this.configuration.errorPage) : "";
+    }
+
+    /**
+     * We create custom "Origin Policy" and "Cache Policy" for the backend.
+     * "All URL query strings, HTTP headers, and cookies that you include in the cache key (using a cache policy) are automatically included in origin requests. Use the origin request policy to specify the information that you want to include in origin requests, but not include in the cache key."
+     * https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-origin-requests.html
+     */
+
+    private createBackendCachePolicy(): ICachePolicy {
+        return this.configuration.backendCachePolicy != null
+            ? CachePolicy.fromCachePolicyId(this, "BackendCachePolicy", this.configuration.backendCachePolicy)
+            : new CachePolicy(this, "BackendCachePolicy", {
+                  cachePolicyName: `${this.provider.stackName}-${this.id}`,
+                  comment: `Cache policy for the ${this.id} website.`,
+                  // For the backend we disable all caching by default
+                  defaultTtl: Duration.seconds(0),
+                  // Prevent request collapsing by letting CloudFront understand that requests with
+                  // different cookies or query strings are not the same request
+                  // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
+                  queryStringBehavior: CacheQueryStringBehavior.all(),
+                  cookieBehavior: CacheCookieBehavior.all(),
+                  // Authorization is an exception and must be whitelisted in the Cache Policy
+                  // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
+                  headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
+              });
+    }
+
+    private createBackendOriginPolicy(): IOriginRequestPolicy {
+        return this.configuration.backendOriginPolicy != null
+            ? OriginRequestPolicy.fromOriginRequestPolicyId(
+                  this,
+                  "BackendOriginPolicy",
+                  this.configuration.backendOriginPolicy
+              )
+            : new OriginRequestPolicy(this, "BackendOriginPolicy", {
+                  originRequestPolicyName: `${this.provider.stackName}-${this.id}`,
+                  comment: `Origin request policy for the ${this.id} website.`,
+                  cookieBehavior: OriginRequestCookieBehavior.all(),
+                  queryStringBehavior: OriginRequestQueryStringBehavior.all(),
+                  headerBehavior: this.headersToForward(),
+              });
     }
 }
