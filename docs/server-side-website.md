@@ -346,6 +346,7 @@ By default, CloudFront is configured to forward the following HTTP headers to th
 - `User-Agent`
 - `X-Forwarded-Host`
 - `X-Requested-With`
+- `Access-Control-Request-Method`
 
 Why only this list? Because CloudFront + API Gateway requires us to define explicitly the list of headers to forward. It isn't possible to forward _all_ headers.
 
