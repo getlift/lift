@@ -89,6 +89,9 @@ describe("queues", () => {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
                 MaximumBatchingWindowInSeconds: 0,
+                ScalingConfig: {
+                    MaximumConcurrency: 2,
+                },
                 FunctionResponseTypes: (version as string) >= "2.67.0" ? ["ReportBatchItemFailures"] : undefined,
             },
             Type: "AWS::Lambda::EventSourceMapping",

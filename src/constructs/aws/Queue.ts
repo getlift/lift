@@ -298,6 +298,10 @@ export class Queue extends AwsConstruct {
         return extensions;
     }
 
+    private getBatchSize(): number {
+        return this.configuration.batchSize ?? 1;
+    }
+
     private getMaximumBatchingWindow(): number {
         return this.configuration.maxBatchingWindow ?? 0;
     }
@@ -307,8 +311,7 @@ export class Queue extends AwsConstruct {
     }
 
     private appendFunctions(): void {
-        // The default batch size is 1
-        const batchSize = this.configuration.batchSize ?? 1;
+        const batchSize = this.getBatchSize();
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
         const maximumConcurrency = this.getMaximumConcurrency();
 
