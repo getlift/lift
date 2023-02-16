@@ -362,6 +362,21 @@ Note you can use [partial batch failures](#partial-batch-failures) to avoid fail
 
 It is possible to set the batch size between 1 and 10.
 
+### Max Concurrency
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+    maxConcurrency: 10 # The maximum number of concurrent function instances that the SQS event source can invoke is 10 
+```
+
+The launch of maximum concurrency for SQS as an event source allows you to control Lambda function concurrency per source. You set the maximum concurrency on the event source mapping, not on the Lambda function.
+
+This event source mapping setting does not change the scaling or batching behavior of Lambda with SQS. You can continue to batch messages with a customized batch size and window. It rather sets a limit on the maximum number of concurrent function invocations per SQS event source. Once Lambda scales and reaches the maximum concurrency configured on the event source, Lambda stops reading more messages from the queue. This feature also provides you with the flexibility to define the maximum concurrency for individual event sources when the Lambda function has multiple event sources.
+
+It is possible to set the `maxConcurrency` between 2 and 10000.
+
 ### Maximum Batching Window
 
 ```yaml

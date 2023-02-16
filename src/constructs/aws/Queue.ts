@@ -298,22 +298,15 @@ export class Queue extends AwsConstruct {
         return extensions;
     }
 
-    private getBatchSize(): number {
-        return this.configuration.batchSize ?? 1;
-    }
-
     private getMaximumBatchingWindow(): number {
         return this.configuration.maxBatchingWindow ?? 0;
     }
 
-    private getMaximumConcurrency(): number {
-        return this.configuration.maxConcurrency ?? 2;
-    }
-
     private appendFunctions(): void {
-        const batchSize = this.getBatchSize();
+        // The default batch size is 1
+        const batchSize = this.configuration.batchSize ?? 1;
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
-        const maximumConcurrency = this.getMaximumConcurrency();
+        const maximumConcurrency = this.configuration.maxConcurrency;
 
         // Override events for the worker
         this.configuration.worker.events = [

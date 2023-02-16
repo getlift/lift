@@ -89,9 +89,6 @@ describe("queues", () => {
                     "Fn::GetAtt": ["EmailsWorkerLambdaFunction", "Arn"],
                 },
                 MaximumBatchingWindowInSeconds: 0,
-                ScalingConfig: {
-                    MaximumConcurrency: 2,
-                },
                 FunctionResponseTypes: (version as string) >= "2.67.0" ? ["ReportBatchItemFailures"] : undefined,
             },
             Type: "AWS::Lambda::EventSourceMapping",
@@ -225,6 +222,27 @@ describe("queues", () => {
         expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
             Properties: {
                 BatchSize: 10,
+            },
+        });
+    });
+
+    it("allows changing the max concurrency", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        maxConcurrency: 10,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
+            Properties: {
+                ScalingConfig: {
+                    MaximumConcurrency: 10,
+                },
             },
         });
     });
