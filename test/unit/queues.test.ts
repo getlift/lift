@@ -226,6 +226,27 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the max concurrency", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        maxConcurrency: 10,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
+            Properties: {
+                ScalingConfig: {
+                    MaximumConcurrency: 10,
+                },
+            },
+        });
+    });
+
     it("allows changing the delivery delay", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
