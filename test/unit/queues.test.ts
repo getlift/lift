@@ -238,13 +238,9 @@ describe("queues", () => {
             }),
             command: "package",
         });
-        expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
-            Properties: {
-                ScalingConfig: {
-                    MaximumConcurrency: 10,
-                },
-            },
-        });
+        expect(
+            cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A.Properties.ScalingConfig
+        ).toMatchObject({ MaximumConcurrency: 10 });
     });
 
     it("allows changing the delivery delay", async () => {

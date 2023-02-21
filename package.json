@@ -5,8 +5,8 @@
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
-    "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
-    "aws-cdk-lib": "^2.21.1",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.65.0-alpha.0",
+    "aws-cdk-lib": "^2.65.0",
     "aws-sdk": "^2.942.0",
     "chalk": "^4.1.1",
     "change-case": "^4.1.2",
