@@ -335,34 +335,13 @@ Applications are of course free to catch errors and display custom error pages. 
 
 ### Forwarded headers
 
-By default, CloudFront is configured to forward the following HTTP headers to the backend running on Lambda:
+> **Note**:
+> 
+> In previous Lift versions, the headers forwarded to your Lambda backend were limited. You were able to add new headers via the `forwardedHeaders` option.
+> 
+> [This is no longer the case](https://twitter.com/cristiangraz/status/1628585607479050240): **all headers are now always forwarded**.
 
-- `Accept`
-- `Accept-Language`
-- `Authorization`
-- `Content-Type`
-- `Origin`
-- `Referer`
-- `User-Agent`
-- `X-Forwarded-Host`
-- `X-Requested-With`
-
-Why only this list? Because CloudFront + API Gateway requires us to define explicitly the list of headers to forward. It isn't possible to forward _all_ headers.
-
-To access more headers from the client (or [from CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-cloudfront-headers.html)), you can redefine the list of headers forwarded by CloudFront in `forwardedHeaders`:
-
-```yaml
-constructs:
-    website:
-        # ...
-        forwardedHeaders:
-            - Accept
-            - Accept-Language
-            # ...
-            - X-Custom-Header
-```
-
-CloudFront accepts maximum 10 headers.
+All headers are forwarded to your Lambda backend. If you used the `forwardedHeaders` option in the past, you can safely remove it.
 
 ## Extensions
 
