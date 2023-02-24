@@ -24,10 +24,11 @@ export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promi
 
         throw e;
     }
-    if (!data.Stacks || !data.Stacks[0].Outputs) {
+    const outputs = data.Stacks?.[0].Outputs;
+    if (!outputs) {
         return undefined;
     }
-    for (const item of data.Stacks[0].Outputs) {
+    for (const item of outputs) {
         if (item.OutputKey === outputId) {
             return item.OutputValue;
         }
