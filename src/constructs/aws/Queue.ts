@@ -2,6 +2,7 @@ import { Key } from "aws-cdk-lib/aws-kms";
 import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
 import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
+import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
 import { Alarm, ComparisonOperator, Metric } from "aws-cdk-lib/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
@@ -117,6 +118,7 @@ export class Queue extends AwsConstruct {
 
     private readonly queue: CdkQueue;
     private readonly dlq: CdkQueue;
+    private readonly alarm?: Alarm;
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
@@ -218,7 +220,7 @@ export class Queue extends AwsConstruct {
                 endpoint: alarmEmail,
             });
 
-            const alarm = new Alarm(this, "Alarm", {
+            this.alarm = new Alarm(this, "Alarm", {
                 alarmName: `${this.provider.stackName}-${id}-dlq-alarm`,
                 alarmDescription: "Alert triggered when there are failed jobs in the dead letter queue.",
                 metric: new Metric({
@@ -235,7 +237,7 @@ export class Queue extends AwsConstruct {
                 threshold: 0,
                 comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
             });
-            alarm.addAlarmAction({
+            this.alarm.addAlarmAction({
                 bind(): AlarmActionConfig {
                     return { alarmActionArn: alarmTopic.topicArn };
                 },
@@ -279,11 +281,16 @@ export class Queue extends AwsConstruct {
     }
 
     extend(): Record<string, CfnResource> {
-        return {
+        const extensions = {
             queue: this.queue.node.defaultChild as CfnQueue,
             dlq: this.dlq.node.defaultChild as CfnQueue,
-            alarm: this.dlq.node.defaultChild as CfnQueue,
         };
+
+        if (this.alarm !== undefined) {
+            Object.assign(extensions, { alarm: this.alarm.node.defaultChild as CfnAlarm });
+        }
+
+        return extensions;
     }
 
     private getMaximumBatchingWindow(): number {
