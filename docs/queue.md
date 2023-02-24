@@ -424,6 +424,8 @@ constructs:
 | dlq           	| AWS::SQS::Queue         	| [Link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queue.html)        	|
 | alarm         	| AWS::CloudWatch::Alarm  	| [Link](https://docs.aws.amazon.com/fr_fr/AWSCloudFormation/latest/UserGuide/aws-properties-cw-alarm.html) 	|
 
+> ⚠️  The `alarm` extension key is only available if an alarm email destination has been configured on the construct.
+
 ### More options
 
 Feel like a common extension pattern should be implemented as part of the construct configuration? [Open a GitHub issue](https://github.com/getlift/lift/issues/new).
