@@ -7,7 +7,6 @@
   "dependencies": {
     "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
     "aws-cdk-lib": "^2.21.1",
-    "aws-sdk": "^2.942.0",
     "chalk": "^4.1.1",
     "change-case": "^4.1.2",
     "cidr-split": "^0.1.2",
@@ -36,6 +35,7 @@
     "@types/traverse": "^0.6.32",
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
+    "aws-sdk": "^2.1322.0",
     "chai": "^4.3.4",
     "esbuild-node-tsc": "~1.5.1",
     "eslint": "^7.29.0",
