@@ -12,7 +12,7 @@ export async function runServerlessCli({ command, fixture }: RunServerlessCliOpt
         let output = "";
         process.stdout.on("data", (data) => (output += data));
         process.stderr.on("data", (data) => (output += data));
-        process.on("data", (data) => resolve(data));
+        process.on("data", (data: RunServerlessCliReturn) => resolve(data));
         process.on("error", (err) => reject(new Error(`Exit code: ${err.message}\n` + output)));
         process.on("close", (err) => {
             if (err === 0) {
