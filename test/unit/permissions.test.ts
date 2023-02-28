@@ -119,7 +119,7 @@ describe("permissions", () => {
             get(cfTemplate.Resources.IamRoleLambdaExecution, "Properties.Policies[0].PolicyDocument.Statement")
         ).toMatchObject([
             {
-                Action: ["logs:CreateLogStream", "logs:CreateLogGroup"],
+                Action: ["logs:CreateLogStream", "logs:CreateLogGroup", "logs:TagResource"],
             },
             {
                 Action: ["logs:PutLogEvents"],
