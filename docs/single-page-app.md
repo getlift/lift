@@ -125,6 +125,24 @@ resources:
 
 _How it works: the `${construct:landing.cname}` variable will automatically be replaced with a CloudFormation reference to the CloudFront Distribution._
 
+- `assetsBucketName`: the S3 assets bucketname
+
+This can be used to configure a S3 bucket policy for example:
+
+```yaml
+constructs:
+    landing:
+        type: single-page-app
+        # ...
+resources:
+    Resources:
+        BucketPolicy:
+            Type: AWS::S3::BucketPolicy
+            Properties:
+                Bucket: ${construct:landing.assetsBucketName}
+                # ...
+```
+
 ## Configuration reference
 
 ### Path
