@@ -43,9 +43,9 @@ export class SinglePageApp extends StaticWebsiteAbstract {
          * let static files pass.
          *
          * Files extensions list taken from: https://docs.aws.amazon.com/amplify/latest/userguide/redirects.html#redirects-for-single-page-web-apps-spa
-         * Add pdf and xml as well
+         * Add pdf, xml and webmanifest as well
          */
-        const code = `var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml|pdf)$)([^.]+$)/;
+        const code = `var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|xml|pdf|webmanifest)$)([^.]+$)/;
 
 function handler(event) {
     var uri = event.request.uri;
