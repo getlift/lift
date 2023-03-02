@@ -641,4 +641,58 @@ describe("queues", () => {
             MaximumMessageSize: 1024,
         });
     });
+
+    it("allows overriding alarm properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        alarm: "myemail@mycompany.com",
+                        extensions: {
+                            alarm: {
+                                Properties: {
+                                    AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Alarm")].Properties).toMatchObject({
+            AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+        });
+    });
+
+    it("should throw if overriding alarm properties while no alarm is configured", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            extensions: {
+                                alarm: {
+                                    Properties: {
+                                        AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+                                    },
+                                },
+                            },
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "There is no extension 'alarm' available on this construct. Available extensions are: queue, dlq."
+            );
+        }
+    });
 });

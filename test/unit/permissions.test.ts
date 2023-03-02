@@ -115,15 +115,12 @@ describe("permissions", () => {
             command: "package",
         });
         // There should be no "s3:*" permissions added
-        expect(
-            get(cfTemplate.Resources.IamRoleLambdaExecution, "Properties.Policies[0].PolicyDocument.Statement")
-        ).toMatchObject([
-            {
-                Action: ["logs:CreateLogStream", "logs:CreateLogGroup"],
-            },
-            {
-                Action: ["logs:PutLogEvents"],
-            },
-        ]);
+        const statements = get(
+            cfTemplate.Resources.IamRoleLambdaExecution,
+            "Properties.Policies[0].PolicyDocument.Statement"
+        ) as unknown as { Action: string[] }[];
+        statements.forEach(({ Action }) => {
+            expect(Action).not.toEqual(expect.arrayContaining([expect.stringMatching(/^s3:.*$/)]));
+        });
     });
 });
