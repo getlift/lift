@@ -162,6 +162,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
     variables(): Record<string, unknown> {
         return {
             cname: this.distribution.distributionDomainName,
+            assetsBucketName: this.bucket.bucketName,
         };
     }
 
