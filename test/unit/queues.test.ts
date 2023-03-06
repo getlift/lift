@@ -227,7 +227,7 @@ describe("queues", () => {
     });
 
     it("allows changing the max concurrency", async () => {
-        const { cfTemplate } = await runServerless({
+        const { cfTemplate, serverless } = await runServerless({
             fixture: "queues",
             configExt: merge({}, pluginConfigExt, {
                 constructs: {
@@ -238,11 +238,7 @@ describe("queues", () => {
             }),
             command: "package",
         });
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-var-requires
-        const json = require("../../node_modules/serverless/package.json");
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const serverlessVersion: string = json.version as string;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
+        const serverlessVersion = serverless.version as string;
         if (serverlessVersion.startsWith("3")) {
             expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
                 Properties: {
