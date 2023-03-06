@@ -50,6 +50,11 @@ const QUEUE_DEFINITION = {
             minimum: 0,
             maximum: 300,
         },
+        maxConcurrency: {
+            type: "number",
+            minimum: 2,
+            maximum: 1000,
+        },
         fifo: { type: "boolean" },
         delay: { type: "number" },
         encryption: { type: "string" },
@@ -301,6 +306,7 @@ export class Queue extends AwsConstruct {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
+        const maximumConcurrency = this.configuration.maxConcurrency;
 
         // Override events for the worker
         this.configuration.worker.events = [
@@ -310,6 +316,7 @@ export class Queue extends AwsConstruct {
                     arn: this.queue.queueArn,
                     batchSize: batchSize,
                     maximumBatchingWindow: maximumBatchingWindow,
+                    maximumConcurrency: maximumConcurrency,
                     functionResponseType: "ReportBatchItemFailures",
                 },
             },

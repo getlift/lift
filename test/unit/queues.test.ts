@@ -226,6 +226,32 @@ describe("queues", () => {
         });
     });
 
+    it("allows changing the max concurrency", async () => {
+        const { cfTemplate, serverless } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        maxConcurrency: 10,
+                    },
+                },
+            }),
+            command: "package",
+        });
+        const serverlessVersion = serverless.version as string;
+        if (serverlessVersion.startsWith("3")) {
+            expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
+                Properties: {
+                    ScalingConfig: {
+                        MaximumConcurrency: 10,
+                    },
+                },
+            });
+        } else {
+            expect(true).toEqual(true);
+        }
+    });
+
     it("allows changing the delivery delay", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             fixture: "queues",
