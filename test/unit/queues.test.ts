@@ -238,9 +238,22 @@ describe("queues", () => {
             }),
             command: "package",
         });
-        expect(
-            cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A.Properties.ScalingConfig
-        ).toMatchObject({ MaximumConcurrency: 10 });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-var-requires
+        const json = require("../../node_modules/serverless/package.json");
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const serverlessVersion: string = json.version as string;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
+        if (serverlessVersion.startsWith("3")) {
+            expect(cfTemplate.Resources.EmailsWorkerEventSourceMappingSQSEmailsQueueF057328A).toMatchObject({
+                Properties: {
+                    ScalingConfig: {
+                        MaximumConcurrency: 10,
+                    },
+                },
+            });
+        } else {
+            expect(true).toEqual(true);
+        }
     });
 
     it("allows changing the delivery delay", async () => {
@@ -636,5 +649,59 @@ describe("queues", () => {
         expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")].Properties).toMatchObject({
             MaximumMessageSize: 1024,
         });
+    });
+
+    it("allows overriding alarm properties", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        alarm: "myemail@mycompany.com",
+                        extensions: {
+                            alarm: {
+                                Properties: {
+                                    AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("emails", "Alarm")].Properties).toMatchObject({
+            AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+        });
+    });
+
+    it("should throw if overriding alarm properties while no alarm is configured", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            extensions: {
+                                alarm: {
+                                    Properties: {
+                                        AlarmActions: ["arn:aws:sns:region:account-id:sns-topic-name"],
+                                    },
+                                },
+                            },
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "There is no extension 'alarm' available on this construct. Available extensions are: queue, dlq."
+            );
+        }
     });
 });

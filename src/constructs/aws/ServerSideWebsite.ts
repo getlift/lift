@@ -1,20 +1,13 @@
 import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
-import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
+import type { CfnDistribution, IOriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
-    CacheCookieBehavior,
-    CacheHeaderBehavior,
     CachePolicy,
-    CacheQueryStringBehavior,
     Distribution,
     FunctionEventType,
     HttpVersion,
     OriginProtocolPolicy,
-    OriginRequestCookieBehavior,
-    OriginRequestHeaderBehavior,
-    OriginRequestPolicy,
-    OriginRequestQueryStringBehavior,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct } from "constructs";
@@ -115,32 +108,12 @@ export class ServerSideWebsite extends AwsConstruct {
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        /**
-         * We create custom "Origin Policy" and "Cache Policy" for the backend.
-         * "All URL query strings, HTTP headers, and cookies that you include in the cache key (using a cache policy) are automatically included in origin requests. Use the origin request policy to specify the information that you want to include in origin requests, but not include in the cache key."
-         * https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-origin-requests.html
-         */
-        const backendOriginPolicy = new OriginRequestPolicy(this, "BackendOriginPolicy", {
-            originRequestPolicyName: `${this.provider.stackName}-${id}`,
-            comment: `Origin request policy for the ${id} website.`,
-            cookieBehavior: OriginRequestCookieBehavior.all(),
-            queryStringBehavior: OriginRequestQueryStringBehavior.all(),
-            headerBehavior: this.headersToForward(),
-        });
-        const backendCachePolicy = new CachePolicy(this, "BackendCachePolicy", {
-            cachePolicyName: `${this.provider.stackName}-${id}`,
-            comment: `Cache policy for the ${id} website.`,
-            // For the backend we disable all caching by default
-            defaultTtl: Duration.seconds(0),
-            // Prevent request collapsing by letting CloudFront understand that requests with
-            // different cookies or query strings are not the same request
-            // https://github.com/getlift/lift/issues/144#issuecomment-1131578142
-            queryStringBehavior: CacheQueryStringBehavior.all(),
-            cookieBehavior: CacheCookieBehavior.all(),
-            // Authorization is an exception and must be whitelisted in the Cache Policy
-            // This is the reason why we don't use the managed `CachePolicy.CACHING_DISABLED`
-            headerBehavior: CacheHeaderBehavior.allowList("Authorization"),
-        });
+        // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
+        // It is not supported by the AWS CDK yet
+        const backendOriginPolicy = new (class implements IOriginRequestPolicy {
+            public readonly originRequestPolicyId = "b689b0a8-53d0-40ab-baf2-68738e2966ac";
+        })();
+        const backendCachePolicy = CachePolicy.CACHING_DISABLED;
 
         const apiId =
             configuration.apiGateway === "rest"
@@ -371,47 +344,6 @@ export class ServerSideWebsite extends AwsConstruct {
 
         // In case of multiple domains, we take the first one
         return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
-    }
-
-    private headersToForward(): OriginRequestHeaderBehavior {
-        let additionalHeadersToForward = this.configuration.forwardedHeaders ?? [];
-        if (additionalHeadersToForward.includes("Host")) {
-            throw new ServerlessError(
-                `Invalid value in 'constructs.${this.id}.forwardedHeaders': the 'Host' header cannot be forwarded (this is an API Gateway limitation). Use the 'X-Forwarded-Host' header in your code instead (it contains the value of the original 'Host' header).`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-            );
-        }
-        // `Authorization` cannot be forwarded via this setting (we automatically forward it anyway so we remove it from the list)
-        additionalHeadersToForward = additionalHeadersToForward.filter((header: string) => header !== "Authorization");
-        if (additionalHeadersToForward.length > 0) {
-            if (additionalHeadersToForward.length > 10) {
-                throw new ServerlessError(
-                    `Invalid value in 'constructs.${this.id}.forwardedHeaders': ${additionalHeadersToForward.length} headers are configured but only 10 headers can be forwarded (this is an CloudFront limitation).`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-                );
-            }
-
-            // Custom list
-            return OriginRequestHeaderBehavior.allowList(...additionalHeadersToForward);
-        }
-
-        /**
-         * We forward everything except:
-         * - `Host` because it messes up API Gateway (that uses the Host to identify which API Gateway to invoke)
-         * - `Authorization` because it must be configured on the cache policy
-         *   (see https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-authorization-header/?nc1=h_ls)
-         */
-        return OriginRequestHeaderBehavior.allowList(
-            "Accept",
-            "Accept-Language",
-            "Content-Type",
-            "Origin",
-            "Referer",
-            "User-Agent",
-            "X-Requested-With",
-            // This header is set by our CloudFront Function
-            "X-Forwarded-Host"
-        );
     }
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {

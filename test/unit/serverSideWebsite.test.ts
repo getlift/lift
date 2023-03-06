@@ -31,16 +31,12 @@ describe("server-side website", () => {
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
-        const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
-        const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
         const requestFunction = computeLogicalId("backend", "RequestFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
             bucketPolicyLogicalId,
-            originPolicyId,
-            cachePolicyId,
             requestFunction,
             originAccessIdentityLogicalId,
             cfDistributionLogicalId,
@@ -88,8 +84,8 @@ describe("server-side website", () => {
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"],
                         Compress: true,
-                        CachePolicyId: { Ref: cachePolicyId },
-                        OriginRequestPolicyId: { Ref: originPolicyId },
+                        CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+                        OriginRequestPolicyId: "b689b0a8-53d0-40ab-baf2-68738e2966ac",
                         TargetOriginId: cfOriginId1,
                         ViewerProtocolPolicy: "redirect-to-https",
                         FunctionAssociations: [
@@ -141,52 +137,6 @@ describe("server-side website", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[originPolicyId]).toStrictEqual({
-            Type: "AWS::CloudFront::OriginRequestPolicy",
-            Properties: {
-                OriginRequestPolicyConfig: {
-                    Name: "app-dev-backend",
-                    Comment: "Origin request policy for the backend website.",
-                    CookiesConfig: { CookieBehavior: "all" },
-                    QueryStringsConfig: { QueryStringBehavior: "all" },
-                    HeadersConfig: {
-                        HeaderBehavior: "whitelist",
-                        Headers: [
-                            "Accept",
-                            "Accept-Language",
-                            "Content-Type",
-                            "Origin",
-                            "Referer",
-                            "User-Agent",
-                            "X-Requested-With",
-                            "X-Forwarded-Host",
-                        ],
-                    },
-                },
-            },
-        });
-        expect(cfTemplate.Resources[cachePolicyId]).toStrictEqual({
-            Type: "AWS::CloudFront::CachePolicy",
-            Properties: {
-                CachePolicyConfig: {
-                    Comment: "Cache policy for the backend website.",
-                    DefaultTTL: 0,
-                    MaxTTL: 31536000,
-                    MinTTL: 0,
-                    Name: "app-dev-backend",
-                    ParametersInCacheKeyAndForwardedToOrigin: {
-                        CookiesConfig: { CookieBehavior: "all" },
-                        QueryStringsConfig: { QueryStringBehavior: "all" },
-                        HeadersConfig: {
-                            HeaderBehavior: "whitelist",
-                            Headers: ["Authorization"],
-                        },
-                        EnableAcceptEncodingBrotli: false,
-                        EnableAcceptEncodingGzip: false,
-                    },
-                },
-            },
-        });
         expect(cfTemplate.Resources[requestFunction]).toMatchObject({
             Type: "AWS::CloudFront::Function",
             Properties: {
@@ -232,15 +182,11 @@ describe("server-side website", () => {
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
-        const originPolicyId = computeLogicalId("backend", "BackendOriginPolicy");
-        const cachePolicyId = computeLogicalId("backend", "BackendCachePolicy");
         const requestFunction = computeLogicalId("backend", "RequestFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
-            originPolicyId,
-            cachePolicyId,
             requestFunction,
             cfDistributionLogicalId,
         ]);
@@ -256,8 +202,8 @@ describe("server-side website", () => {
                     DefaultCacheBehavior: {
                         AllowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"],
                         Compress: true,
-                        CachePolicyId: { Ref: cachePolicyId },
-                        OriginRequestPolicyId: { Ref: originPolicyId },
+                        CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+                        OriginRequestPolicyId: "b689b0a8-53d0-40ab-baf2-68738e2966ac",
                         TargetOriginId: cfOriginId1,
                         ViewerProtocolPolicy: "redirect-to-https",
                         FunctionAssociations: [
@@ -521,88 +467,18 @@ describe("server-side website", () => {
         });
     });
 
-    it("should allow to override the forwarded headers", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
+    it("should not error if 'forwardedHeaders' are configured", async () => {
+        return runServerless({
             command: "package",
             config: Object.assign(baseConfig, {
                 constructs: {
                     backend: {
                         type: "server-side-website",
-                        forwardedHeaders: ["X-My-Custom-Header", "X-My-Other-Custom-Header"],
+                        forwardedHeaders: ["foo", "bar"],
                     },
                 },
             }),
         });
-        expect(cfTemplate.Resources[computeLogicalId("backend", "BackendOriginPolicy")]).toMatchObject({
-            Properties: {
-                OriginRequestPolicyConfig: {
-                    HeadersConfig: {
-                        HeaderBehavior: "whitelist",
-                        Headers: ["X-My-Custom-Header", "X-My-Other-Custom-Header"],
-                    },
-                },
-            },
-        });
-    });
-
-    it("should not forward the Authorization header in the Origin Policy", async () => {
-        const { cfTemplate, computeLogicalId } = await runServerless({
-            command: "package",
-            config: Object.assign(baseConfig, {
-                constructs: {
-                    backend: {
-                        type: "server-side-website",
-                        forwardedHeaders: ["Authorization", "X-My-Custom-Header"],
-                    },
-                },
-            }),
-        });
-        expect(cfTemplate.Resources[computeLogicalId("backend", "BackendOriginPolicy")]).toMatchObject({
-            Properties: {
-                OriginRequestPolicyConfig: {
-                    HeadersConfig: {
-                        // Should not contain "Authorization"
-                        Headers: ["X-My-Custom-Header"],
-                    },
-                },
-            },
-        });
-    });
-
-    it("should forbid to force forwarding the Host header", async () => {
-        await expect(() => {
-            return runServerless({
-                command: "package",
-                config: Object.assign(baseConfig, {
-                    constructs: {
-                        backend: {
-                            type: "server-side-website",
-                            forwardedHeaders: ["Host"],
-                        },
-                    },
-                }),
-            });
-        }).rejects.toThrowError(
-            "Invalid value in 'constructs.backend.forwardedHeaders': the 'Host' header cannot be forwarded (this is an API Gateway limitation). Use the 'X-Forwarded-Host' header in your code instead (it contains the value of the original 'Host' header)."
-        );
-    });
-
-    it("should error if more than 10 headers are configured", async () => {
-        await expect(() => {
-            return runServerless({
-                command: "package",
-                config: Object.assign(baseConfig, {
-                    constructs: {
-                        backend: {
-                            type: "server-side-website",
-                            forwardedHeaders: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
-                        },
-                    },
-                }),
-            });
-        }).rejects.toThrowError(
-            "Invalid value in 'constructs.backend.forwardedHeaders': 11 headers are configured but only 10 headers can be forwarded (this is an CloudFront limitation)."
-        );
     });
 
     it("should synchronize assets to S3", async () => {
