@@ -117,7 +117,7 @@ describe("queues", () => {
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             Statement: expect.arrayContaining([
                                 {
-                                    Action: "sqs:SendMessage",
+                                    Action: ["sqs:SendMessage", "sqs:ChangeMessageVisibility"],
                                     Effect: "Allow",
                                     Resource: [
                                         {

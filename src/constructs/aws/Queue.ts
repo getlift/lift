@@ -282,7 +282,7 @@ export class Queue extends AwsConstruct {
     }
 
     permissions(): PolicyStatement[] {
-        return [new PolicyStatement("sqs:SendMessage", [this.queue.queueArn])];
+        return [new PolicyStatement(["sqs:SendMessage", "sqs:ChangeMessageVisibility"], [this.queue.queueArn])];
     }
 
     extend(): Record<string, CfnResource> {
