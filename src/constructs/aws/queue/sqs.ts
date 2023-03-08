@@ -100,6 +100,16 @@ export async function retryMessages(
                         throw new Error(`Found a message with no ID`);
                     }
 
+                    // A FIFO Queue
+                    if( typeof message.MessageGroupId != undefined ){
+                        return {
+                            Id: message.MessageId,
+                            MessageAttributes: message.MessageAttributes,
+                            MessageBody: message.Body,
+                            MessageGroupId: message.MessageGroupId
+                        };
+                    }
+                    
                     return {
                         Id: message.MessageId,
                         MessageAttributes: message.MessageAttributes,
