@@ -101,12 +101,12 @@ export async function retryMessages(
                     }
 
                     // A FIFO Queue
-                    if( typeof message.MessageGroupId != undefined ){
+                    if( queueUrl.indexOf('.fifo') > -1 ){
                         return {
                             Id: message.MessageId,
                             MessageAttributes: message.MessageAttributes,
                             MessageBody: message.Body,
-                            MessageGroupId: message.MessageGroupId
+                            MessageGroupId: message.MessageGroupId?message.MessageGroupId:'redrive'
                         };
                     }
                     
