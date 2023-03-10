@@ -368,7 +368,7 @@ It is possible to set the batch size between 1 and 10.
 constructs:
     my-queue:
         # ...
-    maxConcurrency: 10 # The maximum number of concurrent function instances that the SQS event source can invoke is 10 
+        maxConcurrency: 10 # The maximum number of concurrent function instances that the SQS event source can invoke is 10 
 ```
 
 The launch of maximum concurrency for SQS as an event source allows you to control Lambda function concurrency per source. You set the maximum concurrency on the event source mapping, not on the Lambda function.
