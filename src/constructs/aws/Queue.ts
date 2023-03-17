@@ -43,7 +43,7 @@ const QUEUE_DEFINITION = {
         batchSize: {
             type: "number",
             minimum: 1,
-            maximum: 10,
+            maximum: 10000,
         },
         maxBatchingWindow: {
             type: "number",
@@ -165,6 +165,23 @@ export class Queue extends AwsConstruct {
             }
 
             delay = Duration.seconds(configuration.delay);
+        }
+
+        if (configuration.batchSize !== undefined) {
+            if (configuration.batchSize > 10 && configuration.fifo === true) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'batchSize' must be between 0 and 10 for FIFO queues, '${configuration.batchSize}' given.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            if (configuration.batchSize > 10 && !this.getMaximumBatchingWindow()) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${
+                        this.id
+                    }': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '${this.getMaximumBatchingWindow()}' given.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
         }
 
         let encryption = undefined;

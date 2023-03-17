@@ -700,4 +700,53 @@ describe("queues", () => {
             );
         }
     });
+
+    it("should throw if batch size is over 10 for FIFO queues", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            batchSize: 100,
+                            fifo: true,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': 'batchSize' must be between 0 and 10 for FIFO queues, '100' given."
+            );
+        }
+    });
+
+    it("should throw if batch size is over 10 and maxBatchWindow is not set", async () => {
+        expect.assertions(2);
+
+        try {
+            await runServerless({
+                fixture: "queues",
+                configExt: merge({}, pluginConfigExt, {
+                    constructs: {
+                        emails: {
+                            batchSize: 100,
+                        },
+                    },
+                }),
+                command: "package",
+            });
+        } catch (error) {
+            expect(error).toBeInstanceOf(ServerlessError);
+            expect(error).toHaveProperty(
+                "message",
+                "Invalid configuration in 'constructs.emails': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '0' given."
+            );
+        }
+    });
 });
