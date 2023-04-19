@@ -25,6 +25,7 @@ const WEBHOOK_DEFINITION = {
             required: ["handler"],
             additionalProperties: true,
         },
+        detail: { type: "string" },
         insecure: { type: "boolean" },
         path: { type: "string" },
         eventType: { type: "string" },
@@ -103,7 +104,7 @@ export class Webhook extends AwsConstruct {
             payloadFormatVersion: "1.0",
             requestParameters: {
                 DetailType: resolvedConfiguration.eventType ?? "Webhook",
-                Detail: "$request.body",
+                Detail: resolvedConfiguration.detail ?? "$request.body",
                 Source: id,
                 EventBusName: this.bus.eventBusName,
             },
