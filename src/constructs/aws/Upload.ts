@@ -1,16 +1,19 @@
-import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from "@aws-cdk/aws-s3";
-import type { Construct as CdkConstruct } from "@aws-cdk/core";
-import { CfnOutput, Duration, Fn, Stack } from "@aws-cdk/core";
-import { Code, Function as LambdaFunction, Runtime } from "@aws-cdk/aws-lambda";
+import type { CfnBucket } from "aws-cdk-lib/aws-s3";
+import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from "aws-cdk-lib/aws-s3";
+import type { Construct as CdkConstruct } from "constructs";
+import type { CfnResource } from "aws-cdk-lib/core";
+import { CfnOutput, Duration, Fn, Stack } from "aws-cdk-lib/core";
+import { Code, Function as LambdaFunction, Runtime } from "aws-cdk-lib/aws-lambda";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
-import type { IHttpApi } from "@aws-cdk/aws-apigatewayv2";
-import { HttpApi, HttpMethod, HttpRoute, HttpRouteKey } from "@aws-cdk/aws-apigatewayv2";
-import type { Resource } from "@aws-cdk/aws-apigateway";
-import { LambdaIntegration, RestApi } from "@aws-cdk/aws-apigateway";
-import { LambdaProxyIntegration } from "@aws-cdk/aws-apigatewayv2-integrations";
-import { Role } from "@aws-cdk/aws-iam";
+import type { IHttpApi } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { HttpApi, HttpMethod, HttpRoute, HttpRouteKey } from "@aws-cdk/aws-apigatewayv2-alpha";
+import type { Resource } from "aws-cdk-lib/aws-apigateway";
+import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { HttpLambdaIntegration } from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
+import { Role } from "aws-cdk-lib/aws-iam";
+import { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import { PolicyStatement } from "../../CloudFormation";
 
 const UPLOAD_DEFINITION = {
@@ -95,9 +98,7 @@ export class Upload extends AwsConstruct {
                 httpApiId: Fn.ref(this.provider.naming.getHttpApiLogicalId()),
             });
 
-            const lambdaProxyIntegration = new LambdaProxyIntegration({
-                handler: this.function,
-            });
+            const lambdaProxyIntegration = new HttpLambdaIntegration("LambdaProxyIntegration", this.function);
 
             this.route = new HttpRoute(this, "Route", {
                 httpApi: this.httpApi,
@@ -183,5 +184,11 @@ exports.handler = async (event) => {
     };
 }
         `;
+    }
+
+    extend(): Record<string, CfnResource> {
+        return {
+            bucket: this.bucket.node.defaultChild as CfnBucket,
+        };
     }
 }
