@@ -153,8 +153,8 @@ export class ServerSideWebsite extends AwsConstruct {
             // All the assets paths are created in there
             additionalBehaviors: this.createCacheBehaviors(this.bucket),
             errorResponses: this.createErrorResponses(),
-            // Enable http2 transfer for better performances
-            httpVersion: HttpVersion.HTTP2,
+            // Enable http2 & http3 transfer for better performances
+            httpVersion: HttpVersion.HTTP2_AND_3,
             certificate: certificate,
             domainNames: this.domains,
         });
