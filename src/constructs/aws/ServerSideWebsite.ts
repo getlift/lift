@@ -244,6 +244,10 @@ export class ServerSideWebsite extends AwsConstruct {
 
         let invalidate = false;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
+            if (filePath.substring(0, 5) === 's3://') {
+                continue;
+            }
+
             if (!fs.existsSync(filePath)) {
                 throw new ServerlessError(
                     `Error in 'constructs.${this.id}': the file or directory '${filePath}' does not exist`,
@@ -352,16 +356,24 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
-        for (const pattern of Object.keys(this.getAssetPatterns())) {
+        const patterns = this.getAssetPatterns();
+
+        for (const pattern in patterns) {
             if (pattern === "/" || pattern === "/*") {
                 throw new ServerlessError(
                     `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
                     "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
                 );
             }
+
+            let originBucket = bucket;
+            if (patterns[pattern].substring(0, 5) === 's3://') {
+                originBucket = Bucket.fromBucketName(this, patterns[pattern].substring(5));
+            }
+
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket),
+                origin: new S3Origin(originBucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
