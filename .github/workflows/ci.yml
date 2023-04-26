@@ -35,7 +35,10 @@ jobs:
             - run: npm i @serverless/test@8
               # Only install @serverless/test@8 for Serverless v2
               if: matrix.serverless != 'latest'
-            - run: npm test
+            - name: Run jest unit tests
+              env:
+                  NODE_OPTIONS: "--max_old_space_size=4096"
+              run: npm test
     lint:
         name: Lint
         runs-on: ubuntu-latest
