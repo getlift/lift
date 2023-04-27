@@ -369,7 +369,7 @@ export class ServerSideWebsite extends AwsConstruct {
 
             let originBucket = bucket;
             if (patterns[pattern].substring(0, 5) === 's3://') {
-                originBucket = Bucket.fromBucketName(this, patterns[pattern].substring(5));
+                originBucket = Bucket.fromBucketName(this, patterns[pattern].substring(5), patterns[pattern].substring(5));
             }
 
             behaviors[pattern] = {
