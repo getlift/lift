@@ -244,6 +244,7 @@ export class ServerSideWebsite extends AwsConstruct {
 
         let invalidate = false;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
+            // Ignore external buckets
             if (filePath.substring(0, 5) === 's3://') {
                 continue;
             }
