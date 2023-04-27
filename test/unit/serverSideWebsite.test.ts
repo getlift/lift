@@ -108,7 +108,7 @@ describe("server-side website", () => {
                         },
                     ],
                     Enabled: true,
-                    HttpVersion: "http2",
+                    HttpVersion: "http2and3",
                     IPV6Enabled: true,
                     Origins: [
                         {
@@ -214,7 +214,7 @@ describe("server-side website", () => {
                         ],
                     },
                     Enabled: true,
-                    HttpVersion: "http2",
+                    HttpVersion: "http2and3",
                     IPV6Enabled: true,
                     Origins: [
                         {
