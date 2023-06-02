@@ -17,13 +17,14 @@ jobs:
                     - 14
                     - 16
                     - 18
+                    - 20
                 serverless:
                     - "2.36.0"
                     - "2"
                     - "latest"
         steps:
             - uses: actions/checkout@v2
-            - uses: actions/setup-node@v2
+            - uses: actions/setup-node@v3
               with:
                   node-version: ${{ matrix.node }}
             - uses: actions/cache@v2
