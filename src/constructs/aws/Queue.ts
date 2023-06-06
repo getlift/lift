@@ -3,7 +3,7 @@ import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
 import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
 import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
-import { Alarm, ComparisonOperator, Metric } from "aws-cdk-lib/aws-cloudwatch";
+import { Alarm, ComparisonOperator, Metric, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
 import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
 import type { Construct as CdkConstruct } from "constructs";
@@ -241,6 +241,7 @@ export class Queue extends AwsConstruct {
                 // Alert as soon as we have 1 message in the DLQ
                 threshold: 0,
                 comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+                treatMissingData: TreatMissingData.NOT_BREACHING,
             });
             this.alarm.addAlarmAction({
                 bind(): AlarmActionConfig {

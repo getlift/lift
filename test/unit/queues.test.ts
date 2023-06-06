@@ -411,6 +411,7 @@ describe("queues", () => {
                 Period: 60,
                 Statistic: "Sum",
                 Threshold: 0,
+                TreatMissingData: "notBreaching",
             },
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "AlarmTopic")]).toMatchObject({
