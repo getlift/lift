@@ -245,7 +245,7 @@ export class ServerSideWebsite extends AwsConstruct {
         let invalidate = false;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
             // Ignore external buckets
-            if (filePath.substring(0, 5) === 's3://') {
+            if (filePath.startsWith("s3://")) {
                 continue;
             }
 
@@ -368,16 +368,16 @@ export class ServerSideWebsite extends AwsConstruct {
             }
 
             let originBucket = new S3Origin(bucket);
-            if (patterns[pattern].substring(0, 5) === 's3://') {
+            if (patterns[pattern].startsWith("s3://")) {
                 let existingBucketName = patterns[pattern].substring(5);
-                let existingBucket = Bucket.fromBucketName(this, existingBucketName+'ID', existingBucketName);
-                let originProperties = {
-                    originPath: '/',
+                const existingBucket = Bucket.fromBucketName(this, existingBucketName + "ID", existingBucketName);
+                const originProperties = {
+                    originPath: "/",
                 };
 
                 // Support mapping to custom origin paths
                 if (existingBucketName.indexOf("/")) {
-                    existingBucketName = existingBucketName.split('/', 1)[0];
+                    existingBucketName = existingBucketName.split("/", 1)[0];
                     originProperties.originPath = existingBucketName.substring(existingBucketName.indexOf("/") + 1);
                 }
 
