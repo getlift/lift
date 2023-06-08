@@ -367,14 +367,26 @@ export class ServerSideWebsite extends AwsConstruct {
                 );
             }
 
-            let originBucket = bucket;
+            let originBucket = new S3Origin(bucket);
             if (patterns[pattern].substring(0, 5) === 's3://') {
-                originBucket = Bucket.fromBucketName(this, patterns[pattern].substring(5), patterns[pattern].substring(5));
+                let existingBucketName = patterns[pattern].substring(5);
+                let existingBucket = Bucket.fromBucketName(this, existingBucketName+'ID', existingBucketName);
+                let originProperties = {
+                    originPath: '/',
+                };
+
+                // Support mapping to custom origin paths
+                if (existingBucketName.indexOf("/")) {
+                    existingBucketName = existingBucketName.split('/', 1)[0];
+                    originProperties.originPath = existingBucketName.substring(existingBucketName.indexOf("/") + 1);
+                }
+
+                originBucket = new S3Origin(existingBucket, originProperties);
             }
 
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(originBucket),
+                origin: originBucket,
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list

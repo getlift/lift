@@ -353,7 +353,7 @@ constructs:
         # ...
         assets:
             '/assets/*': dist/
-            '/uploads/*': s3://another-bucket-name
+            '/uploads/*': s3://another-bucket-name/optional-path
 ```
 
 Your bucket will need to either need an origin access policy assigned (recommended), or be set to public. CDK will automatically create an access policy, but it won't be added to your S3 bucket automatically. You'll need to update the bucket policy using a template like this:
