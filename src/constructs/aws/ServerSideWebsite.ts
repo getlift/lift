@@ -1,4 +1,4 @@
-import type { CfnBucket } from "aws-cdk-lib/aws-s3";
+import type { CfnBucket, IBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { CfnDistribution, IOriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import {
@@ -370,16 +370,21 @@ export class ServerSideWebsite extends AwsConstruct {
             let originBucket = new S3Origin(bucket);
             if (patterns[pattern].startsWith("s3://")) {
                 let existingBucketName = patterns[pattern].substring(5);
-                const existingBucket = Bucket.fromBucketName(this, existingBucketName + "ID", existingBucketName);
                 const originProperties = {
                     originPath: "/",
                 };
 
                 // Support mapping to custom origin paths
-                if (existingBucketName.indexOf("/")) {
-                    existingBucketName = existingBucketName.split("/", 1)[0];
+                if (existingBucketName.indexOf("/") !== -1) {
                     originProperties.originPath = existingBucketName.substring(existingBucketName.indexOf("/") + 1);
+                    existingBucketName = existingBucketName.split("/", 1)[0];
                 }
+
+                const existingBucket: IBucket = Bucket.fromBucketName(
+                    this,
+                    existingBucketName + "-" + originProperties.originPath.replace(/\//gi, "-") + "-id",
+                    existingBucketName
+                );
 
                 originBucket = new S3Origin(existingBucket, originProperties);
             }
