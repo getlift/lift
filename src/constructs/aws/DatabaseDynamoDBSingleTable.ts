@@ -86,6 +86,7 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
                     "dynamodb:DeleteItem",
                     "dynamodb:BatchWriteItem",
                     "dynamodb:UpdateItem",
+                    "dynamodb:ConditionCheckItem",
                 ],
                 [this.table.tableArn, Stack.of(this).resolve(Fn.join("/", [this.table.tableArn, "index", "*"]))]
             ),
