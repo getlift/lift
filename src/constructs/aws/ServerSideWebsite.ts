@@ -358,6 +358,7 @@ export class ServerSideWebsite extends AwsConstruct {
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
         const patterns = this.getAssetPatterns();
+        const customOrigins: Record<string, IBucket> = {};
 
         for (const pattern in patterns) {
             if (pattern === "/" || pattern === "/*") {
@@ -380,11 +381,13 @@ export class ServerSideWebsite extends AwsConstruct {
                     existingBucketName = existingBucketName.split("/", 1)[0];
                 }
 
-                const existingBucket: IBucket = Bucket.fromBucketName(
-                    this,
-                    existingBucketName + "-" + originProperties.originPath.replace(/\//gi, "-") + "-id",
-                    existingBucketName
-                );
+                let existingBucket;
+                if (existingBucketName in customOrigins) {
+                    existingBucket = customOrigins[existingBucketName];
+                } else {
+                    existingBucket = Bucket.fromBucketName(this, existingBucketName, existingBucketName);
+                    customOrigins[existingBucketName] = existingBucket;
+                }
 
                 originBucket = new S3Origin(existingBucket, originProperties);
             }
