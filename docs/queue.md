@@ -372,7 +372,8 @@ By default, Lift configures Lambda to be invoked with 1 messages at a time. The 
 
 Note you can use [partial batch failures](#partial-batch-failures) to avoid failing the whole batch.
 
-It is possible to set the batch size between 1 and 10.
+It is possible to set the batch size between 1 and 10 for FIFO queues and 10000 for regular queues.
+For batch size over 10, [maxBatchingWindow](#maximum-batching-window) must be set.
 
 ### Max Concurrency
 
