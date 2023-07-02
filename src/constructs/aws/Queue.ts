@@ -4,7 +4,7 @@ import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
 import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
 import { Alarm, ComparisonOperator, Metric, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
-import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
+import { Subscription, SubscriptionFilter, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
@@ -19,6 +19,7 @@ import * as inquirer from "inquirer";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
@@ -59,6 +60,29 @@ const QUEUE_DEFINITION = {
         delay: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
+        subscriptions: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    topic: { type: "string" },
+                    filters: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                attribute: { type: "string" },
+                                allows: { type: "array", items: { type: "string" } },
+                                denied: { type: "array", items: { type: "string" } },
+                                prefixes: { type: "array", items: { type: "string" } },
+                            },
+                            required: ["attribute"],
+                        },
+                    },
+                },
+                required: ["topic"],
+            },
+        },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -264,6 +288,30 @@ export class Queue extends AwsConstruct {
                 bind(): AlarmActionConfig {
                     return { alarmActionArn: alarmTopic.topicArn };
                 },
+            });
+        }
+
+        const subscriptions = configuration.subscriptions;
+        if (subscriptions && subscriptions.length > 0) {
+            subscriptions.forEach((subscription, index) => {
+                // build filter policy if specified
+                let filterPolicy: Record<string, SubscriptionFilter> | undefined = undefined;
+                if (subscription.filters && subscription.filters.length > 0) {
+                    filterPolicy = Object.fromEntries(
+                        subscription.filters.map((filter) => [
+                            filter.attribute,
+                            SubscriptionFilter.stringFilter({
+                                allowlist: filter.allows,
+                                denylist: filter.denied,
+                                matchPrefixes: filter.prefixes,
+                            }),
+                        ])
+                    );
+                }
+
+                // construct topic to subscribe to
+                const topic = Topic.fromTopicArn(this, `${this.provider.stackName}-${id}-${index}`, subscription.topic);
+                topic.addSubscription(new SqsSubscription(this.queue, { filterPolicy, rawMessageDelivery: true }));
             });
         }
 
