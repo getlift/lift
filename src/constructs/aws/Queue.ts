@@ -8,7 +8,7 @@ import { Subscription, SubscriptionFilter, SubscriptionProtocol, Topic } from "a
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
-import { CfnOutput, Duration } from "aws-cdk-lib";
+import { CfnOutput, Duration, Fn } from "aws-cdk-lib";
 import chalk from "chalk";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import { isNil } from "lodash";
@@ -19,7 +19,6 @@ import * as inquirer from "inquirer";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
-import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
@@ -65,7 +64,8 @@ const QUEUE_DEFINITION = {
             items: {
                 type: "object",
                 properties: {
-                    topic: { type: "string" },
+                    topicArn: { type: "string" },
+                    topicRef: { type: "string" },
                     filters: {
                         type: "array",
                         items: {
@@ -80,7 +80,14 @@ const QUEUE_DEFINITION = {
                         },
                     },
                 },
-                required: ["topic"],
+                oneOf: [
+                    {
+                        required: ["topicArn"],
+                    },
+                    {
+                        required: ["topicRef"],
+                    },
+                ],
             },
         },
     },
@@ -309,9 +316,28 @@ export class Queue extends AwsConstruct {
                     );
                 }
 
-                // construct topic to subscribe to
-                const topic = Topic.fromTopicArn(this, `${this.provider.stackName}-${id}-${index}`, subscription.topic);
-                topic.addSubscription(new SqsSubscription(this.queue, { filterPolicy, rawMessageDelivery: true }));
+                // get arn for topic to subscribe to
+                let topicArn: string;
+                if (subscription.topicRef !== undefined) {
+                    topicArn = Fn.ref(subscription.topicRef).toString();
+                } else if (subscription.topicArn !== undefined) {
+                    topicArn = subscription.topicArn;
+                } else {
+                    throw new ServerlessError(
+                        'Expected "topicArn" or "topicRef" to be specified',
+                        "LIFT_MISSING_TOPIC_ARN_OR_REF"
+                    );
+                }
+
+                // add the subscription to the topic
+                const topic = Topic.fromTopicArn(this, `SubscriptionTopic-${index}`, topicArn);
+                new Subscription(this, `Subscription-${index}`, {
+                    topic,
+                    protocol: SubscriptionProtocol.SQS,
+                    endpoint: this.queue.queueArn,
+                    filterPolicy,
+                    rawMessageDelivery: true,
+                });
             });
         }
 
