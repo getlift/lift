@@ -750,4 +750,47 @@ describe("queues", () => {
             );
         }
     });
+
+    it("subscribes the queue to sns topics", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            fixture: "queues",
+            configExt: pluginConfigExt,
+            command: "package",
+        });
+        expect(cfTemplate.Resources[computeLogicalId("fanout", "Subscription-0")]).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+            },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("fanout", "Subscription-1")]).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: { Ref: "UserDefinedTopicName" },
+            },
+        });
+        expect(cfTemplate.Resources[computeLogicalId("fanout", "Subscription-2")]).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+                FilterPolicy: {
+                    CustomAttribute: [
+                        "A",
+                        "B",
+                        "C",
+                        { "anything-but": ["D", "E", "F"] },
+                        { prefix: "G" },
+                        { prefix: "H" },
+                        { prefix: "I" },
+                    ],
+                },
+            },
+        });
+    });
 });
