@@ -1,3 +1,4 @@
+import type { IKey } from "aws-cdk-lib/aws-kms";
 import { Key } from "aws-cdk-lib/aws-kms";
 import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
 import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
@@ -19,6 +20,7 @@ import * as inquirer from "inquirer";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
@@ -215,7 +217,12 @@ export class Queue extends AwsConstruct {
             }
         }
 
-        let encryption = undefined;
+        let encryption:
+            | {
+                  encryption?: QueueEncryption;
+                  encryptionMasterKey?: IKey;
+              }
+            | undefined = undefined;
         if (isNil(configuration.encryption) || configuration.encryption.length === 0) {
             encryption = {};
         } else if (configuration.encryption === "kmsManaged") {
@@ -329,15 +336,23 @@ export class Queue extends AwsConstruct {
                     );
                 }
 
+                // dead letter queue for the sns subscription
+                const subscriptionDlq = new CdkQueue(this, `SubscriptionDlq-${index}`, {
+                    queueName: `${baseName}-subscription-${index}-dlq`,
+                    // 14 days is the maximum, we want to keep these messages for as long as possible
+                    retentionPeriod: Duration.days(14),
+                    ...encryption,
+                });
+
                 // add the subscription to the topic
                 const topic = Topic.fromTopicArn(this, `SubscriptionTopic-${index}`, topicArn);
-                new Subscription(this, `Subscription-${index}`, {
-                    topic,
-                    protocol: SubscriptionProtocol.SQS,
-                    endpoint: this.queue.queueArn,
-                    filterPolicy,
-                    rawMessageDelivery: true,
-                });
+                topic.addSubscription(
+                    new SqsSubscription(this.queue, {
+                        deadLetterQueue: subscriptionDlq,
+                        rawMessageDelivery: true,
+                        filterPolicy,
+                    })
+                );
             });
         }
 
