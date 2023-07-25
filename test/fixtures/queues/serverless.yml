@@ -6,28 +6,8 @@ provider:
     # To avoid versions with random names (easier diffs)
     versionFunctions: false
 
-resources:
-    Resources:
-        UserDefinedTopic:
-            Type: "AWS::SNS::Topic"
-            Properties:
-                TopicName: UserDefinedTopicName
-
 constructs:
     emails:
         type: queue
         worker:
             handler: worker.handler
-    fanout:
-        type: queue
-        worker:
-            handler: worker.handler
-        subscriptions:
-            - topicArn: arn:aws:sns:us-east-1:123456789012:example-sns-topic-name
-            - topicRef: UserDefinedTopicName
-            - topicArn: arn:aws:sns:us-east-1:123456789012:example-sns-topic-name
-              filters:
-                  - attribute: CustomAttribute
-                    allows: [A, B, C]
-                    denied: [D, E, F]
-                    prefixes: [G, H, I]
