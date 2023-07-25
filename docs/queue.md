@@ -33,6 +33,7 @@ The `queue` construct deploys the following resources:
 - A `worker` Lambda function: this function processes every message sent to the queue.
 - An SQS "[dead letter queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)": this queue stores all the messages that failed to be processed.
 - Optionally, a CloudWatch alarm that sends an email when the dead letter queue contains failed messages.
+- Optionally, subscribes to SNS noptification services.
 
 <img src="img/queue.png" width="600"/>
 
@@ -46,6 +47,7 @@ Lift constructs are production-ready:
 - The SQS "Visibility Timeout" setting is configured per AWS recommendations ([more details](#retry-delay))
 - Batch processing is disabled by default ([configurable](#batch-size)): errors need to be handled properly using [partial batch failures](#partial-batch-failures)
 - The event mapping is configured with `ReportBatchItemFailures` enabled by default for [partial batch failures](#partial-batch-failures) to work out of the box
+- DLQ for failed delivery from SNS service to SQS configured by default
 
 ## Example
 
@@ -381,7 +383,7 @@ For batch size over 10, [maxBatchingWindow](#maximum-batching-window) must be se
 constructs:
     my-queue:
         # ...
-        maxConcurrency: 10 # The maximum number of concurrent function instances that the SQS event source can invoke is 10 
+        maxConcurrency: 10 # The maximum number of concurrent function instances that the SQS event source can invoke is 10
 ```
 
 The launch of maximum concurrency for SQS as an event source allows you to control Lambda function concurrency per source. You set the maximum concurrency on the event source mapping, not on the Lambda function.
@@ -403,7 +405,7 @@ constructs:
 
 The maximum amount of time to gather records before invoking the lambda. This increases the likelihood of a full batch at the cost of delayed processing.
 
-It is possible to set the `maxBatchingWindow` between 0 and 300. 
+It is possible to set the `maxBatchingWindow` between 0 and 300.
 
 
 ### Partial batch failures
@@ -414,8 +416,8 @@ If you want to only consider specific messages of the batch as failed, you need 
 It contains the identifier of the messages you consider as failed in the `itemIdentifier` key.
 
 ```json
-{ 
-  "batchItemFailures": [ 
+{
+  "batchItemFailures": [
         {
             "itemIdentifier": "id2"
         },
@@ -427,6 +429,53 @@ It contains the identifier of the messages you consider as failed in the `itemId
 ```
 
 You can learn more in the [official AWS documentation](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#services-sqs-batchfailurereporting).
+
+### SNS Subscriptions
+
+You can specify 0-many subscriptions that will automatically be configured for this queue to an SNS source. This can
+be very useful for [SNS to SQS fanout patterns](https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html).
+
+```yaml
+resources:
+  Resources:
+    TotallyTopical:
+      Type: 'AWS::SNS::Topic'
+      Properties:
+        TopicName: TastyTopic
+
+constructs:
+    my-queue:
+        # ...
+        subscriptions:
+          # subscribing to an SNS resource defined in the same config
+          - topicRef: TotallyTopical
+          # subscribing to an SNS resource by ARN
+          - topicArn: arn:aws:sns:eu-west-1:314130419006:SuperTopic
+```
+
+#### SNS Subscription Filtering
+
+You may optionally set filtering on the SNS subscriptions to restrict certain messages from being pushed to the queue.
+See the [official AWS docs for more details](https://docs.aws.amazon.com/sns/latest/dg/example-filter-policies.html).
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        subscriptions:
+          - topicArn: arn:aws:sns:eu-west-1:314130419006:SuperTopic
+            filters:
+              - attribute: MyAttribute
+                allows: # optional
+                  - hello
+                  - friend
+                denied: # optional
+                  - bonjour
+                  - ami
+                prefixes: # optional
+                  - hola
+                  - amigo
+```
 
 ## Extensions
 
