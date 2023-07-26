@@ -418,7 +418,7 @@ describe("queues", () => {
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 TopicName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm-topic/),
-                DisplayName: "[Alert][emails] There are failed jobs in the dead letter queue.",
+                DisplayName: "[Alert][emails] failed jobs in dlq.",
             },
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "AlarmTopicSubscription")]).toMatchObject({
