@@ -232,9 +232,19 @@ export class Queue extends AwsConstruct {
 
         const alarmEmail = configuration.alarm;
         if (alarmEmail !== undefined) {
+            // generate the display name, AWS restriction is 100 chars
+            let displayName = `[Alert][${id}] failed jobs in dlq.`;
+            if (displayName.length > 100) {
+                // if the length is too long then try to pretty print
+                displayName = `[Alert][${id.substring(
+                    0,
+                    id.length - (displayName.length - 100 - 3)
+                )}...] failed jobs in dlq.`;
+            }
+
             const alarmTopic = new Topic(this, "AlarmTopic", {
                 topicName: `${this.provider.stackName}-${id}-dlq-alarm-topic`,
-                displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
+                displayName,
             });
             new Subscription(this, "AlarmTopicSubscription", {
                 topic: alarmTopic,
