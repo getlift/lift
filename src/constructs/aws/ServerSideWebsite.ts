@@ -187,6 +187,7 @@ export class ServerSideWebsite extends AwsConstruct {
         return {
             url: () => this.getUrl(),
             cname: () => this.getCName(),
+            distributionId: () => this.getDistributionId(),
         };
     }
 
