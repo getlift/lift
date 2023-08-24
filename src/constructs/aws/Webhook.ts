@@ -28,7 +28,7 @@ const WEBHOOK_DEFINITION = {
         insecure: { type: "boolean" },
         path: { type: "string" },
         eventType: { type: "string" },
-        method: { type: "string" },
+        method: { enum: ["POST", "PUT", "PATCH"] },
     },
     required: ["path"],
     additionalProperties: false,
