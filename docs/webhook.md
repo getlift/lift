@@ -20,6 +20,7 @@ constructs:
         authorizer:
             handler: myAuthorizer.main
         path: /my-webhook-endpoint
+        method: POST
 
 plugins:
     - serverless-lift
@@ -161,6 +162,23 @@ constructs:
 ```
 
 Always favor dynamic path selector to ensure the minimum amount of compute is executed downstream. The list of available dynamic selector is available in [API Gateway documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-aws-services.html#http-api-develop-integrations-aws-services-parameter-mapping).
+
+### Method
+
+_Optional_
+Defaults to `POST`
+
+This is the HTTP method the webhook will accept. It can be any of the following:
+- `POST`
+- `PUT`
+- `PATCH`
+
+```yaml
+constructs:
+    stripe:
+        # ...
+        method: POST
+```
 
 ## Extensions
 
