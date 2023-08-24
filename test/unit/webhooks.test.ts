@@ -21,6 +21,16 @@ describe("webhooks", () => {
         });
     });
 
+    test.each([
+        ["post", "POST"],
+        ["put", "PUT"],
+        ["patch", "PATCH"],
+    ])("%p webhook should have method %p", (useCase, expectedMethod) => {
+        expect(cfTemplate.Resources[computeLogicalId(useCase, "Route")]["Properties"]).toMatchObject({
+            RouteKey: expectedMethod + " /" + expectedMethod.toLowerCase(),
+        });
+    });
+
     it("allows overriding webhook properties", () => {
         expect(cfTemplate.Resources[computeLogicalId("extendedWebhook", "Bus")].Properties).toMatchObject({
             Name: "myBus",
