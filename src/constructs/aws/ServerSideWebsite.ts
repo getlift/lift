@@ -198,6 +198,7 @@ export class ServerSideWebsite extends AwsConstruct {
             url: Fn.join("", ["https://", domain]),
             cname: this.distribution.distributionDomainName,
             assetsBucketName: this.bucket.bucketName,
+            distributionId: this.distribution.distributionId,
         };
     }
 
