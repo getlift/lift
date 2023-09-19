@@ -49,28 +49,39 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
                 type: "object",
                 properties: {
                     path: { type: "string" },
+                    pathPattern: { type: "string" },
                     domain: { type: "string" },
-                    allowedMethods: {
-                        type: "array",
-                        items: {
-                            type: "array",
-                            items: {
+                    cacheBehavior: {
+                        type: "object",
+                        properties: {
+                            allowedMethods: {
                                 type: "string",
-                                enum: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+                                enum: ["ALL", "GET_HEAD", "GET_HEAD_OPTIONS"],
+                            },
+                            cacheOptionsMethod: {
+                                type: "boolean",
+                            },
+                            headers: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+                            queryStrings: {
+                                type: "boolean",
+                            },
+                            defaultTtl: {
+                                type: "number",
+                            },
+                            maxTtl: {
+                                type: "number",
+                            },
+                            minTtl: {
+                                type: "number",
                             },
                         },
-                        uniqueItems: true,
-                    },
-                    cachedMethods: {
-                        type: "array",
-                        items: {
-                            type: "array",
-                            items: {
-                                type: "string",
-                                enum: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
-                            },
-                        },
-                        uniqueItems: true,
+                        required: ["allowedMethods", "cacheOptionsMethod", "headers"],
+                        additionalProperties: false,
                     },
                 },
                 additionalProperties: false,
@@ -151,13 +162,42 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             this.configuration.origins
                 ?.map((origin) => {
                     const path = origin.path === "/" ? "" : origin.path;
+
                     return {
-                        pathPattern: `${path}*`,
+                        pathPattern: `${origin.pathPattern ?? origin.path}*`,
                         origin: new HttpOrigin(origin.domain, {
                             originPath: path,
+                            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+                            httpsPort: 443,
                         }),
-                        allowedMethods: origin.allowedMethods,
-                        cachedMethods: origin.cachedMethods,
+                        cachePolicy: origin.cacheBehavior
+                            ? new CachePolicy(this, `${origin.domain}CachePolicy`, {
+                                  cachePolicyName: `${origin.domain.split(".")[0]}CachePolicy`,
+                                  comment: `Cache policy for ${origin.domain}`,
+                                  defaultTtl: Duration.seconds(origin.cacheBehavior.defaultTtl ?? 0),
+                                  maxTtl: Duration.seconds(origin.cacheBehavior.maxTtl ?? 31536000),
+                                  minTtl: Duration.seconds(origin.cacheBehavior.minTtl ?? 0),
+                                  queryStringBehavior: (origin.cacheBehavior.queryStrings as boolean)
+                                      ? cloudfront.CacheQueryStringBehavior.all()
+                                      : cloudfront.CacheQueryStringBehavior.none(),
+                                  headerBehavior:
+                                      origin.cacheBehavior.headers.length > 0
+                                          ? cloudfront.CacheHeaderBehavior.allowList(...origin.cacheBehavior.headers)
+                                          : cloudfront.CacheHeaderBehavior.none(),
+                                  cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+                              })
+                            : undefined,
+                        allowedMethods:
+                            origin.cacheBehavior?.allowedMethods === "ALL"
+                                ? AllowedMethods.ALLOW_ALL
+                                : origin.cacheBehavior?.allowedMethods === "GET_HEAD_OPTIONS"
+                                ? AllowedMethods.ALLOW_GET_HEAD_OPTIONS
+                                : AllowedMethods.ALLOW_GET_HEAD,
+                        cachedMethods: (origin.cacheBehavior?.cacheOptionsMethod as boolean)
+                            ? cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS
+                            : cloudfront.CachedMethods.CACHE_GET_HEAD,
+
+                        // Default cache behavior
                     };
                 })
                 ?.reduce((acc, behavior) => ({ ...acc, [behavior.pathPattern]: behavior }), {}) ?? {};
@@ -167,6 +207,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             // Send all page requests to index.html
             defaultRootObject: "index.html",
             additionalBehaviors,
+            enabled: true,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
                 origin: new S3Origin(this.bucket),

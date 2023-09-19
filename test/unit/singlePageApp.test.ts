@@ -95,8 +95,13 @@ describe("single page app", () => {
                         origins: [
                             {
                                 path: "/api",
+                                pathPattern: "api/",
                                 domain: "api.example.com",
-                                allowedMethods: ["GET", "HEAD", "OPTIONS"],
+                                cacheBehavior: {
+                                    allowedMethods: "ALL",
+                                    cacheOptionsMethod: true,
+                                    headers: ["*"],
+                                },
                             },
                         ],
                     },
@@ -124,6 +129,22 @@ describe("single page app", () => {
                 DomainName: "api.example.com",
                 Id: "landingCDNOrigin22C592402",
                 OriginPath: "/api",
+            },
+        ]);
+
+        expect(
+            get(cfTemplate.Resources[cfDistributionLogicalId], "Properties.DistributionConfig.CacheBehaviors")
+        ).toMatchObject([
+            {
+                AllowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"],
+                CachePolicyId: {
+                    Ref: "landingapiexamplecomCachePolicy95D41BEB",
+                },
+                CachedMethods: ["GET", "HEAD", "OPTIONS"],
+                Compress: true,
+                PathPattern: "api/*",
+                TargetOriginId: "landingCDNOrigin22C592402",
+                ViewerProtocolPolicy: "allow-all",
             },
         ]);
     });
