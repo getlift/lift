@@ -28,12 +28,14 @@ const WEBHOOK_DEFINITION = {
         insecure: { type: "boolean" },
         path: { type: "string" },
         eventType: { type: "string" },
+        method: { enum: ["POST", "PUT", "PATCH"] },
     },
     required: ["path"],
     additionalProperties: false,
 } as const;
 const WEBHOOK_DEFAULTS = {
     insecure: false,
+    method: "POST",
 };
 
 type Configuration = FromSchema<typeof WEBHOOK_DEFINITION>;
@@ -46,6 +48,7 @@ export class Webhook extends AwsConstruct {
     private readonly bus: EventBus;
     private readonly apiEndpointOutput: CfnOutput;
     private readonly endpointPathOutput: CfnOutput;
+    private readonly method: string;
 
     constructor(
         scope: CdkConstruct,
@@ -108,9 +111,10 @@ export class Webhook extends AwsConstruct {
                 EventBusName: this.bus.eventBusName,
             },
         });
+        this.method = resolvedConfiguration.method;
         const route = new CfnRoute(this, "Route", {
             apiId: this.api.apiId,
-            routeKey: `POST ${resolvedConfiguration.path}`,
+            routeKey: `${this.method} ${resolvedConfiguration.path}`,
             target: Fn.join("/", ["integrations", eventBridgeIntegration.ref]),
             authorizationType: "NONE",
         });

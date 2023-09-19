@@ -24,3 +24,21 @@ constructs:
             bus:
                 Properties:
                     Name: myBus
+    post:
+        type: webhook
+        authorizer:
+            handler: authorizer.main
+        path: /post
+        method: POST
+    put:
+        type: webhook
+        authorizer:
+            handler: authorizer.main
+        path: /put
+        method: PUT
+    patch:
+        type: webhook
+        authorizer:
+            handler: authorizer.main
+        path: /patch
+        method: PATCH
