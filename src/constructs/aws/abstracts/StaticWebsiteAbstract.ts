@@ -9,7 +9,7 @@ import {
     HttpVersion,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
-import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
@@ -43,6 +43,40 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
             ],
         },
         certificate: { type: "string" },
+        origins: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    path: { type: "string" },
+                    domain: { type: "string" },
+                    allowedMethods: {
+                        type: "array",
+                        items: {
+                            type: "array",
+                            items: {
+                                type: "string",
+                                enum: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+                            },
+                        },
+                        uniqueItems: true,
+                    },
+                    cachedMethods: {
+                        type: "array",
+                        items: {
+                            type: "array",
+                            items: {
+                                type: "string",
+                                enum: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+                            },
+                        },
+                        uniqueItems: true,
+                    },
+                },
+                additionalProperties: false,
+                required: ["path", "domain"],
+            },
+        },
         security: {
             type: "object",
             properties: {
@@ -113,11 +147,26 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 eventType: FunctionEventType.VIEWER_RESPONSE,
             },
         ];
+        const additionalBehaviors: Record<string, cloudfront.BehaviorOptions> =
+            this.configuration.origins
+                ?.map((origin) => {
+                    const path = origin.path === "/" ? "" : origin.path;
+                    return {
+                        pathPattern: `${path}*`,
+                        origin: new HttpOrigin(origin.domain, {
+                            originPath: path,
+                        }),
+                        allowedMethods: origin.allowedMethods,
+                        cachedMethods: origin.cachedMethods,
+                    };
+                })
+                ?.reduce((acc, behavior) => ({ ...acc, [behavior.pathPattern]: behavior }), {}) ?? {};
 
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
             defaultRootObject: "index.html",
+            additionalBehaviors,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
                 origin: new S3Origin(this.bucket),
@@ -128,6 +177,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 functionAssociations: functionAssociations,
             },
+
             errorResponses: [this.errorResponse()],
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,

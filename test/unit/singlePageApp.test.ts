@@ -81,6 +81,53 @@ describe("single page app", () => {
         `);
     });
 
+    it("should define origins array with some configuration", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "single-page-app",
+                        path: ".",
+                        domain: ["www.example.com", "example.com"],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                        origins: [
+                            {
+                                path: "/api",
+                                domain: "api.example.com",
+                                allowedMethods: ["GET", "HEAD", "OPTIONS"],
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        expect(
+            get(cfTemplate.Resources[cfDistributionLogicalId], "Properties.DistributionConfig.Origins")
+        ).toMatchObject([
+            {
+                DomainName: { "Fn::GetAtt": ["landingBucket2B5C7526", "RegionalDomainName"] },
+                Id: "landingCDNOrigin1FCED8263",
+                S3OriginConfig: {
+                    OriginAccessIdentity: {
+                        "Fn::Join": [
+                            "",
+                            ["origin-access-identity/cloudfront/", { Ref: "landingCDNOrigin1S3Origin18717D49" }],
+                        ],
+                    },
+                },
+            },
+            {
+                CustomOriginConfig: { OriginProtocolPolicy: "https-only", OriginSSLProtocols: ["TLSv1.2"] },
+                DomainName: "api.example.com",
+                Id: "landingCDNOrigin22C592402",
+                OriginPath: "/api",
+            },
+        ]);
+    });
+
     it("should allow to redirect to the main domain", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
