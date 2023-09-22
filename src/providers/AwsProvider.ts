@@ -14,6 +14,7 @@ import {
     Vpc,
     Webhook,
 } from "@lift/constructs/aws";
+import { Upload } from "@lift/constructs/aws/Upload";
 import { getStackOutput } from "../CloudFormation";
 import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
@@ -64,6 +65,7 @@ export class AwsProvider implements ProviderInterface {
         getLambdaLogicalId: (functionName: string) => string;
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
+        getRoleLogicalId: () => string;
     };
 
     constructor(private readonly serverless: Serverless) {
@@ -142,6 +144,22 @@ export class AwsProvider implements ProviderInterface {
     }
 
     /**
+     * This enables HTTP API CORS preflight requests if the user
+     * didn't do it explicitly.
+     */
+    enableHttpApiCors(): void {
+        if (this.serverless.service.provider.httpApi === undefined) {
+            this.serverless.service.provider.httpApi = {
+                cors: true,
+            };
+        }
+
+        if (this.serverless.service.provider.httpApi.cors === undefined) {
+            this.serverless.service.provider.httpApi.cors = true;
+        }
+    }
+
+    /**
      * Resolves the value of a CloudFormation stack output.
      */
     async getStackOutput(output: CfnOutput): Promise<string | undefined> {
@@ -178,5 +196,6 @@ AwsProvider.registerConstructs(
     StaticWebsite,
     Vpc,
     DatabaseDynamoDBSingleTable,
-    ServerSideWebsite
+    ServerSideWebsite,
+    Upload
 );
