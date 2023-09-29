@@ -260,6 +260,7 @@ describe("server-side website", () => {
                                     [{ Ref: "ApiGatewayRestApi" }, "execute-api.us-east-1.amazonaws.com"],
                                 ],
                             },
+                            OriginPath: "/dev",
                         },
                     ],
                 },
