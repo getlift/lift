@@ -129,7 +129,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 : undefined;
 
         // Hide the stage in the URL in REST scenario
-        const originPath = configuration.apiGateway === "rest" ? "/" + provider.getStage() : undefined;
+        const originPath = configuration.apiGateway === "rest" ? "/" + (provider.getStage() ?? "") : undefined;
 
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,

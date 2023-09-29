@@ -146,7 +146,7 @@ export class AwsProvider implements ProviderInterface {
      *
      * @internal
      */
-    getStage(): string {
+    getStage(): string | undefined {
         return this.serverless.service.provider.stage;
     }
 
