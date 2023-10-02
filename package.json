@@ -3,7 +3,7 @@
     "license": "MIT",
     "homepage": "https://github.com/getlift/lift",
     "repository": "https://github.com/getlift/lift",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Lift",
     "dependencies": {
         "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
