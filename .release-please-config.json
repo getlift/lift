@@ -1,0 +1,9 @@
+{
+    "bootstrap-sha": "fc3cfc364f2ee7c701a5e7c77da72e2b62f505b4",
+    "packages": {
+        ".": {}
+    },
+    "include-component-in-tag": false,
+    "group-pull-request-title-pattern": "chore: release ${version}",
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}

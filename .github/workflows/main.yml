@@ -1,0 +1,16 @@
+name: Build, test and (sometimes) publish packages 🚀
+
+on:
+    push:
+        branches-ignore:
+            - "release-please**"
+        tags:
+            - "v**"
+
+jobs:
+    npm-package:
+        uses: taxdown/.github/.github/workflows/npm-package.yml@main
+        with:
+            node-version: "16"
+        secrets:
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

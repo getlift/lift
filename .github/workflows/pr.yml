@@ -1,0 +1,13 @@
+name: Ensure PR is compliant with taxdown's guidelines ✅
+
+on:
+    pull_request_target:
+        types:
+            - edited
+            - opened
+            - reopened
+            - synchronize
+
+jobs:
+    pr-lint:
+        uses: taxdown/.github/.github/workflows/pr-lint.yml@main

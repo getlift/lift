@@ -1,0 +1,20 @@
+name: release-please
+
+on:
+    push:
+        branches:
+            - master
+
+jobs:
+    release-please:
+        runs-on: ubuntu-latest
+        outputs:
+            releases_created: ${{steps.release.outputs.releases_created}}
+            paths_released: ${{steps.release.outputs.paths_released}}
+        steps:
+            - uses: GoogleCloudPlatform/release-please-action@v3
+              id: release
+              with:
+                  command: manifest
+                  monorepo-tags: false
+                  token: ${{ secrets.USER_GITHUB_TOKEN }}

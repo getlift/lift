@@ -1,88 +1,89 @@
 {
-  "name": "serverless-lift",
-  "license": "MIT",
-  "homepage": "https://github.com/getlift/lift",
-  "repository": "https://github.com/getlift/lift",
-  "description": "Lift",
-  "dependencies": {
-    "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
-    "aws-cdk-lib": "^2.21.1",
-    "chalk": "^4.1.1",
-    "change-case": "^4.1.2",
-    "cidr-split": "^0.1.2",
-    "constructs": "10.2.20",
-    "inquirer": "^7.3.3",
-    "js-yaml": "^3.14.1",
-    "lodash": "^4.17.21",
-    "mime-types": "^2.1.31",
-    "ora": "^5.4.1",
-    "pascal-case": "^3.1.2",
-    "stripe": "^8.160.0",
-    "toml": "^3.0.0",
-    "traverse": "^0.6.6"
-  },
-  "devDependencies": {
-    "@serverless/test": "^11.0.1",
-    "@serverless/typescript": "^3.27.0",
-    "@types/chai": "^4.2.21",
-    "@types/inquirer": "^7.3.3",
-    "@types/jest": "^27.0.1",
-    "@types/js-yaml": "^3.12.5",
-    "@types/json-schema": "^7.0.8",
-    "@types/mime-types": "^2.1.0",
-    "@types/node": "^10.17.28",
-    "@types/sinon": "^10.0.2",
-    "@types/traverse": "^0.6.32",
-    "@typescript-eslint/eslint-plugin": "^5.53.0",
-    "@typescript-eslint/parser": "^5.53.0",
-    "aws-sdk": "^2.1322.0",
-    "chai": "^4.3.4",
-    "esbuild": "^0.17.10",
-    "esbuild-node-tsc": "^2.0.5",
-    "eslint": "^8.34.0",
-    "eslint-config-prettier": "^8.6.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-prettier": "^4.2.1",
-    "husky": "^6.0.0",
-    "jest": "^27.0.6",
-    "json-schema-to-ts": "^1.6.4",
-    "lint-staged": "^11.0.0",
-    "nodemon": "^2.0.10",
-    "prettier": "^2.3.2",
-    "serverless": "^3.28.0",
-    "sinon": "^11.1.1",
-    "stdout-stderr": "^0.1.13",
-    "ts-jest": "^27.0.3",
-    "tsc-alias": "^1.8.2",
-    "typescript": "^4.3.4"
-  },
-  "engines": {
-    "node": ">=14.15.0 <21"
-  },
-  "files": [
-    "/dist"
-  ],
-  "main": "dist/src/plugin.js",
-  "scripts": {
-    "lint:fix": "eslint --fix .",
-    "lint": "eslint .",
-    "check-format": "prettier --check .",
-    "type": "tsc --noEmit",
-    "build": "etsc && tsc-alias && tsc --emitDeclarationOnly",
-    "watch": "nodemon",
-    "test": "jest",
-    "prepare": "husky install && npm run build"
-  },
-  "lint-staged": {
-    "*.{md,json,yml}": [
-      "prettier --write"
+    "name": "@taxdown/serverless-lift",
+    "license": "MIT",
+    "homepage": "https://github.com/getlift/lift",
+    "repository": "https://github.com/getlift/lift",
+    "version": "1.0.0",
+    "description": "Lift",
+    "dependencies": {
+        "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
+        "aws-cdk-lib": "^2.21.1",
+        "chalk": "^4.1.1",
+        "change-case": "^4.1.2",
+        "cidr-split": "^0.1.2",
+        "constructs": "10.2.20",
+        "inquirer": "^7.3.3",
+        "js-yaml": "^3.14.1",
+        "lodash": "^4.17.21",
+        "mime-types": "^2.1.31",
+        "ora": "^5.4.1",
+        "pascal-case": "^3.1.2",
+        "stripe": "^8.160.0",
+        "toml": "^3.0.0",
+        "traverse": "^0.6.6"
+    },
+    "devDependencies": {
+        "@serverless/test": "^11.0.1",
+        "@serverless/typescript": "^3.27.0",
+        "@types/chai": "^4.2.21",
+        "@types/inquirer": "^7.3.3",
+        "@types/jest": "^27.0.1",
+        "@types/js-yaml": "^3.12.5",
+        "@types/json-schema": "^7.0.8",
+        "@types/mime-types": "^2.1.0",
+        "@types/node": "^10.17.28",
+        "@types/sinon": "^10.0.2",
+        "@types/traverse": "^0.6.32",
+        "@typescript-eslint/eslint-plugin": "^5.53.0",
+        "@typescript-eslint/parser": "^5.53.0",
+        "aws-sdk": "^2.1322.0",
+        "chai": "^4.3.4",
+        "esbuild": "^0.17.10",
+        "esbuild-node-tsc": "^2.0.5",
+        "eslint": "^8.34.0",
+        "eslint-config-prettier": "^8.6.0",
+        "eslint-plugin-import": "^2.27.5",
+        "eslint-plugin-prettier": "^4.2.1",
+        "husky": "^6.0.0",
+        "jest": "^27.0.6",
+        "json-schema-to-ts": "^1.6.4",
+        "lint-staged": "^11.0.0",
+        "nodemon": "^2.0.10",
+        "prettier": "^2.3.2",
+        "serverless": "^3.28.0",
+        "sinon": "^11.1.1",
+        "stdout-stderr": "^0.1.13",
+        "ts-jest": "^27.0.3",
+        "tsc-alias": "^1.8.2",
+        "typescript": "^4.3.4"
+    },
+    "engines": {
+        "node": ">=14.15.0 <21"
+    },
+    "files": [
+        "/dist"
     ],
-    "*.{js,ts}": [
-      "eslint --fix"
-    ]
-  },
-  "types": "dist/src/plugin.d.ts",
-  "peerDependencies": {
-    "serverless": "^2.36.0 || ^3"
-  }
+    "main": "dist/src/plugin.js",
+    "scripts": {
+        "lint:fix": "eslint --fix .",
+        "lint": "eslint .",
+        "check-format": "prettier --check .",
+        "type": "tsc --noEmit",
+        "build": "etsc && tsc-alias && tsc --emitDeclarationOnly",
+        "watch": "nodemon",
+        "test": "jest",
+        "prepare": "husky install && npm run build"
+    },
+    "lint-staged": {
+        "*.{md,json,yml}": [
+            "prettier --write"
+        ],
+        "*.{js,ts}": [
+            "eslint --fix"
+        ]
+    },
+    "types": "dist/src/plugin.d.ts",
+    "peerDependencies": {
+        "serverless": "^2.36.0 || ^3"
+    }
 }

@@ -3,6 +3,5 @@
 dist
 node_modules
 .serverless/
-package-lock.json
 .idea
 yarn.lock

@@ -9,7 +9,7 @@ import {
     HttpVersion,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
-import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
@@ -43,6 +43,51 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
             ],
         },
         certificate: { type: "string" },
+        origins: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    path: { type: "string" },
+                    pathPattern: { type: "string" },
+                    domain: { type: "string" },
+                    cacheBehavior: {
+                        type: "object",
+                        properties: {
+                            allowedMethods: {
+                                type: "string",
+                                enum: ["ALL", "GET_HEAD", "GET_HEAD_OPTIONS"],
+                            },
+                            cacheOptionsMethod: {
+                                type: "boolean",
+                            },
+                            headers: {
+                                type: "array",
+                                items: {
+                                    type: "string",
+                                },
+                            },
+                            queryStrings: {
+                                type: "boolean",
+                            },
+                            defaultTtl: {
+                                type: "number",
+                            },
+                            maxTtl: {
+                                type: "number",
+                            },
+                            minTtl: {
+                                type: "number",
+                            },
+                        },
+                        required: ["allowedMethods", "cacheOptionsMethod", "headers"],
+                        additionalProperties: false,
+                    },
+                },
+                additionalProperties: false,
+                required: ["path", "domain"],
+            },
+        },
         security: {
             type: "object",
             properties: {
@@ -113,11 +158,56 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 eventType: FunctionEventType.VIEWER_RESPONSE,
             },
         ];
+        const additionalBehaviors: Record<string, cloudfront.BehaviorOptions> =
+            this.configuration.origins
+                ?.map((origin) => {
+                    const path = origin.path === "/" ? "" : origin.path;
+
+                    return {
+                        pathPattern: `${origin.pathPattern ?? origin.path}*`,
+                        origin: new HttpOrigin(origin.domain, {
+                            originPath: path,
+                            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+                            httpsPort: 443,
+                        }),
+                        cachePolicy: origin.cacheBehavior
+                            ? new CachePolicy(this, `${origin.domain}CachePolicy`, {
+                                  cachePolicyName: `${origin.domain.split(".")[0]}CachePolicy`,
+                                  comment: `Cache policy for ${origin.domain}`,
+                                  defaultTtl: Duration.seconds(origin.cacheBehavior.defaultTtl ?? 0),
+                                  maxTtl: Duration.seconds(origin.cacheBehavior.maxTtl ?? 31536000),
+                                  minTtl: Duration.seconds(origin.cacheBehavior.minTtl ?? 0),
+                                  queryStringBehavior: (origin.cacheBehavior.queryStrings as boolean)
+                                      ? cloudfront.CacheQueryStringBehavior.all()
+                                      : cloudfront.CacheQueryStringBehavior.none(),
+                                  headerBehavior:
+                                      origin.cacheBehavior.headers.length > 0
+                                          ? cloudfront.CacheHeaderBehavior.allowList(...origin.cacheBehavior.headers)
+                                          : cloudfront.CacheHeaderBehavior.none(),
+                                  cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+                              })
+                            : undefined,
+                        allowedMethods:
+                            origin.cacheBehavior?.allowedMethods === "ALL"
+                                ? AllowedMethods.ALLOW_ALL
+                                : origin.cacheBehavior?.allowedMethods === "GET_HEAD_OPTIONS"
+                                ? AllowedMethods.ALLOW_GET_HEAD_OPTIONS
+                                : AllowedMethods.ALLOW_GET_HEAD,
+                        cachedMethods: (origin.cacheBehavior?.cacheOptionsMethod as boolean)
+                            ? cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS
+                            : cloudfront.CachedMethods.CACHE_GET_HEAD,
+
+                        // Default cache behavior
+                    };
+                })
+                ?.reduce((acc, behavior) => ({ ...acc, [behavior.pathPattern]: behavior }), {}) ?? {};
 
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
             defaultRootObject: "index.html",
+            additionalBehaviors,
+            enabled: true,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
                 origin: new S3Origin(this.bucket),
@@ -128,6 +218,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 functionAssociations: functionAssociations,
             },
+
             errorResponses: [this.errorResponse()],
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
