@@ -37,6 +37,7 @@ const SCHEMA = {
     properties: {
         type: { const: "server-side-website" },
         apiGateway: { enum: ["http", "rest"] },
+        functionName: { type: "string" },
         assets: {
             type: "object",
             additionalProperties: { type: "string" },
@@ -115,11 +116,23 @@ export class ServerSideWebsite extends AwsConstruct {
         })();
         const backendCachePolicy = CachePolicy.CACHING_DISABLED;
 
-        const apiId =
-            configuration.apiGateway === "rest"
-                ? this.provider.naming.getRestApiLogicalId()
-                : this.provider.naming.getHttpApiLogicalId();
-        const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
+        // Resolve domain to use as cloudfront origin
+        const originDomain = (() => {
+            if (configuration.functionName !== void 0) {
+                // Use Lambda Url
+                const lambdaUrlId = this.provider.naming.getLambdaFunctionUrlLogicalId(configuration.functionName);
+
+                return Fn.select(2, Fn.split("/", Fn.getAtt(lambdaUrlId, "FunctionUrl").toString()));
+            } else {
+                // Use API Gateway
+                const apiId =
+                    configuration.apiGateway === "rest"
+                        ? this.provider.naming.getRestApiLogicalId()
+                        : this.provider.naming.getHttpApiLogicalId();
+
+                return Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
+            }
+        })();
 
         // Cast the domains to an array
         this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
@@ -132,7 +145,7 @@ export class ServerSideWebsite extends AwsConstruct {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
-                origin: new HttpOrigin(apiGatewayDomain, {
+                origin: new HttpOrigin(originDomain, {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
                 }),

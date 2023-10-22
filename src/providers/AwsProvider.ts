@@ -62,6 +62,7 @@ export class AwsProvider implements ProviderInterface {
     public naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
+        getLambdaFunctionUrlLogicalId: (functionName: string) => string;
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
     };
