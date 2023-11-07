@@ -128,6 +128,9 @@ export class ServerSideWebsite extends AwsConstruct {
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
 
+        // Hide the stage in the URL in REST scenario
+        const originPath = configuration.apiGateway === "rest" ? "/" + (provider.getStage() ?? "") : undefined;
+
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
@@ -135,6 +138,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 origin: new HttpOrigin(apiGatewayDomain, {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+                    originPath,
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,

@@ -142,6 +142,15 @@ export class AwsProvider implements ProviderInterface {
     }
 
     /**
+     * Returns name of the stage.
+     *
+     * @internal
+     */
+    getStage(): string | undefined {
+        return this.serverless.service.provider.stage;
+    }
+
+    /**
      * Resolves the value of a CloudFormation stack output.
      */
     async getStackOutput(output: CfnOutput): Promise<string | undefined> {
