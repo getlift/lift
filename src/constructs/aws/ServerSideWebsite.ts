@@ -373,7 +373,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 let existingBucketName = patterns[pattern].substring(5);
                 const originProperties = {
                     originPath: "/",
-                    cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+                    cachePolicy: CachePolicy.CACHING_DISABLED,
                 };
 
                 // Support mapping to custom origin paths
@@ -399,7 +399,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
-                cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+                cachePolicy: CachePolicy.CACHING_DISABLED,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             };
         }
