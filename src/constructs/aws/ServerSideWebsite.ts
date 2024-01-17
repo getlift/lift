@@ -373,6 +373,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 let existingBucketName = patterns[pattern].substring(5);
                 const originProperties = {
                     originPath: "/",
+                    cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
                 };
 
                 // Support mapping to custom origin paths
