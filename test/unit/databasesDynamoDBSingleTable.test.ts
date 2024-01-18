@@ -116,4 +116,11 @@ describe("databasesDynamoDBSingleTable", () => {
             TableClass: "STANDARD_INFREQUENT_ACCESS",
         });
     });
+
+    it("allows setting table removal policy", () => {
+        expect(cfTemplate.Resources[computeLogicalId("databaseWithRemovalPolicyDestroy", "Table")]).toMatchObject({
+            UpdateReplacePolicy: "Delete",
+            DeletionPolicy: "Delete",
+        });
+    });
 });
