@@ -17,6 +17,22 @@ constructs:
     landing:
         type: single-page-app
         path: public
+        origins:
+            - path: staging/
+              pathPattern: api/
+              domain: api.execute-api.eu-west-1.amazonaws.com
+              cacheBehavior:
+                allowedMethods: ALL
+                cacheOptionsMethod: true
+                headers:
+                    - Authorization
+                    - Origin
+                queryStrings: true
+                minTtl: 0
+                defaultTtl: 0
+                maxTtl: 0
+                    
+            
 
 plugins:
     - serverless-lift
@@ -27,6 +43,10 @@ On `serverless deploy`, the `public/` directory will be deployed as a public web
 _Note: **the first deployment takes 4 minutes**. Next deployments only take seconds._
 
 The website is served over HTTPS and cached all over the world via the CloudFront CDN.
+
+Keep in mind cacheBehavior is not a origin field, but if you use it, path and domain are mandatory. Same as cache behavior. In this case, the mandatory fields are "allowedMethods", "cacheOptionsMethod" and "headers".
+
+_Note_: allowed methods values can be "ALL", "GET_HEAD" or "GET_HEAD_OPTIONS"
 
 ## How it works
 
