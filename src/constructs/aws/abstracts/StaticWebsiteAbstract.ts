@@ -50,6 +50,8 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
             },
             additionalProperties: false,
         },
+        publicReadAccess: { type: "boolean" },
+        indexPage: { type: "string" },
         errorPage: { type: "string" },
         redirectToMainDomain: { type: "boolean" },
     },
@@ -280,6 +282,24 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
 
     async getDistributionId(): Promise<string | undefined> {
         return this.provider.getStackOutput(this.distributionIdOutput);
+    }
+
+    indexPath(): string | undefined {
+        if (this.configuration.indexPage !== undefined) {
+            let indexPath = this.configuration.indexPage;
+            if (indexPath.startsWith("./") || indexPath.startsWith("../")) {
+                throw new ServerlessError(
+                    `The 'indexPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
+                        `(it cannot be a relative path).`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            if (!indexPath.startsWith("/")) {
+                indexPath = `/${indexPath}`;
+            }
+
+            return indexPath;
+        }
     }
 
     errorPath(): string | undefined {
