@@ -3,6 +3,7 @@ import { FunctionEventType } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct as CdkConstruct } from "constructs";
 import type { AwsProvider } from "@lift/providers";
 import type { BucketProps } from "aws-cdk-lib/aws-s3";
+import { BlockPublicAccess } from "aws-cdk-lib/aws-s3";
 import { RemovalPolicy } from "aws-cdk-lib";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
 import { getCfnFunctionAssociations } from "../../utils/getDefaultCfnFunctionAssociations";
@@ -71,6 +72,12 @@ export class StaticWebsite extends StaticWebsiteAbstract {
             websiteErrorDocument: this.errorPath(),
             // public read access is required when enabling static website hosting
             publicReadAccess: true,
+            blockPublicAccess: new BlockPublicAccess({
+                blockPublicAcls: false,
+                blockPublicPolicy: false,
+                ignorePublicAcls: false,
+                restrictPublicBuckets: false,
+            }),
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         };
