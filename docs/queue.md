@@ -390,6 +390,25 @@ This event source mapping setting does not change the scaling or batching behavi
 
 It is possible to set the `maxConcurrency` between 2 and 10000.
 
+### Polling Interval
+
+```yaml
+constructs:
+    my-queue:
+        # ...
+        pollingInterval: 5 # polling interval in seconds
+```
+
+*Default: 0 seconds*
+
+The receive message wait time is the maximum amount of time that polling will wait for messages to become available to receive. The minimum value is zero seconds and the maximum value is 20 seconds.
+
+Long polling helps reduce the cost of using Amazon SQS by eliminating the number of empty responses (when there are no messages available for a ReceiveMessage request) and false empty responses (when messages are available but aren't included in a response). If a receive request collects the maximum number of messages, it returns immediately. It does not wait for the polling to time out.
+
+If you set the receive message wait time to zero, the receive requests use short polling.
+
+It is possible to set the `pollingInterval` between 0 and 20. 
+
 ### Maximum Batching Window
 
 ```yaml

@@ -12,8 +12,8 @@ const DATABASE_DEFINITION = {
     type: "object",
     properties: {
         type: { const: "database/dynamodb-single-table" },
-        localSecondaryIndexes: { type: "boolean" },
         gsiCount: { type: "integer", minimum: 1, maximum: 20 },
+        localSecondaryIndexes: { type: "boolean" },
     },
     additionalProperties: false,
 } as const;
