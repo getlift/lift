@@ -45,6 +45,11 @@ const QUEUE_DEFINITION = {
             minimum: 1,
             maximum: 10000,
         },
+        pollingInterval: {
+            type: "number",
+            minimum: 0,
+            maximum: 20,
+        },
         maxBatchingWindow: {
             type: "number",
             minimum: 0,
@@ -63,6 +68,7 @@ const QUEUE_DEFINITION = {
     additionalProperties: false,
     required: ["worker"],
 } as const;
+
 type Configuration = FromSchema<typeof QUEUE_DEFINITION>;
 
 export class Queue extends AwsConstruct {
@@ -320,11 +326,16 @@ export class Queue extends AwsConstruct {
         return this.configuration.maxBatchingWindow ?? 0;
     }
 
+    private getPollingInterval(): number {
+        return this.configuration.pollingInterval ?? 0;
+    }
+
     private appendFunctions(): void {
         // The default batch size is 1
         const batchSize = this.configuration.batchSize ?? 1;
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
         const maximumConcurrency = this.configuration.maxConcurrency;
+        const pollingInterval = this.getPollingInterval();
 
         // Override events for the worker
         this.configuration.worker.events = [
@@ -333,6 +344,7 @@ export class Queue extends AwsConstruct {
                 sqs: {
                     arn: this.queue.queueArn,
                     batchSize: batchSize,
+                    pollingInterval: pollingInterval,
                     maximumBatchingWindow: maximumBatchingWindow,
                     maximumConcurrency: maximumConcurrency,
                     functionResponseType: "ReportBatchItemFailures",
