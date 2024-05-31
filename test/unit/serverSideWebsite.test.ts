@@ -20,6 +20,10 @@ describe("server-side website", () => {
                         type: "server-side-website",
                         assets: {
                             "/assets/*": "public",
+                            "/s3-bucket/*": "s3://some-bucket",
+                            "/s3-bucket-with-path/*": "s3://some-other-bucket/some-path",
+                            "/s3-bucket-repeat/a/*": "s3://some-bucket-repeat",
+                            "/s3-bucket-repeat/b/*": "s3://some-bucket-repeat",
                         },
                     },
                 },
@@ -27,10 +31,18 @@ describe("server-side website", () => {
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3Origin");
+        const originAccessIdentityLogicalId1 = computeLogicalId("backend", "CDN", "Origin2", "S3Origin");
+        const originAccessIdentityLogicalId2 = computeLogicalId("backend", "CDN", "Origin3", "S3Origin");
+        const originAccessIdentityLogicalId3 = computeLogicalId("backend", "CDN", "Origin4", "S3Origin");
+        const originAccessIdentityLogicalId4 = computeLogicalId("backend", "CDN", "Origin5", "S3Origin");
+        const originAccessIdentityLogicalId5 = computeLogicalId("backend", "CDN", "Origin6", "S3Origin");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
+        const cfOriginId3 = computeLogicalId("backend", "CDN", "Origin3");
+        const cfOriginId4 = computeLogicalId("backend", "CDN", "Origin4");
+        const cfOriginId5 = computeLogicalId("backend", "CDN", "Origin5");
+        const cfOriginId6 = computeLogicalId("backend", "CDN", "Origin6");
         const requestFunction = computeLogicalId("backend", "RequestFunction");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
@@ -38,7 +50,11 @@ describe("server-side website", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             requestFunction,
-            originAccessIdentityLogicalId,
+            originAccessIdentityLogicalId1,
+            originAccessIdentityLogicalId2,
+            originAccessIdentityLogicalId3,
+            originAccessIdentityLogicalId4,
+            originAccessIdentityLogicalId5,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -55,7 +71,7 @@ describe("server-side website", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"] },
+                                CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId1, "S3CanonicalUserId"] },
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
@@ -64,7 +80,7 @@ describe("server-side website", () => {
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toStrictEqual({
+        expect(cfTemplate.Resources[originAccessIdentityLogicalId1]).toStrictEqual({
             Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
             Properties: {
                 CloudFrontOriginAccessIdentityConfig: {
@@ -106,6 +122,38 @@ describe("server-side website", () => {
                             TargetOriginId: cfOriginId2,
                             ViewerProtocolPolicy: "redirect-to-https",
                         },
+                        {
+                            AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                            CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            Compress: true,
+                            PathPattern: "/s3-bucket/*",
+                            TargetOriginId: cfOriginId3,
+                            ViewerProtocolPolicy: "redirect-to-https",
+                        },
+                        {
+                            AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                            CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            Compress: true,
+                            PathPattern: "/s3-bucket-with-path/*",
+                            TargetOriginId: cfOriginId4,
+                            ViewerProtocolPolicy: "redirect-to-https",
+                        },
+                        {
+                            AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                            CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            Compress: true,
+                            PathPattern: "/s3-bucket-repeat/a/*",
+                            TargetOriginId: cfOriginId5,
+                            ViewerProtocolPolicy: "redirect-to-https",
+                        },
+                        {
+                            AllowedMethods: ["GET", "HEAD", "OPTIONS"],
+                            CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                            Compress: true,
+                            PathPattern: "/s3-bucket-repeat/b/*",
+                            TargetOriginId: cfOriginId6,
+                            ViewerProtocolPolicy: "redirect-to-https",
+                        },
                     ],
                     Enabled: true,
                     HttpVersion: "http2and3",
@@ -128,7 +176,79 @@ describe("server-side website", () => {
                                 OriginAccessIdentity: {
                                     "Fn::Join": [
                                         "",
-                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId }],
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId1 }],
+                                    ],
+                                },
+                            },
+                        },
+                        {
+                            DomainName: {
+                                "Fn::Join": [
+                                    "",
+                                    ["some-bucket.s3.", { Ref: "AWS::Region" }, ".", { Ref: "AWS::URLSuffix" }],
+                                ],
+                            },
+                            Id: cfOriginId3,
+                            OriginPath: "",
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId2 }],
+                                    ],
+                                },
+                            },
+                        },
+                        {
+                            DomainName: {
+                                "Fn::Join": [
+                                    "",
+                                    ["some-other-bucket.s3.", { Ref: "AWS::Region" }, ".", { Ref: "AWS::URLSuffix" }],
+                                ],
+                            },
+                            Id: cfOriginId4,
+                            OriginPath: "/some-path",
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId3 }],
+                                    ],
+                                },
+                            },
+                        },
+                        {
+                            DomainName: {
+                                "Fn::Join": [
+                                    "",
+                                    ["some-bucket-repeat.s3.", { Ref: "AWS::Region" }, ".", { Ref: "AWS::URLSuffix" }],
+                                ],
+                            },
+                            Id: cfOriginId5,
+                            OriginPath: "",
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId4 }],
+                                    ],
+                                },
+                            },
+                        },
+                        {
+                            DomainName: {
+                                "Fn::Join": [
+                                    "",
+                                    ["some-bucket-repeat.s3.", { Ref: "AWS::Region" }, ".", { Ref: "AWS::URLSuffix" }],
+                                ],
+                            },
+                            Id: cfOriginId6,
+                            OriginPath: "",
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId5 }],
                                     ],
                                 },
                             },
