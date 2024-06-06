@@ -67,10 +67,10 @@ export class StaticWebsite extends StaticWebsiteAbstract {
     getBucketProps(): BucketProps {
         return {
             // Enable static website hosting
-            websiteIndexDocument: "index.html",
+            websiteIndexDocument: this.indexPath(),
             websiteErrorDocument: this.errorPath(),
             // public read access is required when enabling static website hosting
-            publicReadAccess: true,
+            publicReadAccess: this.configuration.publicReadAccess ?? false,
             // For a static website, the content is code that should be versioned elsewhere
             removalPolicy: RemovalPolicy.DESTROY,
         };

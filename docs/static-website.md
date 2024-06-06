@@ -210,6 +210,31 @@ constructs:
 
 The first domain in the list will be considered the main domain. In this case, `mywebsite.com` will redirect to `www.mywebsite.com`.
 
+### Public Read Access
+
+When using CloudFront to cache a static website placed in an S3 bucket, it is possible to host the website without allowing public read access to the S3 bucket, so `publicReadAccess` is set to false by default.
+
+If for some reason you want to allow public read access to S3 bucket, write as follows.
+
+```yaml
+constructs:
+    landing:
+        # ...
+        publicReadAccess: false
+```
+
+### Index Page
+
+You can host a static website using only S3 by setting public read access to true and index page. At the same time, public read access to S3 must be allowed.
+
+```yaml
+constructs:
+    landing:
+        # ...
+        publicReadAccess: true
+        indexPage: index.html
+```
+
 ### Error page
 
 By default, all 404 requests are redirected to `index.html` with a 200 response status. This behavior is optimized for Single-Page Applications: it allows doing client-side URL routing with JavaScript frameworks.
