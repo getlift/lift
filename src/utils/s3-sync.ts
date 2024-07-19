@@ -1,6 +1,6 @@
 import type {
-    DeleteObjectsOutput,
-    DeleteObjectsRequest,
+    CopyObjectOutput,
+    CopyObjectRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
     PutObjectOutput,
@@ -153,26 +153,25 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
 }
 
 async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-    const response = await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
-        Bucket: bucket,
-        Delete: {
-            Objects: keys.map((key) => {
-                return {
-                    Key: key,
-                };
-            }),
-        },
+  for (const key of keys) {
+    const response = await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
+      Bucket: bucket,
+      Key: key,
+      CopySource: `${bucket}/${key}`,
+      Metadata: {
+        'x-amz-tagging': 'Obsolete='
+      },
+      MetadataDirective: 'REPLACE',
     });
-
-    // S3 deleteObjects operation will fail silently
-    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
+      
     if (response.Errors !== undefined && response.Errors.length !== 0) {
-        response.Errors.forEach((error) => console.log(error));
-        throw new ServerlessError(
-            `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-            "LIFT_S3_DELETE_OBJECTS_FAILURE"
-        );
+      response.Errors.forEach((error) => console.log(error));
+      throw new ServerlessError(
+        `Unable to tag some files in S3. The "static-website" and "server-side-website" construct require the s3:ListTagsForResource, s3:GetObjectTagging and s3:PutObjectTagging IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+        "LIFT_S3_DELETE_OBJECTS_FAILURE"
+      );
     }
+  }
 }
 
 export function computeS3ETag(fileContent: Buffer): string {
