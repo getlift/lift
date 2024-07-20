@@ -76,13 +76,24 @@ export async function s3Sync({
     const targetKeys = filesToUpload.map((file) =>
         targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
     );
+
     const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
     if (keysToDelete.length > 0) {
-        keysToDelete.map((key) => {
-            getUtils().log.verbose(`Deleting ${key}`);
-            fileChangeCount++;
-        });
-        await s3Delete(aws, bucketName, keysToDelete);
+        const batch = chunk(keysToDelete, 1000);
+
+        await Promise.all(
+            batch.map(async (keysToDeleteChunk, index) => {
+                getUtils().log.verbose(`Deleting chunk #${index}`);
+
+                keysToDeleteChunk.map((key) => {
+                    getUtils().log.verbose(`Deleting ${key}`);
+                    fileChangeCount++;
+                });
+
+                await s3Delete(aws, bucketName, keysToDeleteChunk);
+            })
+        );
+
         hasChanges = true;
     }
 
