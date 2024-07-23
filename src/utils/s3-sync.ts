@@ -5,6 +5,8 @@ import type {
     ListObjectsV2Request,
     PutObjectOutput,
     PutObjectRequest,
+    PutObjectTaggingOutput,
+    PutObjectTaggingRequest,
     Object as S3Object,
 } from "aws-sdk/clients/s3";
 import * as fs from "fs";
@@ -82,7 +84,7 @@ export async function s3Sync({
             getUtils().log.verbose(`Deleting ${key}`);
             fileChangeCount++;
         });
-        await s3Delete(aws, bucketName, keysToDelete);
+        await s3TagAsObsolete(aws, bucketName, keysToDelete);
         hasChanges = true;
     }
 
@@ -152,16 +154,19 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
     });
 }
 
-async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
+async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
   for (const key of keys) {
-    const response = await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
+    const response = await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
       Bucket: bucket,
       Key: key,
-      CopySource: `${bucket}/${key}`,
-      Metadata: {
-        'x-amz-tagging': 'Obsolete='
+      Tagging: {
+        TagSet: [
+          {
+            Key: "Obsolete",
+            Value: "", 
+          },
+        ],
       },
-      MetadataDirective: 'REPLACE',
     });
       
     if (response.Errors !== undefined && response.Errors.length !== 0) {
@@ -171,6 +176,14 @@ async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promi
         "LIFT_S3_DELETE_OBJECTS_FAILURE"
       );
     }
+  
+    await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
+      Bucket: bucket,
+      Key: key,
+      CopySource: `${bucket}/${key}`,
+      Metadata: {},
+      MetadataDirective: 'REPLACE',
+    })
   }
 }
 
