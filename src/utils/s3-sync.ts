@@ -180,8 +180,10 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
         await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
             Bucket: bucket,
             Key: key,
-            CopySource: `${bucket}/${key}`,
-            Metadata: {},
+            CopySource: `${bucket}/${key}`,        
+            Metadata: {
+                "x-amz-tagging": "Obsolete="
+            },
             MetadataDirective: "REPLACE",
         });
     }
