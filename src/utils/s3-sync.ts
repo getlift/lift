@@ -155,36 +155,36 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
 }
 
 async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-  for (const key of keys) {
-    const response = await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
-      Bucket: bucket,
-      Key: key,
-      Tagging: {
-        TagSet: [
-          {
-            Key: "Obsolete",
-            Value: "", 
-          },
-        ],
-      },
-    });
-      
-    if (response.Errors !== undefined && response.Errors.length !== 0) {
-      response.Errors.forEach((error) => console.log(error));
-      throw new ServerlessError(
-        `Unable to tag some files in S3. The "static-website" and "server-side-website" construct require the s3:ListTagsForResource, s3:GetObjectTagging and s3:PutObjectTagging IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-        "LIFT_S3_DELETE_OBJECTS_FAILURE"
-      );
+    for (const key of keys) {
+        try {
+            await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
+                Bucket: bucket,
+                Key: key,
+                Tagging: {
+                    TagSet: [
+                        {
+                            Key: "Obsolete",
+                            Value: "",
+                        },
+                    ],
+                },
+            });
+        } catch (error) {
+            console.log(error);
+            throw new ServerlessError(
+                `Unable to tag some files in S3. The "static-website" and "server-side-website" construct require the s3:ListTagsForResource, s3:GetObjectTagging and s3:PutObjectTagging IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+                "LIFT_S3_DELETE_OBJECTS_FAILURE"
+            );
+        }
+
+        await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
+            Bucket: bucket,
+            Key: key,
+            CopySource: `${bucket}/${key}`,
+            Metadata: {},
+            MetadataDirective: "REPLACE",
+        });
     }
-  
-    await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
-      Bucket: bucket,
-      Key: key,
-      CopySource: `${bucket}/${key}`,
-      Metadata: {},
-      MetadataDirective: 'REPLACE',
-    })
-  }
 }
 
 export function computeS3ETag(fileContent: Buffer): string {
