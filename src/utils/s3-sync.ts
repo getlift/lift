@@ -177,10 +177,16 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
             );
         }
 
+        let contentType = lookup(key);
+        if (contentType === false) {
+            contentType = "application/octet-stream";
+        }
+
         await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
             Bucket: bucket,
             Key: key,
-            CopySource: `${bucket}/${key}`,        
+            CopySource: `${bucket}/${key}`,
+            ContentType: contentType,      
             Metadata: {
                 "x-amz-tagging": "Obsolete="
             },
