@@ -164,7 +164,7 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
                     TagSet: [
                         {
                             Key: "Obsolete",
-                            Value: "",
+                            Value: "true",
                         },
                     ],
                 },
@@ -188,7 +188,7 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
             CopySource: `${bucket}/${key}`,
             ContentType: contentType,      
             Metadata: {
-                "x-amz-tagging": "Obsolete="
+                "x-amz-tagging": "Obsolete=true"
             },
             MetadataDirective: "REPLACE",
         });
