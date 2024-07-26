@@ -1,10 +1,14 @@
 import type {
-    DeleteObjectsOutput,
-    DeleteObjectsRequest,
+    CopyObjectOutput,
+    CopyObjectRequest,
+    HeadObjectOutput,
+    HeadObjectRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
     PutObjectOutput,
     PutObjectRequest,
+    PutObjectTaggingOutput,
+    PutObjectTaggingRequest,
     Object as S3Object,
 } from "aws-sdk/clients/s3";
 import * as fs from "fs";
@@ -20,7 +24,7 @@ import { getUtils } from "./logger";
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
 
-type S3Objects = Record<string, S3Object>;
+type S3Objects = Record<string, S3Object & HeadObjectOutput>;
 
 /**
  * Synchronize a local folder to a S3 bucket.
@@ -76,13 +80,13 @@ export async function s3Sync({
     const targetKeys = filesToUpload.map((file) =>
         targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
     );
-    const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
+    const keysToDelete = findKeysToDelete(existingS3Objects, targetKeys);
     if (keysToDelete.length > 0) {
         keysToDelete.map((key) => {
             getUtils().log.verbose(`Deleting ${key}`);
             fileChangeCount++;
         });
-        await s3Delete(aws, bucketName, keysToDelete);
+        await s3TagAsObsolete(aws, bucketName, keysToDelete);
         hasChanges = true;
     }
 
@@ -122,21 +126,39 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
             MaxKeys: 1000,
             ContinuationToken: continuationToken,
         });
-        (result.Contents ?? []).forEach((object) => {
+
+        for (const object of result.Contents ?? []) {
             if (object.Key === undefined) {
-                return;
+                continue;
             }
-            objects[object.Key] = object;
-        });
+
+            const objectDetails = await aws.request<HeadObjectRequest, HeadObjectOutput>("S3", "headObject", {
+                Bucket: bucketName,
+                Key: object.Key,
+            });
+
+            objects[object.Key] = {
+                ...object,
+                ...objectDetails,
+            };
+        }
+
         continuationToken = result.NextContinuationToken;
     } while (result.IsTruncated === true);
 
     return objects;
 }
 
-function findKeysToDelete(existing: string[], target: string[]): string[] {
+function findKeysToDelete(existing: S3Objects, target: string[]): string[] {
     // Returns every key that shouldn't exist anymore
-    return existing.filter((key) => target.indexOf(key) === -1);
+    return Object.entries(existing)
+        .filter(([, object]) => {
+            const tags = new URLSearchParams(object.Metadata['x-amz-tagging'] ?? '');
+
+            return !tags.has('Obsolete', true);
+        })  
+        .filter(([key]) => target.indexOf(key) === -1)
+        .map(([key]) => key);
 }
 
 export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
@@ -152,26 +174,46 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
     });
 }
 
-async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-    const response = await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
-        Bucket: bucket,
-        Delete: {
-            Objects: keys.map((key) => {
-                return {
-                    Key: key,
-                };
-            }),
-        },
-    });
+async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
+    for (const key of keys) {
+        try {
+            // Add tag that can be read by lifecycle rule
+            await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
+                Bucket: bucket,
+                Key: key,
+                Tagging: {
+                    TagSet: [
+                        {
+                            Key: "Obsolete",
+                            Value: "true",
+                        },
+                    ],
+                },
+            });
+        } catch (error) {
+            console.log(error);
+            throw new ServerlessError(
+                `Unable to tag some files in S3. The "static-website" and "server-side-website" construct require the s3:ListTagsForResource, s3:GetObjectTagging and s3:PutObjectTagging IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+                "LIFT_S3_DELETE_OBJECTS_FAILURE"
+            );
+        }
 
-    // S3 deleteObjects operation will fail silently
-    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
-    if (response.Errors !== undefined && response.Errors.length !== 0) {
-        response.Errors.forEach((error) => console.log(error));
-        throw new ServerlessError(
-            `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-            "LIFT_S3_DELETE_OBJECTS_FAILURE"
-        );
+        let contentType = lookup(key);
+        if (contentType === false) {
+            contentType = "application/octet-stream";
+        }
+
+        // Copy object to refresh creation time and trigger life cycle rule
+        await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
+            Bucket: bucket,
+            Key: key,
+            CopySource: `${bucket}/${key}`,
+            ContentType: contentType,      
+            Metadata: {
+                "x-amz-tagging": "Obsolete=true"
+            },
+            MetadataDirective: "REPLACE",
+        });
     }
 }
 
