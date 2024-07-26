@@ -1,6 +1,8 @@
 import type {
     CopyObjectOutput,
     CopyObjectRequest,
+    HeadObjectOutput,
+    HeadObjectRequest,
     ListObjectsV2Output,
     ListObjectsV2Request,
     PutObjectOutput,
@@ -22,7 +24,7 @@ import { getUtils } from "./logger";
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
 
-type S3Objects = Record<string, S3Object>;
+type S3Objects = Record<string, S3Object & HeadObjectOutput>;
 
 /**
  * Synchronize a local folder to a S3 bucket.
@@ -78,7 +80,7 @@ export async function s3Sync({
     const targetKeys = filesToUpload.map((file) =>
         targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
     );
-    const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
+    const keysToDelete = findKeysToDelete(existingS3Objects, targetKeys);
     if (keysToDelete.length > 0) {
         keysToDelete.map((key) => {
             getUtils().log.verbose(`Deleting ${key}`);
@@ -124,21 +126,40 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
             MaxKeys: 1000,
             ContinuationToken: continuationToken,
         });
-        (result.Contents ?? []).forEach((object) => {
+
+        for (const object of result.Contents ?? []) {
             if (object.Key === undefined) {
-                return;
+                continue;
             }
-            objects[object.Key] = object;
-        });
+
+            const objectDetails = await aws.request<HeadObjectRequest, HeadObjectOutput>("S3", "headObject", {
+                Bucket: bucketName,
+                Key: object.Key,
+            });
+
+            objects[object.Key] = {
+                ...object,
+                ...objectDetails,
+            };
+        }
+
         continuationToken = result.NextContinuationToken;
     } while (result.IsTruncated === true);
 
     return objects;
 }
 
-function findKeysToDelete(existing: string[], target: string[]): string[] {
+function findKeysToDelete(existing: { Key: string, Metadata: { 'x-amz-tagging': string | undefined } }[], target: string[]): string[] {
     // Returns every key that shouldn't exist anymore
     return existing.filter((key) => target.indexOf(key) === -1);
+    return Object.entries(existing)
+        .filter(([, object]) => {
+            const tags = new URLSearchParams(object.Metadata['x-amz-tagging'] ?? '');
+
+            return !tags.has('Obsolete', true);
+        })  
+        .filter(([key]) => target.indexOf(key) === -1)
+        .map(([key]) => key);
 }
 
 export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
