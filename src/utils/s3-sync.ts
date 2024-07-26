@@ -149,7 +149,7 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
     return objects;
 }
 
-function findKeysToDelete(existing: { Key: string, Metadata: { 'x-amz-tagging': string | undefined } }[], target: string[]): string[] {
+function findKeysToDelete(existing: S3Objects, target: string[]): string[] {
     // Returns every key that shouldn't exist anymore
     return Object.entries(existing)
         .filter(([, object]) => {
