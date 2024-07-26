@@ -151,7 +151,6 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
 
 function findKeysToDelete(existing: { Key: string, Metadata: { 'x-amz-tagging': string | undefined } }[], target: string[]): string[] {
     // Returns every key that shouldn't exist anymore
-    return existing.filter((key) => target.indexOf(key) === -1);
     return Object.entries(existing)
         .filter(([, object]) => {
             const tags = new URLSearchParams(object.Metadata['x-amz-tagging'] ?? '');
@@ -178,6 +177,7 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
 async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
     for (const key of keys) {
         try {
+            // Add tag that can be read by lifecycle rule
             await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
                 Bucket: bucket,
                 Key: key,
@@ -203,6 +203,7 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
             contentType = "application/octet-stream";
         }
 
+        // Copy object to refresh creation time and trigger life cycle rule
         await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
             Bucket: bucket,
             Key: key,
