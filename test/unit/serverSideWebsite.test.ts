@@ -578,6 +578,11 @@ describe("server-side website", () => {
                                     ObjectLockEnabled: true,
                                 },
                             },
+                            requestFunction: {
+                                Properties: {
+                                    FunctionCode: "function handler(event) { return event; }",
+                                },
+                            },
                         },
                     },
                 },
@@ -590,6 +595,9 @@ describe("server-side website", () => {
         });
         expect(cfTemplate.Resources[computeLogicalId("backend", "Assets")].Properties).toMatchObject({
             ObjectLockEnabled: true,
+        });
+        expect(cfTemplate.Resources[computeLogicalId("backend", "RequestFunction")].Properties).toMatchObject({
+            FunctionCode: "function handler(event) { return event; }",
         });
     });
 

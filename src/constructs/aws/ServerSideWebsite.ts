@@ -76,6 +76,7 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private readonly distribution: Distribution;
     private readonly bucket: Bucket;
+    private readonly requestFunction: cloudfront.Function;
     private readonly domains: string[] | undefined;
     private readonly bucketNameOutput: CfnOutput;
     private readonly domainOutput: CfnOutput;
@@ -131,6 +132,8 @@ export class ServerSideWebsite extends AwsConstruct {
         // Hide the stage in the URL in REST scenario
         const originPath = configuration.apiGateway === "rest" ? "/" + (provider.getStage() ?? "") : undefined;
 
+        this.requestFunction = this.createRequestFunction();
+
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
@@ -149,7 +152,7 @@ export class ServerSideWebsite extends AwsConstruct {
                 originRequestPolicy: backendOriginPolicy,
                 functionAssociations: [
                     {
-                        function: this.createRequestFunction(),
+                        function: this.requestFunction,
                         eventType: FunctionEventType.VIEWER_REQUEST,
                     },
                 ],
@@ -208,6 +211,7 @@ export class ServerSideWebsite extends AwsConstruct {
         return {
             distribution: this.distribution.node.defaultChild as CfnDistribution,
             bucket: this.bucket.node.defaultChild as CfnBucket,
+            requestFunction: this.requestFunction.node.defaultChild as cloudfront.CfnFunction,
         };
     }
 
