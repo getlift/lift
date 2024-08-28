@@ -13,7 +13,6 @@ jobs:
             matrix:
                 node:
                     - 16
-                    - 18
                     - 20
                 serverless:
                     - "2.36.0"
