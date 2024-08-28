@@ -10,22 +10,21 @@ jobs:
         name: Unit tests
         runs-on: ubuntu-latest
         strategy:
+            fail-fast: false
             matrix:
                 node:
-                    - 14
                     - 16
-                    - 18
                     - 20
                 serverless:
-                    - "2.36.0"
                     - "2"
-                    - "latest"
+                    - "3"
+                    - "4"
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v3
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node }}
-            - uses: actions/cache@v2
+            - uses: actions/cache@v4
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
@@ -42,11 +41,11 @@ jobs:
         name: Lint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v2
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
               with:
-                  node-version: 16
-            - uses: actions/cache@v2
+                  node-version: 20
+            - uses: actions/cache@v4
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
@@ -57,11 +56,11 @@ jobs:
         name: Type
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v2
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
               with:
-                  node-version: 16
-            - uses: actions/cache@v2
+                  node-version: 20
+            - uses: actions/cache@v4
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
