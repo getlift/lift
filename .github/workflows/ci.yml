@@ -15,7 +15,6 @@ jobs:
                     - 16
                     - 20
                 serverless:
-                    - "2.36.0"
                     - "2"
                     - "latest"
         steps:
