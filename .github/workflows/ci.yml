@@ -17,7 +17,8 @@ jobs:
                     - 20
                 serverless:
                     - "2"
-                    - "latest"
+                    - "3"
+                    - "4"
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4

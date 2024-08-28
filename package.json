@@ -83,6 +83,6 @@
   },
   "types": "dist/src/plugin.d.ts",
   "peerDependencies": {
-    "serverless": "^2.36.0 || ^3"
+    "serverless": "^2.36.0 || ^3 || ^4"
   }
 }
