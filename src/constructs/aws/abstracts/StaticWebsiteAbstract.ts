@@ -128,7 +128,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 functionAssociations: functionAssociations,
             },
-            errorResponses: [this.errorResponse()],
+            errorResponses: this.errorResponses(),
             // Enable http2 transfer for better performances
             httpVersion: HttpVersion.HTTP2,
             certificate: certificate,
@@ -300,29 +300,33 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         }
     }
 
-    private errorResponse(): ErrorResponse {
+    private errorResponses(): ErrorResponse[] {
         const errorPath = this.errorPath();
 
         // Custom error page
         if (errorPath !== undefined) {
-            return {
-                httpStatus: 404,
-                ttl: Duration.seconds(0),
-                responseHttpStatus: 404,
-                responsePagePath: errorPath,
-            };
+            return [
+                {
+                    httpStatus: 404,
+                    ttl: Duration.seconds(0),
+                    responseHttpStatus: 404,
+                    responsePagePath: errorPath,
+                },
+            ];
         }
 
         /**
          * The default behavior is optimized for SPA: all unknown URLs are served
          * by index.html so that routing can be done client-side.
          */
-        return {
-            httpStatus: 404,
+        const defaultResponse = (httpStatus: number): ErrorResponse => ({
+            httpStatus,
             ttl: Duration.seconds(0),
             responseHttpStatus: 200,
             responsePagePath: "/index.html",
-        };
+        });
+
+        return [defaultResponse(403), defaultResponse(404)];
     }
 
     private createResponseFunction(): cloudfront.Function {
