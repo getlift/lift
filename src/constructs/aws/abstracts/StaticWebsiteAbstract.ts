@@ -1,15 +1,15 @@
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
-import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import type { CfnDistribution, ErrorResponse } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
     Distribution,
-    FunctionEventType,
     HttpVersion,
+    ResponseHeadersPolicy,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import type { IResponseHeadersPolicy } from "aws-cdk-lib/aws-cloudfront";
 import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
@@ -26,7 +26,6 @@ import { emptyBucket, invalidateCloudFrontCache } from "../../../classes/aws";
 import ServerlessError from "../../../utils/error";
 import type { Progress } from "../../../utils/logger";
 import { getUtils } from "../../../utils/logger";
-import { ensureNameMaxLength } from "../../../utils/naming";
 import { s3Sync } from "../../../utils/s3-sync";
 
 export const COMMON_STATIC_WEBSITE_DEFINITION = {
@@ -43,12 +42,8 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
             ],
         },
         certificate: { type: "string" },
-        security: {
-            type: "object",
-            properties: {
-                allowIframe: { type: "boolean" },
-            },
-            additionalProperties: false,
+        responseHeadersPolicy: {
+            anyOf: [{ type: "string" }, { type: "object" }],
         },
         errorPage: { type: "string" },
         redirectToMainDomain: { type: "boolean" },
@@ -107,13 +102,22 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             );
         }
 
-        const functionAssociations = [
-            {
-                function: this.createResponseFunction(),
-                eventType: FunctionEventType.VIEWER_RESPONSE,
-            },
-        ];
-
+        let responseHeadersPolicy: IResponseHeadersPolicy;
+        if (typeof this.configuration.responseHeadersPolicy === "string") {
+            responseHeadersPolicy = ResponseHeadersPolicy.fromResponseHeadersPolicyId(
+                scope,
+                "ResponseHeadersPolicy",
+                this.configuration.responseHeadersPolicy
+            );
+        } else if (this.configuration.responseHeadersPolicy !== undefined) {
+            responseHeadersPolicy = new ResponseHeadersPolicy(
+                scope,
+                "ResponseHeadersPolicy",
+                this.configuration.responseHeadersPolicy
+            );
+        } else {
+            responseHeadersPolicy = ResponseHeadersPolicy.SECURITY_HEADERS;
+        }
         this.distribution = new Distribution(this, "CDN", {
             comment: `${provider.stackName} ${id} website CDN`,
             // Send all page requests to index.html
@@ -126,7 +130,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
                 cachePolicy: CachePolicy.CACHING_OPTIMIZED,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-                functionAssociations: functionAssociations,
+                responseHeadersPolicy,
             },
             errorResponses: this.errorResponses(),
             // Enable http2 transfer for better performances
@@ -327,37 +331,6 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         });
 
         return [defaultResponse(403), defaultResponse(404)];
-    }
-
-    private createResponseFunction(): cloudfront.Function {
-        const securityHeaders: Record<string, { value: string }> = {
-            "x-frame-options": { value: "SAMEORIGIN" },
-            "x-content-type-options": { value: "nosniff" },
-            "x-xss-protection": { value: "1; mode=block" },
-            "strict-transport-security": { value: "max-age=63072000" },
-        };
-        if (this.configuration.security?.allowIframe === true) {
-            delete securityHeaders["x-frame-options"];
-        }
-        const jsonHeaders = JSON.stringify(securityHeaders, undefined, 4);
-        /**
-         * CloudFront function that manipulates the HTTP responses to add security headers.
-         */
-        const code = `function handler(event) {
-    var response = event.response;
-    response.headers = Object.assign({}, ${jsonHeaders}, response.headers);
-    return response;
-}`;
-
-        const functionName = ensureNameMaxLength(
-            `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
-            64
-        );
-
-        return new cloudfront.Function(this, "ResponseFunction", {
-            functionName,
-            code: cloudfront.FunctionCode.fromInline(code),
-        });
     }
 
     getBucketProps(): BucketProps {
