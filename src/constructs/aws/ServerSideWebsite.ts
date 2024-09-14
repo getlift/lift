@@ -239,7 +239,9 @@ export class ServerSideWebsite extends AwsConstruct {
         const progress = getUtils().progress;
         let uploadProgress: Progress | undefined;
         if (progress) {
-            uploadProgress = progress.create();
+            uploadProgress = progress.create({
+                message: 'Uploading assets'
+            });
         }
 
         let invalidate = false;
