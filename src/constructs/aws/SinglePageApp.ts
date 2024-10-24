@@ -20,44 +20,21 @@ export class SinglePageApp extends StaticWebsiteAbstract {
     ) {
         super(scope, id, configuration, provider);
 
-        const cfnDistribution = this.distribution.node.defaultChild as cloudfront.CfnDistribution;
-        const requestFunction = this.createRequestFunction();
+        if (this.configuration.redirectToMainDomain === true) {
+            const cfnDistribution = this.distribution.node.defaultChild as cloudfront.CfnDistribution;
+            const requestFunction = this.createRedirectRequestFunction();
 
-        const defaultBehaviorFunctionAssociations = getCfnFunctionAssociations(cfnDistribution);
+            const defaultBehaviorFunctionAssociations = getCfnFunctionAssociations(cfnDistribution);
 
-        cfnDistribution.addOverride("Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations", [
-            ...defaultBehaviorFunctionAssociations,
-            { EventType: FunctionEventType.VIEWER_REQUEST, FunctionARN: requestFunction.functionArn },
-        ]);
+            cfnDistribution.addOverride("Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations", [
+                ...defaultBehaviorFunctionAssociations,
+                { EventType: FunctionEventType.VIEWER_REQUEST, FunctionARN: requestFunction.functionArn },
+            ]);
+        }
     }
 
-    private createRequestFunction(): cloudfront.Function {
-        let additionalCode = "";
-
-        if (this.configuration.redirectToMainDomain === true) {
-            additionalCode += redirectToMainDomain(this.domains);
-        }
-
-        /**
-         * CloudFront function that redirects nested paths to /index.html and
-         * let static files pass.
-         *
-         * Files extensions list taken from: https://docs.aws.amazon.com/amplify/latest/userguide/redirects.html#redirects-for-single-page-web-apps-spa
-         * Add pdf, xml, webmanifest, avif and wasm as well
-         */
-        const code = `var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|xml|pdf|webmanifest|avif|wasm)$)([^.]+$)/;
-
-function handler(event) {
-    var uri = event.request.uri;
-    var request = event.request;
-    var isUriToRedirect = REDIRECT_REGEX.test(uri);
-
-    if (isUriToRedirect) {
-        request.uri = "/index.html";
-    }${additionalCode}
-
-    return event.request;
-}`;
+    private createRedirectRequestFunction(): cloudfront.Function {
+        const code = redirectToMainDomain(this.domains);
 
         const functionName = ensureNameMaxLength(
             `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,

@@ -227,18 +227,29 @@ When a browser requests the URL of a non-existing file, the `error.html` file wi
 
 Do not use this setting when doing JavaScript URL routing: this will break URL routing.
 
-### Allow iframes
+### Response headers policy
 
-By default, as recommended [for security reasons](https://scotthelme.co.uk/hardening-your-http-response-headers/#x-frame-options), the static website cannot be embedded in an iframe.
-
-To allow embedding the website in an iframe, set it up explicitly:
+By default, the response headers policy is set to [Managed-SecurityHeadersPolicy](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html#managed-response-headers-policies-security). To override this policy, set the `responseHeadersPolicy` to the policy ID:
 
 ```yaml
 constructs:
     landing:
         # ...
-        security:
-            allowIframe: true
+        responseHeadersPolicy: 0a28e63d-d3a9-4578-9f8b-14347bfe8123 # Your Policy ID
+```
+
+or create a [response headers policy](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront.ResponseHeadersPolicyProps.html) inline:
+
+```yaml
+constructs:
+    landing:
+        # ...
+        responseHeadersPolicy:
+            responseHeadersPolicyName: CustomPolicy
+            securityHeadersBehavior:
+                contentSecurityPolicy:
+                    contentSecurityPolicy: default-src https:;
+                    override: true
 ```
 
 ## Extensions
