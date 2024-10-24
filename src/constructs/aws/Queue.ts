@@ -1,14 +1,15 @@
+import type { IKey } from "aws-cdk-lib/aws-kms";
 import { Key } from "aws-cdk-lib/aws-kms";
 import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
 import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { FromSchema } from "json-schema-to-ts";
 import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
 import { Alarm, ComparisonOperator, Metric, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
-import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
+import { Subscription, SubscriptionFilter, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
 import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
-import { CfnOutput, Duration } from "aws-cdk-lib";
+import { CfnOutput, Duration, Fn } from "aws-cdk-lib";
 import chalk from "chalk";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
 import { isNil } from "lodash";
@@ -19,6 +20,7 @@ import * as inquirer from "inquirer";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
+import { SqsSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { pollMessages, retryMessages } from "./queue/sqs";
 import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
@@ -59,6 +61,37 @@ const QUEUE_DEFINITION = {
         delay: { type: "number" },
         encryption: { type: "string" },
         encryptionKey: { type: "string" },
+        subscriptions: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    topicArn: { type: "string" },
+                    topicRef: { type: "string" },
+                    filters: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                attribute: { type: "string" },
+                                allows: { type: "array", items: { type: "string" } },
+                                denied: { type: "array", items: { type: "string" } },
+                                prefixes: { type: "array", items: { type: "string" } },
+                            },
+                            required: ["attribute"],
+                        },
+                    },
+                },
+                oneOf: [
+                    {
+                        required: ["topicArn"],
+                    },
+                    {
+                        required: ["topicRef"],
+                    },
+                ],
+            },
+        },
     },
     additionalProperties: false,
     required: ["worker"],
@@ -184,7 +217,12 @@ export class Queue extends AwsConstruct {
             }
         }
 
-        let encryption = undefined;
+        let encryption:
+            | {
+                  encryption?: QueueEncryption;
+                  encryptionMasterKey?: IKey;
+              }
+            | undefined = undefined;
         if (isNil(configuration.encryption) || configuration.encryption.length === 0) {
             encryption = {};
         } else if (configuration.encryption === "kmsManaged") {
@@ -264,6 +302,57 @@ export class Queue extends AwsConstruct {
                 bind(): AlarmActionConfig {
                     return { alarmActionArn: alarmTopic.topicArn };
                 },
+            });
+        }
+
+        const subscriptions = configuration.subscriptions;
+        if (subscriptions && subscriptions.length > 0) {
+            subscriptions.forEach((subscription, index) => {
+                // build filter policy if specified
+                let filterPolicy: Record<string, SubscriptionFilter> | undefined = undefined;
+                if (subscription.filters && subscription.filters.length > 0) {
+                    filterPolicy = Object.fromEntries(
+                        subscription.filters.map((filter) => [
+                            filter.attribute,
+                            SubscriptionFilter.stringFilter({
+                                allowlist: filter.allows,
+                                denylist: filter.denied,
+                                matchPrefixes: filter.prefixes,
+                            }),
+                        ])
+                    );
+                }
+
+                // get arn for topic to subscribe to
+                let topicArn: string;
+                if (subscription.topicRef !== undefined) {
+                    topicArn = Fn.ref(subscription.topicRef).toString();
+                } else if (subscription.topicArn !== undefined) {
+                    topicArn = subscription.topicArn;
+                } else {
+                    throw new ServerlessError(
+                        'Expected "topicArn" or "topicRef" to be specified',
+                        "LIFT_MISSING_TOPIC_ARN_OR_REF"
+                    );
+                }
+
+                // dead letter queue for the sns subscription
+                const subscriptionDlq = new CdkQueue(this, `SubscriptionDlq-${index}`, {
+                    queueName: `${baseName}-subscription-${index}-dlq`,
+                    // 14 days is the maximum, we want to keep these messages for as long as possible
+                    retentionPeriod: Duration.days(14),
+                    ...encryption,
+                });
+
+                // add the subscription to the topic
+                const topic = Topic.fromTopicArn(this, `SubscriptionTopic-${index}`, topicArn);
+                topic.addSubscription(
+                    new SqsSubscription(this.queue, {
+                        deadLetterQueue: subscriptionDlq,
+                        rawMessageDelivery: true,
+                        filterPolicy,
+                    })
+                );
             });
         }
 
