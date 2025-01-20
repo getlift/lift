@@ -42,6 +42,12 @@ describe("static websites", () => {
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
             Properties: {
+                PublicAccessBlockConfiguration: {
+                    BlockPublicAcls: false,
+                    BlockPublicPolicy: false,
+                    IgnorePublicAcls: false,
+                    RestrictPublicBuckets: false,
+                },
                 WebsiteConfiguration: {
                     IndexDocument: "index.html",
                 },
