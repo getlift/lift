@@ -19,7 +19,7 @@ jobs:
                 serverless:
                     - "2"
                     - "3"
-                    - "4"
+                    # - "4" Official way to test plugins for serverless is missing.
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
