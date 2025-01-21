@@ -13,12 +13,13 @@ jobs:
             fail-fast: false
             matrix:
                 node:
-                    - 16
+                    - 18
                     - 20
+                    - 22
                 serverless:
                     - "2"
                     - "3"
-                    - "4"
+                    # - "4" Official way to test plugins for serverless is missing.
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
@@ -32,7 +33,7 @@ jobs:
             - run: npm i serverless@${{ matrix.serverless }}
             - run: npm i @serverless/test@8
               # Only install @serverless/test@8 for Serverless v2
-              if: matrix.serverless != 'latest'
+              if: matrix.serverless == '2'
             - name: Run jest unit tests
               env:
                   NODE_OPTIONS: "--max_old_space_size=4096"

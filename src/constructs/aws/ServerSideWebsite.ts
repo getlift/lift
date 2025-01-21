@@ -240,7 +240,7 @@ export class ServerSideWebsite extends AwsConstruct {
         let uploadProgress: Progress | undefined;
         if (progress) {
             uploadProgress = progress.create({
-                message: 'Uploading assets'
+                message: "Uploading assets",
             });
         }
 
