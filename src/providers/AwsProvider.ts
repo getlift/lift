@@ -25,6 +25,14 @@ const AWS_DEFINITION = {
     additionalProperties: false,
 } as const;
 
+type ValueType<T extends { [key: string | number | symbol]: unknown }> = T extends {
+    [key: string | number | symbol]: infer V;
+}
+    ? V
+    : never;
+
+type ArrayType<T extends Array<unknown>> = T extends Array<infer V> ? V : never;
+
 export class AwsProvider implements ProviderInterface {
     public static type = "aws";
     public static schema = AWS_DEFINITION;
@@ -110,6 +118,31 @@ export class AwsProvider implements ProviderInterface {
          * will not have been normalized.
          */
         this.serverless.service.setFunctionNames(this.serverless.processedInput.options);
+    }
+
+    getFunction(functionName: string) {
+        if (!this.serverless.service.functions) {
+            return null;
+        }
+
+        return this.serverless.service.functions[functionName];
+    }
+
+    addFunctionEvent({
+        functionName,
+        event,
+    }: {
+        functionName: string;
+        event: ArrayType<Required<ValueType<Required<Serverless["service"]>["functions"]>>["events"]>;
+    }) {
+        const slsFunction = this.getFunction(functionName);
+        if (!slsFunction) {
+            throw new Error(`Serverless function ${functionName} doesn't exit, can not add an event.`);
+        }
+        if (!slsFunction.events) {
+            slsFunction.events = [];
+        }
+        slsFunction.events.push(event);
     }
 
     /**
