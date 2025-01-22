@@ -750,4 +750,85 @@ describe("queues", () => {
             );
         }
     });
+
+    it("subscribes the queue to sns topics", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "queues",
+            configExt: merge({}, pluginConfigExt, {
+                resources: {
+                    Resources: {
+                        UserDefinedTopic: {
+                            Type: "AWS::SNS::Topic",
+                            Properties: {
+                                TopicName: "UserDefinedTopicName",
+                            },
+                        },
+                    },
+                },
+                constructs: {
+                    fanout: {
+                        type: "queue",
+                        worker: {
+                            handler: "worker.handler",
+                        },
+                        subscriptions: [
+                            {
+                                topicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+                            },
+                            {
+                                topicRef: "UserDefinedTopicName",
+                            },
+                            {
+                                topicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+                                filters: [
+                                    {
+                                        attribute: "CustomAttribute",
+                                        allows: ["A", "B", "C"],
+                                        denied: ["D", "E", "F"],
+                                        prefixes: ["G", "H", "I"],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            }),
+            command: "package",
+        });
+        expect(cfTemplate.Resources.fanoutQueuefanoutSubscriptionTopic06888FE841BAF0A21).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+            },
+        });
+        expect(cfTemplate.Resources.fanoutQueuefanoutSubscriptionTopic174283ED646AA232E).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: { Ref: "UserDefinedTopicName" },
+            },
+        });
+        expect(cfTemplate.Resources.fanoutQueuefanoutSubscriptionTopic25418B790A6C2BD74).toMatchObject({
+            Type: "AWS::SNS::Subscription",
+            Properties: {
+                Protocol: "sqs",
+                RawMessageDelivery: true,
+                TopicArn: "arn:aws:sns:us-east-1:123456789012:example-sns-topic-name",
+                FilterPolicy: {
+                    CustomAttribute: [
+                        "A",
+                        "B",
+                        "C",
+                        { "anything-but": ["D", "E", "F"] },
+                        { prefix: "G" },
+                        { prefix: "H" },
+                        { prefix: "I" },
+                    ],
+                },
+            },
+        });
+    });
 });
