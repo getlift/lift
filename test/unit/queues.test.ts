@@ -750,4 +750,32 @@ describe("queues", () => {
             );
         }
     });
+    it("should use a function if the function is defined", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("queue-url");
+        const sendSpy = awsMock.mockService("SQS", "sendMessage").resolves();
+
+        await runServerless({
+            fixture: "queuesWorkerRef",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        fifo: true,
+                    },
+                },
+            }),
+            command: "emails:send",
+            options: {
+                body: "Message body",
+                "group-id": "123",
+            },
+        });
+
+        expect(sendSpy.callCount).toBe(1);
+        expect(sendSpy.firstCall.firstArg).toStrictEqual({
+            QueueUrl: "queue-url",
+            MessageGroupId: "123",
+            MessageBody: "Message body",
+        });
+    });
 });
