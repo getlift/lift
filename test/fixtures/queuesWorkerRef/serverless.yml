@@ -13,4 +13,4 @@ functions:
 constructs:
     emails:
         type: queue
-        workerRef: foo
+        worker: foo
