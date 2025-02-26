@@ -214,9 +214,26 @@ constructs:
             handler: src/worker.handler
 ```
 
-_Note: the Lambda "worker" function is configured in the `queue` construct, instead of being defined in the `functions` section._
+or
 
-The only required setting is the `handler`: this should point to the code that handles SQS messages. The handler [should be written to handle SQS events](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html), for example in JavaScript:
+```yaml
+function:
+    my-worker:
+        handler: src/worker.handler
+
+constructs:
+    my-queue:
+        type: queue
+        # References the my-worker function defined in the function section
+        worker: my-worker
+```
+
+It is both possible to reference an existing function as `worker` or specify the entire worker as an object.
+
+By defining the Lambda "worker" as an object, a new function is configured in the `queue` construct. 
+For the function object, the only required setting is the `handler`: this should point to the code that handles SQS messages.
+
+Whether the handler is referenced, or created, it [should be written to handle SQS events](https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html), for example in JavaScript:
 
 ```js
 exports.handler = async function (event, context) {
@@ -226,7 +243,7 @@ exports.handler = async function (event, context) {
 }
 ```
 
-[All settings allowed for functions](https://www.serverless.com/framework/docs/providers/aws/guide/functions/) can be used under the `worker` key. For example:
+When defined as an object, [all settings allowed for functions](https://www.serverless.com/framework/docs/providers/aws/guide/functions/) can be used under the `worker` key. For example:
 
 ```yaml
 constructs:
