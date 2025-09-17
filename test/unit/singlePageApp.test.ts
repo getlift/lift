@@ -62,10 +62,7 @@ describe("single page app", () => {
               Object {
                 "EventType": "viewer-response",
                 "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
-                    "${responseFunction}",
-                    "FunctionARN",
-                  ],
+                  "Ref": "${responseFunction}",
                 },
               },
               Object {

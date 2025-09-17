@@ -1,8 +1,7 @@
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Fn } from "aws-cdk-lib";
-import { CfnAuthorizer, CfnIntegration, CfnRoute } from "aws-cdk-lib/aws-apigatewayv2";
-import { HttpApi } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 import { Function } from "aws-cdk-lib/aws-lambda";
 import type { CfnEventBus } from "aws-cdk-lib/aws-events";
 import { EventBus } from "aws-cdk-lib/aws-events";
