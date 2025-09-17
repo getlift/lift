@@ -1,6 +1,7 @@
 import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
-import type { CfnDistribution, IOriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
+import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
+import { OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
@@ -109,10 +110,7 @@ export class ServerSideWebsite extends AwsConstruct {
         });
 
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
-        // It is not supported by the AWS CDK yet
-        const backendOriginPolicy = new (class implements IOriginRequestPolicy {
-            public readonly originRequestPolicyId = "b689b0a8-53d0-40ab-baf2-68738e2966ac";
-        })();
+        const backendOriginPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER;
         const backendCachePolicy = CachePolicy.CACHING_DISABLED;
 
         const apiId =
