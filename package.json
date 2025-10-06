@@ -83,6 +83,15 @@
   },
   "types": "dist/src/plugin.d.ts",
   "peerDependencies": {
-    "serverless": "^2.36.0 || ^3 || ^4"
+    "osls": "^3.54.1",
+    "serverless": "^3.28.0"
+  },
+  "peerDependenciesMeta": {
+    "osls": {
+      "optional": true
+    },
+    "serverless": {
+      "optional": true
+    }
   }
 }
