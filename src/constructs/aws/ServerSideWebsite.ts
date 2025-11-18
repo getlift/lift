@@ -1,4 +1,4 @@
-import type { CfnBucket } from "aws-cdk-lib/aws-s3";
+import type { CfnBucket, IBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
 import { OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
@@ -244,6 +244,11 @@ export class ServerSideWebsite extends AwsConstruct {
 
         let invalidate = false;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
+            // Ignore external buckets
+            if (filePath.startsWith("s3://")) {
+                continue;
+            }
+
             if (!fs.existsSync(filePath)) {
                 throw new ServerlessError(
                     `Error in 'constructs.${this.id}': the file or directory '${filePath}' does not exist`,
@@ -352,20 +357,49 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
-        for (const pattern of Object.keys(this.getAssetPatterns())) {
+        const patterns = this.getAssetPatterns();
+        const customOrigins: Record<string, IBucket> = {};
+
+        for (const pattern in patterns) {
             if (pattern === "/" || pattern === "/*") {
                 throw new ServerlessError(
                     `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
                     "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
                 );
             }
+
+            let originBucket = new S3Origin(bucket);
+            if (patterns[pattern].startsWith("s3://")) {
+                let existingBucketName = patterns[pattern].substring(5);
+                const originProperties = {
+                    originPath: "/",
+                    cachePolicy: CachePolicy.CACHING_DISABLED,
+                };
+
+                // Support mapping to custom origin paths
+                if (existingBucketName.indexOf("/") !== -1) {
+                    originProperties.originPath = existingBucketName.substring(existingBucketName.indexOf("/") + 1);
+                    existingBucketName = existingBucketName.split("/", 1)[0];
+                }
+
+                let existingBucket;
+                if (existingBucketName in customOrigins) {
+                    existingBucket = customOrigins[existingBucketName];
+                } else {
+                    existingBucket = Bucket.fromBucketName(this, existingBucketName, existingBucketName);
+                    customOrigins[existingBucketName] = existingBucket;
+                }
+
+                originBucket = new S3Origin(existingBucket, originProperties);
+            }
+
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket),
+                origin: originBucket,
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
-                cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+                cachePolicy: CachePolicy.CACHING_DISABLED,
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             };
         }
