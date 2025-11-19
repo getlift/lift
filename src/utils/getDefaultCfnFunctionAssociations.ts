@@ -23,7 +23,9 @@ export function getCfnFunctionAssociations(distribution: CfnDistribution): CfnFu
     const defaultBehavior = (distribution.distributionConfig as CfnDistribution.DistributionConfigProperty)
         .defaultCacheBehavior as CfnDistribution.DefaultCacheBehaviorProperty;
 
-    return (defaultBehavior.functionAssociations as Array<CfnDistribution.FunctionAssociationProperty>).map(
-        cdkFunctionAssociationToCfnFunctionAssociation
-    );
+    return defaultBehavior.functionAssociations instanceof Array
+        ? (defaultBehavior.functionAssociations as Array<CfnDistribution.FunctionAssociationProperty>).map(
+              cdkFunctionAssociationToCfnFunctionAssociation
+          )
+        : [];
 }
