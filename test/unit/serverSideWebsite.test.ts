@@ -92,7 +92,7 @@ describe("server-side website", () => {
                             {
                                 EventType: "viewer-request",
                                 FunctionARN: {
-                                    Ref: requestFunction,
+                                    "Fn::GetAtt": [requestFunction, "FunctionARN"],
                                 },
                             },
                         ],
@@ -209,7 +209,7 @@ describe("server-side website", () => {
                         FunctionAssociations: [
                             {
                                 EventType: "viewer-request",
-                                FunctionARN: { Ref: requestFunction },
+                                FunctionARN: { "Fn::GetAtt": [requestFunction, "FunctionARN"] },
                             },
                         ],
                     },
