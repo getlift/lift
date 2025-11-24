@@ -15,7 +15,7 @@ import type { Construct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration, Fn, RemovalPolicy } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
-import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import type { BehaviorOptions, ErrorResponse } from "aws-cdk-lib/aws-cloudfront/lib/distribution";
 import * as path from "path";
@@ -361,7 +361,7 @@ export class ServerSideWebsite extends AwsConstruct {
             }
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket),
+                origin: S3BucketOrigin.withOriginAccessControl(bucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
