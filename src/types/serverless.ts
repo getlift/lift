@@ -24,6 +24,7 @@ export type Provider = {
     naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
+        getLambdaFunctionUrlLogicalId: (functionName: string) => string;
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
         getCompiledTemplateFileName: () => string;
