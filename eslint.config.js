@@ -1,0 +1,111 @@
+const eslint = require("@eslint/js");
+const tseslint = require("typescript-eslint");
+const prettier = require("eslint-plugin-prettier");
+const prettierConfig = require("eslint-config-prettier");
+const importPlugin = require("eslint-plugin-import");
+
+module.exports = tseslint.config(
+    {
+        ignores: ["demo/**", "lib/**", "dist/**", "utils/**", "test/fixtures/**"],
+    },
+    eslint.configs.recommended,
+    {
+        plugins: {
+            prettier,
+            import: importPlugin,
+        },
+        languageOptions: {
+            ecmaVersion: "latest",
+            sourceType: "module",
+            globals: {
+                console: "readonly",
+                process: "readonly",
+                Buffer: "readonly",
+                __dirname: "readonly",
+                __filename: "readonly",
+                module: "readonly",
+                require: "readonly",
+                exports: "readonly",
+                global: "readonly",
+            },
+        },
+        rules: {
+            ...prettierConfig.rules,
+            "prettier/prettier": "error",
+            curly: ["error", "all"],
+            eqeqeq: ["error", "smart"],
+            "import/no-extraneous-dependencies": [
+                "error",
+                {
+                    devDependencies: true,
+                    optionalDependencies: false,
+                    peerDependencies: false,
+                },
+            ],
+            "no-shadow": [
+                "error",
+                {
+                    hoist: "all",
+                },
+            ],
+            "prefer-const": "error",
+            "import/order": [
+                "error",
+                {
+                    groups: [["external", "builtin"], "internal", ["parent", "sibling", "index"]],
+                },
+            ],
+            "sort-imports": [
+                "error",
+                {
+                    ignoreCase: true,
+                    ignoreDeclarationSort: true,
+                    ignoreMemberSort: false,
+                    memberSyntaxSortOrder: ["none", "all", "multiple", "single"],
+                },
+            ],
+            "padding-line-between-statements": [
+                "error",
+                {
+                    blankLine: "always",
+                    prev: "*",
+                    next: "return",
+                },
+            ],
+        },
+    },
+    ...tseslint.configs.recommended,
+    ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+        ...config,
+        files: ["**/*.ts"],
+    })),
+    {
+        files: ["**/*.ts"],
+        languageOptions: {
+            parserOptions: {
+                project: "./tsconfig.json",
+            },
+        },
+        rules: {
+            "@typescript-eslint/prefer-optional-chain": "error",
+            "no-shadow": "off",
+            "@typescript-eslint/no-shadow": "error",
+            "@typescript-eslint/prefer-nullish-coalescing": "error",
+            "@typescript-eslint/strict-boolean-expressions": "error",
+            "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
+            "@typescript-eslint/no-unnecessary-condition": "error",
+            "@typescript-eslint/no-unnecessary-type-arguments": "error",
+            "@typescript-eslint/prefer-string-starts-ends-with": "error",
+            "@typescript-eslint/switch-exhaustiveness-check": "error",
+            // We intentionally use this so that constructs can declare their command handlers
+            "@typescript-eslint/unbound-method": "off",
+            "@typescript-eslint/consistent-type-imports": "error",
+        },
+    },
+    {
+        files: ["**/*.js"],
+        rules: {
+            "@typescript-eslint/no-require-imports": "off",
+        },
+    },
+);

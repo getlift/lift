@@ -331,7 +331,7 @@ describe("queues", () => {
             expect(error).toBeInstanceOf(ServerlessError);
             expect(error).toHaveProperty(
                 "message",
-                "Invalid configuration in 'constructs.emails': 'encryptionKey' must be set if the 'encryption' is set to 'kms'"
+                "Invalid configuration in 'constructs.emails': 'encryptionKey' must be set if the 'encryption' is set to 'kms'",
             );
         }
     });
@@ -355,7 +355,7 @@ describe("queues", () => {
             expect(error).toBeInstanceOf(ServerlessError);
             expect(error).toHaveProperty(
                 "message",
-                "Invalid configuration in 'constructs.emails': 'delay' must be between 0 and 900, '901' given."
+                "Invalid configuration in 'constructs.emails': 'delay' must be between 0 and 900, '901' given.",
             );
         }
     });
@@ -584,7 +584,7 @@ describe("queues", () => {
         });
         // The DLQ is meant to store failed messages. We probably don't want similar messages to be dropped automatically.
         expect(cfTemplate.Resources[computeLogicalId("emails", "Dlq")].Properties).not.toHaveProperty(
-            "ContentBasedDeduplication"
+            "ContentBasedDeduplication",
         );
     });
 
@@ -697,7 +697,7 @@ describe("queues", () => {
             expect(error).toBeInstanceOf(ServerlessError);
             expect(error).toHaveProperty(
                 "message",
-                "There is no extension 'alarm' available on this construct. Available extensions are: queue, dlq."
+                "There is no extension 'alarm' available on this construct. Available extensions are: queue, dlq.",
             );
         }
     });
@@ -722,7 +722,7 @@ describe("queues", () => {
             expect(error).toBeInstanceOf(ServerlessError);
             expect(error).toHaveProperty(
                 "message",
-                "Invalid configuration in 'constructs.emails': 'batchSize' must be between 0 and 10 for FIFO queues, '100' given."
+                "Invalid configuration in 'constructs.emails': 'batchSize' must be between 0 and 10 for FIFO queues, '100' given.",
             );
         }
     });
@@ -746,7 +746,7 @@ describe("queues", () => {
             expect(error).toBeInstanceOf(ServerlessError);
             expect(error).toHaveProperty(
                 "message",
-                "Invalid configuration in 'constructs.emails': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '0' given."
+                "Invalid configuration in 'constructs.emails': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '0' given.",
             );
         }
     });

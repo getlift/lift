@@ -53,7 +53,7 @@ export class Webhook extends AwsConstruct {
         scope: CdkConstruct,
         private readonly id: string,
         private readonly configuration: Configuration,
-        private readonly provider: AwsProvider
+        private readonly provider: AwsProvider,
     ) {
         super(scope, id);
 
@@ -83,7 +83,7 @@ export class Webhook extends AwsConstruct {
                     "Either declare this webhook as secure by removing `insecure: true` property (recommended), " +
                     "or specify the webhook as insecure and remove the authorizer property altogether.\n" +
                     "See https://github.com/getlift/lift/blob/master/docs/webhook.md#authorizer",
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
         if (!resolvedConfiguration.insecure && resolvedConfiguration.authorizer === undefined) {
@@ -92,7 +92,7 @@ export class Webhook extends AwsConstruct {
                     "Please provide an authorizer property for this webhook (recommended), " +
                     "or specify the webhook as insecure by adding `insecure: true` property.\n" +
                     "See https://github.com/getlift/lift/blob/master/docs/webhook.md#authorizer",
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
 
@@ -122,7 +122,7 @@ export class Webhook extends AwsConstruct {
             const lambda = Function.fromFunctionArn(
                 this,
                 "LambdaAuthorizer",
-                Fn.getAtt(provider.naming.getLambdaLogicalId(`${id}Authorizer`), "Arn").toString()
+                Fn.getAtt(provider.naming.getLambdaLogicalId(`${id}Authorizer`), "Arn").toString(),
             );
             lambda.grantInvoke(apiGatewayRole);
             const authorizer = new CfnAuthorizer(this, "Authorizer", {

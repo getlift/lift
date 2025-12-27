@@ -35,7 +35,12 @@ export class Storage extends AwsConstruct {
     // a remplacer par StorageExtensionsKeys
     private readonly bucketNameOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
+    constructor(
+        scope: CdkConstruct,
+        id: string,
+        configuration: Configuration,
+        private provider: AwsProvider,
+    ) {
         super(scope, id);
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
@@ -81,7 +86,7 @@ export class Storage extends AwsConstruct {
         return [
             new PolicyStatement(
                 ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
-                [this.bucket.bucketArn, Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"]))]
+                [this.bucket.bucketArn, Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"]))],
             ),
         ];
     }

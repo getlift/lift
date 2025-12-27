@@ -17,7 +17,7 @@ export async function runServerlessCli({ command, fixture }: RunServerlessCliOpt
         process.on("close", (err) => {
             if (err === 0) {
                 const json = readFileSync(
-                    __dirname + "/../fixtures/variables/.serverless/cloudformation-template-update-stack.json"
+                    __dirname + "/../fixtures/variables/.serverless/cloudformation-template-update-stack.json",
                 );
                 resolve({
                     stdoutData: output,

@@ -43,7 +43,7 @@ export class AwsProvider implements ProviderInterface {
             if (constructClass.type in this.constructClasses) {
                 throw new ServerlessError(
                     `The construct type '${constructClass.type}' was registered twice`,
-                    "LIFT_CONSTRUCT_TYPE_CONFLICT"
+                    "LIFT_CONSTRUCT_TYPE_CONFLICT",
                 );
             }
             this.constructClasses[constructClass.type] = constructClass;
@@ -94,7 +94,7 @@ export class AwsProvider implements ProviderInterface {
             throw new ServerlessError(
                 `The construct '${id}' has an unknown type '${type}'\n` +
                     "Find all construct types available here: https://github.com/getlift/lift#constructs",
-                "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+                "LIFT_UNKNOWN_CONSTRUCT_TYPE",
             );
         }
         const configuration = get(this.serverless.configurationInput.constructs, id, {});
@@ -103,10 +103,8 @@ export class AwsProvider implements ProviderInterface {
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
-        if (!this.serverless.configurationInput.functions) {
-            // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
-            this.serverless.configurationInput.functions = {};
-        }
+        // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
+        this.serverless.configurationInput.functions ??= {};
 
         merge(this.serverless.service.functions, {
             [functionName]: functionConfig,
@@ -139,9 +137,7 @@ export class AwsProvider implements ProviderInterface {
         if (!slsFunction) {
             throw new Error(`Serverless function ${functionName} doesn't exit, can not add an event.`);
         }
-        if (!slsFunction.events) {
-            slsFunction.events = [];
-        }
+        slsFunction.events ??= [];
         slsFunction.events.push(event);
     }
 
@@ -154,7 +150,7 @@ export class AwsProvider implements ProviderInterface {
                 "Can't register more than one VPC.\n" +
                     'Either you have several "vpc" constructs \n' +
                     'or you already defined "provider.vpc" in serverless.yml',
-                "LIFT_ONLY_ONE_VPC"
+                "LIFT_ONLY_ONE_VPC",
             );
         }
 
@@ -220,5 +216,5 @@ AwsProvider.registerConstructs(
     StaticWebsite,
     Vpc,
     DatabaseDynamoDBSingleTable,
-    ServerSideWebsite
+    ServerSideWebsite,
 );

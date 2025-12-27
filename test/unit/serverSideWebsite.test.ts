@@ -404,8 +404,8 @@ describe("server-side website", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
-            "Invalid configuration in 'constructs.backend.errorPage': the custom error page must be a static HTML file. '/error.css' does not end with '.html'."
+        }).rejects.toThrow(
+            "Invalid configuration in 'constructs.backend.errorPage': the custom error page must be a static HTML file. '/error.css' does not end with '.html'.",
         );
     });
 
@@ -424,8 +424,8 @@ describe("server-side website", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
-            "Invalid key in 'constructs.backend.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'."
+        }).rejects.toThrow(
+            "Invalid key in 'constructs.backend.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.",
         );
     });
 
@@ -498,7 +498,7 @@ describe("server-side website", () => {
                 {
                     Key: "assets/logo.png",
                     ETag: computeS3ETag(
-                        fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/logo.png"))
+                        fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/logo.png")),
                     ),
                 },
                 { Key: "assets/styles.css" },

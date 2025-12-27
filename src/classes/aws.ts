@@ -13,7 +13,7 @@ export async function awsRequest<Input, Output>(
     params: Input,
     service: string,
     method: string,
-    provider: LegacyAwsProvider
+    provider: LegacyAwsProvider,
 ): Promise<Output> {
     return await provider.request<Input, Output>(service, method, params);
 }

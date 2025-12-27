@@ -32,7 +32,12 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
     private readonly table: Table;
     private readonly tableNameOutput: CfnOutput;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
+    constructor(
+        scope: CdkConstruct,
+        id: string,
+        configuration: Configuration,
+        private provider: AwsProvider,
+    ) {
         super(scope, id);
 
         const resolvedConfiguration = Object.assign({}, DATABASE_DEFAULTS, configuration);
@@ -88,7 +93,7 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
                     "dynamodb:UpdateItem",
                     "dynamodb:ConditionCheckItem",
                 ],
-                [this.table.tableArn, Stack.of(this).resolve(Fn.join("/", [this.table.tableArn, "index", "*"]))]
+                [this.table.tableArn, Stack.of(this).resolve(Fn.join("/", [this.table.tableArn, "index", "*"]))],
             ),
         ];
     }

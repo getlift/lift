@@ -14,7 +14,7 @@ describe("storage", () => {
         const useCases = [["default"], ["kmsEncryption"]];
         test.each(useCases)("%p - should configure a lifecycle policy", (useCase) => {
             expect(
-                cfTemplate.Resources[computeLogicalId(useCase, "Bucket")].Properties.LifecycleConfiguration
+                cfTemplate.Resources[computeLogicalId(useCase, "Bucket")].Properties.LifecycleConfiguration,
             ).toMatchObject({
                 Rules: [
                     {
@@ -37,7 +37,7 @@ describe("storage", () => {
         });
         test.each(useCases)("%p - should have versionning enabled", (useCase) => {
             expect(
-                cfTemplate.Resources[computeLogicalId(useCase, "Bucket")].Properties.VersioningConfiguration
+                cfTemplate.Resources[computeLogicalId(useCase, "Bucket")].Properties.VersioningConfiguration,
             ).toStrictEqual({ Status: "Enabled" });
         });
     });

@@ -40,7 +40,7 @@ export class StripeProvider implements ProviderInterface {
             if (constructClass.type in this.constructClasses) {
                 throw new ServerlessError(
                     `The construct type '${constructClass.type}' was registered twice`,
-                    "LIFT_CONSTRUCT_TYPE_CONFLICT"
+                    "LIFT_CONSTRUCT_TYPE_CONFLICT",
                 );
             }
             this.constructClasses[constructClass.type] = constructClass;
@@ -61,7 +61,11 @@ export class StripeProvider implements ProviderInterface {
 
     private config: { apiKey: string; accountId?: string };
     public sdk: Stripe;
-    constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
+    constructor(
+        private readonly serverless: Serverless,
+        private readonly id: string,
+        profile?: string,
+    ) {
         this.config = this.resolveConfiguration(profile);
         this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
     }
@@ -72,7 +76,7 @@ export class StripeProvider implements ProviderInterface {
             throw new ServerlessError(
                 `The construct '${id}' has an unknown type '${type}'\n` +
                     "Find all construct types available here: https://github.com/getlift/lift#constructs",
-                "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+                "LIFT_UNKNOWN_CONSTRUCT_TYPE",
             );
         }
         const configuration = get(this.serverless.configurationInput.constructs, id, {});
@@ -92,7 +96,7 @@ export class StripeProvider implements ProviderInterface {
         if (!existsSync(stripeConfigFilePath)) {
             throw new ServerlessError(
                 "Could not source any Stripe configuration. Have you set your STRIPE_API_KEY environment?",
-                "STRIPE_MISSING_CONFIGURATION"
+                "STRIPE_MISSING_CONFIGURATION",
             );
         }
 
@@ -102,11 +106,11 @@ export class StripeProvider implements ProviderInterface {
             if (!has(stripeConfigurations, profile)) {
                 throw new ServerlessError(
                     `There is no ${profile} profile in your stripe configuration. Found profiles are ${Object.keys(
-                        stripeConfigurations
+                        stripeConfigurations,
                     )
                         .filter((stripeConfiguration) => stripeConfiguration !== "color")
                         .join(", ")}`,
-                    "STRIPE_MISSING_PROFILE"
+                    "STRIPE_MISSING_PROFILE",
                 );
             }
             const stripeConfig = stripeConfigurations[profile];
@@ -120,11 +124,11 @@ export class StripeProvider implements ProviderInterface {
         if (!has(stripeConfigurations, "default")) {
             throw new ServerlessError(
                 `There is no default profile in your stripe configuration. Please provide one of the found profiles: ${Object.keys(
-                    stripeConfigurations
+                    stripeConfigurations,
                 )
                     .filter((stripeConfiguration) => stripeConfiguration !== "color")
                     .join(", ")}`,
-                "STRIPE_MISSING_DEFAULT_PROFILE"
+                "STRIPE_MISSING_DEFAULT_PROFILE",
             );
         }
         const defaultStripeConfig = stripeConfigurations.default;

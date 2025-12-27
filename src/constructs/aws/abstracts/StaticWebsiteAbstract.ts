@@ -79,7 +79,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         scope: CdkConstruct,
         protected readonly id: string,
         protected readonly configuration: CommonStaticWebsiteConfiguration,
-        protected readonly provider: AwsProvider
+        protected readonly provider: AwsProvider,
     ) {
         super(scope, id);
 
@@ -103,7 +103,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             throw new ServerlessError(
                 `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
                     "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
 
@@ -201,7 +201,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         if (bucketName === undefined) {
             throw new ServerlessError(
                 `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`,
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
 
@@ -252,7 +252,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         }
 
         getUtils().log(
-            `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+            `Emptying S3 bucket '${bucketName}' for the '${this.id}' static website, else CloudFormation will fail (it cannot delete a non-empty bucket)`,
         );
         await emptyBucket(this.provider, bucketName);
     }
@@ -289,7 +289,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
                 throw new ServerlessError(
                     `The 'errorPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
                         `(it cannot be a relative path).`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             if (!errorPath.startsWith("/")) {
@@ -347,7 +347,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
 
         const functionName = ensureNameMaxLength(
             `${this.provider.stackName}-${this.provider.region}-${this.id}-response`,
-            64
+            64,
         );
 
         return new cloudfront.Function(this, "ResponseFunction", {

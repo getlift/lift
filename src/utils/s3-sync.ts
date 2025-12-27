@@ -66,7 +66,7 @@ export async function s3Sync({
                 await s3Put(aws, bucketName, targetKey, fileContent);
                 hasChanges = true;
                 fileChangeCount++;
-            })
+            }),
         );
     }
     if (skippedFiles > 0) {
@@ -74,7 +74,7 @@ export async function s3Sync({
     }
 
     const targetKeys = filesToUpload.map((file) =>
-        targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
+        targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file,
     );
 
     const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
@@ -91,7 +91,7 @@ export async function s3Sync({
                 });
 
                 await s3Delete(aws, bucketName, keysToDeleteChunk);
-            })
+            }),
         );
 
         hasChanges = true;
@@ -116,7 +116,7 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
             }
 
             return [];
-        })
+        }),
     );
 
     return flatten(files);
@@ -181,7 +181,7 @@ async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promi
         response.Errors.forEach((error) => console.log(error));
         throw new ServerlessError(
             `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-            "LIFT_S3_DELETE_OBJECTS_FAILURE"
+            "LIFT_S3_DELETE_OBJECTS_FAILURE",
         );
     }
 }

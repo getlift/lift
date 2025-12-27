@@ -13,13 +13,13 @@ function expectLiftStorageStatementIsAdded(cfTemplate: CfTemplate) {
                 Effect: "Allow",
                 Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
             }),
-        ])
+        ]),
     );
 }
 
 function expectUserDynamoStatementIsAdded(cfTemplate: CfTemplate) {
     expect(
-        get(cfTemplate.Resources.IamRoleLambdaExecution, "Properties.Policies[0].PolicyDocument.Statement")
+        get(cfTemplate.Resources.IamRoleLambdaExecution, "Properties.Policies[0].PolicyDocument.Statement"),
     ).toContainEqual({
         Effect: "Allow",
         Action: ["dynamodb:PutItem"],
@@ -117,7 +117,7 @@ describe("permissions", () => {
         // There should be no "s3:*" permissions added
         const statements = get(
             cfTemplate.Resources.IamRoleLambdaExecution,
-            "Properties.Policies[0].PolicyDocument.Statement"
+            "Properties.Policies[0].PolicyDocument.Statement",
         ) as unknown as { Action: string[] }[];
         statements.forEach(({ Action }) => {
             expect(Action).not.toEqual(expect.arrayContaining([expect.stringMatching(/^s3:.*$/)]));

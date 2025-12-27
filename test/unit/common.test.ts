@@ -10,7 +10,7 @@ describe("common", () => {
                         avatars: {},
                     },
                 }),
-            })
+            }),
         ).rejects.toThrow(/The construct 'avatars' has no 'type' defined.*/g);
     });
 
@@ -49,7 +49,7 @@ describe("common", () => {
                         },
                     },
                 }),
-            })
+            }),
         ).rejects.toThrow(/Configuration error at 'constructs\.avatars'.*/g);
         // Invalid config: valid property, but in the wrong construct
         await expect(
@@ -64,7 +64,7 @@ describe("common", () => {
                         },
                     },
                 }),
-            })
+            }),
         ).rejects.toThrow(/Configuration error at 'constructs\.avatars'.*/g);
     });
 });

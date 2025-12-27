@@ -19,7 +19,7 @@ export class StaticWebsite extends StaticWebsiteAbstract {
         scope: CdkConstruct,
         protected readonly id: string,
         protected readonly configuration: CommonStaticWebsiteConfiguration,
-        protected readonly provider: AwsProvider
+        protected readonly provider: AwsProvider,
     ) {
         super(scope, id, configuration, provider);
 
@@ -56,7 +56,7 @@ export class StaticWebsite extends StaticWebsiteAbstract {
 
         const functionName = ensureNameMaxLength(
             `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
-            64
+            64,
         );
 
         return new cloudfront.Function(this, "RequestFunction", {

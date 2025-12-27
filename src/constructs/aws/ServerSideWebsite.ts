@@ -87,20 +87,20 @@ export class ServerSideWebsite extends AwsConstruct {
         scope: Construct,
         private readonly id: string,
         readonly configuration: Configuration,
-        private readonly provider: AwsProvider
+        private readonly provider: AwsProvider,
     ) {
         super(scope, id);
 
         if (configuration.domain !== undefined && configuration.certificate === undefined) {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
         if (configuration.errorPage !== undefined && !configuration.errorPage.endsWith(".html")) {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${id}.errorPage': the custom error page must be a static HTML file. '${configuration.errorPage}' does not end with '.html'.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
 
@@ -167,10 +167,8 @@ export class ServerSideWebsite extends AwsConstruct {
             value: this.bucket.bucketName,
         });
         let websiteDomain = this.getMainCustomDomain();
-        if (websiteDomain === undefined) {
-            // Fallback on the CloudFront domain
-            websiteDomain = this.distribution.distributionDomainName;
-        }
+        // Fallback on the CloudFront domain
+        websiteDomain ??= this.distribution.distributionDomainName;
         this.domainOutput = new CfnOutput(this, "Domain", {
             description: "Website domain name.",
             value: websiteDomain,
@@ -230,7 +228,7 @@ export class ServerSideWebsite extends AwsConstruct {
         if (bucketName === undefined) {
             throw new ServerlessError(
                 `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`,
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
 
@@ -247,7 +245,7 @@ export class ServerSideWebsite extends AwsConstruct {
             if (!fs.existsSync(filePath)) {
                 throw new ServerlessError(
                     `Error in 'constructs.${this.id}': the file or directory '${filePath}' does not exist`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             let s3PathPrefix: string = path.dirname(pattern);
@@ -311,7 +309,7 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         getUtils().log(
-            `Emptying S3 bucket '${bucketName}' for the '${this.id}' website, else CloudFormation will fail (it cannot delete a non-empty bucket)`
+            `Emptying S3 bucket '${bucketName}' for the '${this.id}' website, else CloudFormation will fail (it cannot delete a non-empty bucket)`,
         );
         await emptyBucket(this.provider, bucketName);
     }
@@ -356,7 +354,7 @@ export class ServerSideWebsite extends AwsConstruct {
             if (pattern === "/" || pattern === "/*") {
                 throw new ServerlessError(
                     `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             behaviors[pattern] = {
@@ -395,7 +393,7 @@ export class ServerSideWebsite extends AwsConstruct {
 
         const functionName = ensureNameMaxLength(
             `${this.provider.stackName}-${this.provider.region}-${this.id}-request`,
-            64
+            64,
         );
 
         return new cloudfront.Function(this, "RequestFunction", {

@@ -8,8 +8,8 @@ describe("extensions", () => {
                 configExt: pluginConfigExt,
                 command: "package",
             });
-        }).rejects.toThrowError(
-            "There is no extension 'notExisting' available on this construct. Available extensions are: bucket."
+        }).rejects.toThrow(
+            "There is no extension 'notExisting' available on this construct. Available extensions are: bucket.",
         );
     });
 });

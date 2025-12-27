@@ -56,9 +56,7 @@ export function setUtils(u: ServerlessUtils | undefined): void {
 }
 
 export function getUtils(): ServerlessUtils {
-    if (utils === undefined) {
-        utils = createLegacyUtils();
-    }
+    utils ??= createLegacyUtils();
 
     return utils;
 }

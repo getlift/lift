@@ -37,7 +37,7 @@ describe("stripe", () => {
                 env: {
                     XDG_CONFIG_HOME: resolve(process.cwd(), "test/fixtures/stripe/.config"),
                 },
-            })
+            }),
         ).rejects.toThrow(/There is no default profile in your stripe configuration/);
     });
 });

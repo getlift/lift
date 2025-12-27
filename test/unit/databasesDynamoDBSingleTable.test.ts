@@ -27,14 +27,14 @@ describe("databasesDynamoDBSingleTable", () => {
                     UpdateReplacePolicy: "Retain",
                     DeletionPolicy: "Retain",
                 });
-            }
+            },
         );
         test.each(tableUseCases)("%p - should provision generic names for primary index", (tableUseCase) => {
             expect(
-                cfTemplate.Resources[computeLogicalId(tableUseCase, "Table")].Properties.AttributeDefinitions
+                cfTemplate.Resources[computeLogicalId(tableUseCase, "Table")].Properties.AttributeDefinitions,
             ).toContainEqual({ AttributeName: "PK", AttributeType: "S" });
             expect(
-                cfTemplate.Resources[computeLogicalId(tableUseCase, "Table")].Properties.AttributeDefinitions
+                cfTemplate.Resources[computeLogicalId(tableUseCase, "Table")].Properties.AttributeDefinitions,
             ).toContainEqual({ AttributeName: "SK", AttributeType: "S" });
             expect(cfTemplate.Resources[computeLogicalId(tableUseCase, "Table")].Properties.KeySchema).toEqual([
                 {
@@ -52,12 +52,12 @@ describe("databasesDynamoDBSingleTable", () => {
         for (let localSecondaryIndex = 1; localSecondaryIndex <= 5; localSecondaryIndex++) {
             expect(
                 cfTemplate.Resources[computeLogicalId("databaseWithLocalSecondaryIndexes", "Table")].Properties
-                    .AttributeDefinitions
+                    .AttributeDefinitions,
             ).toContainEqual({ AttributeName: `LSI-${localSecondaryIndex}-SK`, AttributeType: "S" });
         }
         expect(
             cfTemplate.Resources[computeLogicalId("databaseWithLocalSecondaryIndexes", "Table")].Properties
-                .LocalSecondaryIndexes
+                .LocalSecondaryIndexes,
         ).toEqual(
             Array.from({ length: 5 }, (_, i) => i + 1).map((localSecondaryIndex) => {
                 return {
@@ -74,23 +74,23 @@ describe("databasesDynamoDBSingleTable", () => {
                     ],
                     Projection: { ProjectionType: "ALL" },
                 };
-            })
+            }),
         );
     });
     it("should use generic names for GSI", () => {
         for (let globalSecondaryIndex = 1; globalSecondaryIndex <= 2; globalSecondaryIndex++) {
             expect(
                 cfTemplate.Resources[computeLogicalId("databaseWithGlobalSecondaryIndexes", "Table")].Properties
-                    .AttributeDefinitions
+                    .AttributeDefinitions,
             ).toContainEqual({ AttributeName: `GSI-${globalSecondaryIndex}-PK`, AttributeType: "S" });
             expect(
                 cfTemplate.Resources[computeLogicalId("databaseWithGlobalSecondaryIndexes", "Table")].Properties
-                    .AttributeDefinitions
+                    .AttributeDefinitions,
             ).toContainEqual({ AttributeName: `GSI-${globalSecondaryIndex}-SK`, AttributeType: "S" });
         }
         expect(
             cfTemplate.Resources[computeLogicalId("databaseWithGlobalSecondaryIndexes", "Table")].Properties
-                .GlobalSecondaryIndexes
+                .GlobalSecondaryIndexes,
         ).toEqual(
             Array.from({ length: 2 }, (_, i) => i + 1).map((globalSecondaryIndex) => {
                 return {
@@ -107,7 +107,7 @@ describe("databasesDynamoDBSingleTable", () => {
                     ],
                     Projection: { ProjectionType: "ALL" },
                 };
-            })
+            }),
         );
     });
 

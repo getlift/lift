@@ -16,9 +16,9 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
             if (!Object.keys(availableExtensions).includes(extensionKey)) {
                 throw new ServerlessError(
                     `There is no extension '${extensionKey}' available on this construct. Available extensions are: ${Object.keys(
-                        availableExtensions
+                        availableExtensions,
                     ).join(", ")}.`,
-                    "LIFT_UNKNOWN_EXTENSION"
+                    "LIFT_UNKNOWN_EXTENSION",
                 );
             }
             if (isObject(extensionObject)) {
@@ -31,7 +31,7 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
                     .filter((path) => {
                         if (
                             accumulatedPathsPointingToArray.some((previouslySelectedPath) =>
-                                path.startsWith(previouslySelectedPath)
+                                path.startsWith(previouslySelectedPath),
                             )
                         ) {
                             return false;
@@ -62,12 +62,12 @@ export abstract class AwsConstruct extends CdkConstruct implements ConstructInte
                 scope: CdkConstruct,
                 id: string,
                 configuration: { extensions?: Record<string, unknown> } & Record<string, unknown>,
-                provider: AwsProvider
+                provider: AwsProvider,
             ): C;
         },
         provider: AwsProvider,
         id: string,
-        configuration: { extensions?: Record<string, unknown> } & Record<string, unknown>
+        configuration: { extensions?: Record<string, unknown> } & Record<string, unknown>,
     ): C {
         /**
          * We are passing a `configuration` of type `Record<string, unknown>` to a parameter

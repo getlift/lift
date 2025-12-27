@@ -1,31 +1,31 @@
-import { Key } from "aws-cdk-lib/aws-kms";
-import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
-import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
-import type { FromSchema } from "json-schema-to-ts";
-import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
-import { Alarm, ComparisonOperator, Metric, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
-import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
-import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
-import type { Construct as CdkConstruct } from "constructs";
+import type { ConstructCommands } from "@lift/constructs";
+import { AwsConstruct } from "@lift/constructs/abstracts";
+import type { AwsProvider } from "@lift/providers";
 import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration } from "aws-cdk-lib";
-import chalk from "chalk";
+import type { CfnAlarm } from "aws-cdk-lib/aws-cloudwatch";
+import { Alarm, ComparisonOperator, Metric, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
+import type { AlarmActionConfig } from "aws-cdk-lib/aws-cloudwatch/lib/alarm-action";
+import { Key } from "aws-cdk-lib/aws-kms";
+import { Subscription, SubscriptionProtocol, Topic } from "aws-cdk-lib/aws-sns";
+import type { CfnQueue } from "aws-cdk-lib/aws-sqs";
+import { Queue as CdkQueue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
+import chalk from "chalk";
+import { spawnSync } from "child_process";
+import type { Construct as CdkConstruct } from "constructs";
+import * as inquirer from "inquirer";
+import type { FromSchema } from "json-schema-to-ts";
 import { isNil } from "lodash";
 import type { Ora } from "ora";
 import ora from "ora";
-import { spawnSync } from "child_process";
-import * as inquirer from "inquirer";
-import type { AwsProvider } from "@lift/providers";
-import { AwsConstruct } from "@lift/constructs/abstracts";
-import type { ConstructCommands } from "@lift/constructs";
-import { pollMessages, retryMessages } from "./queue/sqs";
-import { sleep } from "../../utils/sleep";
 import { PolicyStatement } from "../../CloudFormation";
 import type { CliOptions } from "../../types/serverless";
 import ServerlessError from "../../utils/error";
 import type { Progress } from "../../utils/logger";
 import { getUtils } from "../../utils/logger";
+import { sleep } from "../../utils/sleep";
+import { pollMessages, retryMessages } from "./queue/sqs";
 
 const QUEUE_DEFINITION = {
     type: "object",
@@ -138,7 +138,7 @@ export class Queue extends AwsConstruct {
         scope: CdkConstruct,
         private readonly id: string,
         private readonly configuration: Configuration,
-        private readonly provider: AwsProvider
+        private readonly provider: AwsProvider,
     ) {
         super(scope, id);
 
@@ -148,7 +148,7 @@ export class Queue extends AwsConstruct {
         if (configuration.worker === undefined) {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${this.id}': no 'worker' defined. Queue constructs require a 'worker' function to be defined.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
 
@@ -159,7 +159,7 @@ export class Queue extends AwsConstruct {
             if (!slsFunction) {
                 throw new ServerlessError(
                     `Invalid configuration in 'constructs.${this.id}': 'workerRef' needs to point to an existing function.`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             functionConfig = slsFunction.timeout;
@@ -182,7 +182,7 @@ export class Queue extends AwsConstruct {
             if (configuration.delay < 0 || configuration.delay > 900) {
                 throw new ServerlessError(
                     `Invalid configuration in 'constructs.${this.id}': 'delay' must be between 0 and 900, '${configuration.delay}' given.`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
 
@@ -193,7 +193,7 @@ export class Queue extends AwsConstruct {
             if (configuration.batchSize > 10 && configuration.fifo === true) {
                 throw new ServerlessError(
                     `Invalid configuration in 'constructs.${this.id}': 'batchSize' must be between 0 and 10 for FIFO queues, '${configuration.batchSize}' given.`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             if (configuration.batchSize > 10 && !this.getMaximumBatchingWindow()) {
@@ -201,7 +201,7 @@ export class Queue extends AwsConstruct {
                     `Invalid configuration in 'constructs.${
                         this.id
                     }': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '${this.getMaximumBatchingWindow()}' given.`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
         }
@@ -215,7 +215,7 @@ export class Queue extends AwsConstruct {
             if (isNil(configuration.encryptionKey) || configuration.encryptionKey.length === 0) {
                 throw new ServerlessError(
                     `Invalid configuration in 'constructs.${this.id}': 'encryptionKey' must be set if the 'encryption' is set to 'kms'`,
-                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
                 );
             }
             encryption = {
@@ -225,7 +225,7 @@ export class Queue extends AwsConstruct {
         } else {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${this.id}': 'encryption' must be one of 'kms', 'kmsManaged', null, '${configuration.encryption}' given.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION",
             );
         }
 
@@ -381,7 +381,7 @@ export class Queue extends AwsConstruct {
         if (dlqUrl === undefined) {
             throw new ServerlessError(
                 'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?',
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
         const progress = getUtils().progress;
@@ -402,7 +402,7 @@ export class Queue extends AwsConstruct {
                     progressV2.text = `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`;
                 } else if (progressV3) {
                     progressV3.update(
-                        `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`
+                        `Polling failed messages from the dead letter queue (${numberOfMessagesFound} found)`,
                     );
                 }
             },
@@ -436,7 +436,7 @@ export class Queue extends AwsConstruct {
         const retryCommand = chalk.bold(`serverless ${this.id}:failed:retry`);
         const purgeCommand = chalk.bold(`serverless ${this.id}:failed:purge`);
         getUtils().log(
-            `Run ${retryCommand} to retry all messages, or ${purgeCommand} to delete those messages forever.`
+            `Run ${retryCommand} to retry all messages, or ${purgeCommand} to delete those messages forever.`,
         );
     }
 
@@ -445,7 +445,7 @@ export class Queue extends AwsConstruct {
         if (dlqUrl === undefined) {
             throw new ServerlessError(
                 'Could not find the dead letter queue in the deployed stack. Try running "serverless deploy" first?',
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
         const progress = getUtils().progress;
@@ -481,7 +481,7 @@ export class Queue extends AwsConstruct {
         if (queueUrl === undefined || dlqUrl === undefined) {
             throw new ServerlessError(
                 'Could not find the queue in the deployed stack. Try running "serverless deploy" first?',
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
         const progress = getUtils().progress;
@@ -511,7 +511,7 @@ export class Queue extends AwsConstruct {
             totalMessagesToRetry += messages.length;
             if (progressV3) {
                 progressV3.update(
-                    `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`
+                    `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`,
                 );
             } else if (progressV2) {
                 progressV2.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
@@ -521,7 +521,7 @@ export class Queue extends AwsConstruct {
             totalMessagesRetried += result.numberOfMessagesRetried;
             if (progressV3) {
                 progressV3.update(
-                    `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`
+                    `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`,
                 );
             } else if (progressV2) {
                 progressV2.text = `Moving failed messages from DLQ to the main queue to be retried (${totalMessagesRetried}/${totalMessagesToRetry})`;
@@ -537,21 +537,21 @@ export class Queue extends AwsConstruct {
                 }
                 if (totalMessagesRetried > 0) {
                     console.log(
-                        `${totalMessagesRetried} failed messages have been successfully moved to the main queue to be retried.`
+                        `${totalMessagesRetried} failed messages have been successfully moved to the main queue to be retried.`,
                     );
                 }
                 if (result.numberOfMessagesNotRetried > 0) {
                     console.log(
-                        `${result.numberOfMessagesNotRetried} failed messages could not be retried (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`
+                        `${result.numberOfMessagesNotRetried} failed messages could not be retried (for some unknown reason SQS refused to move them). These messages are still in the dead letter queue. Maybe try again?`,
                     );
                 }
                 if (result.numberOfMessagesRetriedButNotDeleted > 0) {
                     console.log(
-                        `${result.numberOfMessagesRetriedButNotDeleted} failed messages were moved to the main queue, but were not successfully deleted from the dead letter queue. That means that these messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+                        `${result.numberOfMessagesRetriedButNotDeleted} failed messages were moved to the main queue, but were not successfully deleted from the dead letter queue. That means that these messages will be retried in the main queue, but they will also still be present in the dead letter queue.`,
                     );
                 }
                 console.log(
-                    "Stopping now because of the error above. Not all messages have been retried, run the command again to continue."
+                    "Stopping now because of the error above. Not all messages have been retried, run the command again to continue.",
                 );
 
                 return;
@@ -577,7 +577,7 @@ export class Queue extends AwsConstruct {
         if (progressV3) {
             progressV3.remove();
             getUtils().log.success(
-                `${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`
+                `${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`,
             );
         } else if (progressV2) {
             progressV2.succeed(`${totalMessagesRetried} failed message(s) moved to the main queue to be retried 💪`);
@@ -589,14 +589,14 @@ export class Queue extends AwsConstruct {
         if (queueUrl === undefined) {
             throw new ServerlessError(
                 'Could not find the queue in the deployed stack. Try running "serverless deploy" first?',
-                "LIFT_MISSING_STACK_OUTPUT"
+                "LIFT_MISSING_STACK_OUTPUT",
             );
         }
 
         if (this.configuration.fifo === true && typeof options["group-id"] !== "string") {
             throw new ServerlessError(
                 `The '${this.id}' queue is a FIFO queue. You must set the SQS message group ID via the '--group-id' option.`,
-                "LIFT_MISSING_CLI_OPTION"
+                "LIFT_MISSING_CLI_OPTION",
             );
         }
 
@@ -638,7 +638,7 @@ export class Queue extends AwsConstruct {
             const data = JSON.parse(body) as unknown;
 
             return JSON.stringify(data, null, 2);
-        } catch (e) {
+        } catch {
             // If it's not valid JSON, we'll print the body as-is
             return body;
         }

@@ -18,7 +18,7 @@ const computeLogicalId = (serverless: Serverless, ...address: string[]): string 
         if (!nextNode) {
             const existingNodes = currentNode.children.map((child) => child.node.id).join(", ");
             throw new Error(
-                `No node named ${nextNodeId} found in ${address.join(".")} address. Existing nodes: ${existingNodes}`
+                `No node named ${nextNodeId} found in ${address.join(".")} address. Existing nodes: ${existingNodes}`,
             );
         }
 
@@ -35,7 +35,7 @@ const computeLogicalId = (serverless: Serverless, ...address: string[]): string 
 };
 
 export const runServerless = async (
-    options: Parameters<typeof originalRunServerless>[0]
+    options: Parameters<typeof originalRunServerless>[0],
 ): Promise<RunServerlessReturn & { computeLogicalId: ComputeLogicalId }> => {
     const runServerlessReturnValues = await setupRunServerlessFixturesEngine({
         fixturesDir: path.resolve(__dirname, "../fixtures"),

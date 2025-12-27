@@ -25,7 +25,12 @@ export class Vpc extends CdkVpc implements ConstructInterface {
 
     private readonly appSecurityGroup: SecurityGroup;
 
-    constructor(scope: CdkConstruct, id: string, configuration: Configuration, private provider: AwsProvider) {
+    constructor(
+        scope: CdkConstruct,
+        id: string,
+        configuration: Configuration,
+        private provider: AwsProvider,
+    ) {
         super(scope, id, {
             maxAzs: 2,
         });
@@ -40,7 +45,7 @@ export class Vpc extends CdkVpc implements ConstructInterface {
         // Auto-register the VPC
         provider.setVpcConfig(
             [this.appSecurityGroup.securityGroupId],
-            this.privateSubnets.map((subnet) => subnet.subnetId)
+            this.privateSubnets.map((subnet) => subnet.subnetId),
         );
     }
 

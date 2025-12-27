@@ -173,7 +173,7 @@ class LiftPlugin {
             if (providerClass.type in this.providerClasses) {
                 throw new ServerlessError(
                     `The provider type '${providerClass.type}' was registered twice`,
-                    "LIFT_PROVIDER_TYPE_CONFLICT"
+                    "LIFT_PROVIDER_TYPE_CONFLICT",
                 );
             }
             this.providerClasses[providerClass.type] = providerClass;
@@ -199,14 +199,14 @@ class LiftPlugin {
         if (type === AwsProvider.type) {
             throw new ServerlessError(
                 "AwsProvider is not configurable via providers",
-                "LIFT_AWS_PROVIDER_CONFIGURATION"
+                "LIFT_AWS_PROVIDER_CONFIGURATION",
             );
         }
         const Provider = LiftPlugin.getProviderClass(type);
         if (Provider === undefined) {
             throw new ServerlessError(
                 `The provider '${id}' has an unknown type '${type}'`,
-                "LIFT_UNKNOWN_PROVIDER_TYPE"
+                "LIFT_UNKNOWN_PROVIDER_TYPE",
             );
         }
         const configuration = get(this.serverless.configurationInput.providers, id, {});
@@ -231,9 +231,9 @@ class LiftPlugin {
             if (!provider) {
                 throw new ServerlessError(
                     `No provider ${providerId} was found for construct ${id}. Available providers are ${Object.keys(
-                        this.providers
+                        this.providers,
                     ).join(", ")}`,
-                    "LIFT_UNKNOWN_PROVIDER_ID"
+                    "LIFT_UNKNOWN_PROVIDER_ID",
                 );
             }
             this.constructs[id] = provider.createConstruct(type, id);
@@ -280,7 +280,7 @@ class LiftPlugin {
                     if (!has(this.constructs, id)) {
                         throw new ServerlessError(
                             `No construct named '${id}' was found, the \${construct:${id}.${property}} variable is invalid.`,
-                            "LIFT_VARIABLE_UNKNOWN_CONSTRUCT"
+                            "LIFT_VARIABLE_UNKNOWN_CONSTRUCT",
                         );
                     }
                     const construct = constructs[id];
@@ -290,14 +290,14 @@ class LiftPlugin {
                         if (Object.keys(properties).length === 0) {
                             throw new ServerlessError(
                                 `\${construct:${id}.${property}} does not exist. The construct '${id}' does not expose any property`,
-                                "LIFT_VARIABLE_UNKNOWN_PROPERTY"
+                                "LIFT_VARIABLE_UNKNOWN_PROPERTY",
                             );
                         }
                         throw new ServerlessError(
                             `\${construct:${id}.${property}} does not exist. Properties available on \${construct:${id}} are: ${Object.keys(
-                                properties
+                                properties,
                             ).join(", ")}`,
-                            "LIFT_VARIABLE_UNKNOWN_PROPERTY"
+                            "LIFT_VARIABLE_UNKNOWN_PROPERTY",
                         );
                     }
 
@@ -354,7 +354,7 @@ class LiftPlugin {
                 throw new ServerlessError(
                     `The construct '${id}' has no 'type' defined.\n` +
                         "Find all construct types available here: https://github.com/getlift/lift#constructs",
-                    "LIFT_MISSING_CONSTRUCT_TYPE"
+                    "LIFT_MISSING_CONSTRUCT_TYPE",
                 );
             }
             const constructClass = this.getConstructClass(constructConfig.type);
@@ -362,7 +362,7 @@ class LiftPlugin {
                 throw new ServerlessError(
                     `The construct '${id}' has an unknown type '${constructConfig.type}'\n` +
                         "Find all construct types available here: https://github.com/getlift/lift#constructs",
-                    "LIFT_UNKNOWN_CONSTRUCT_TYPE"
+                    "LIFT_UNKNOWN_CONSTRUCT_TYPE",
                 );
             }
             if (constructClass.commands === undefined) {
@@ -444,7 +444,7 @@ class LiftPlugin {
         const statements = flatten(
             Object.entries(constructs).map(([, construct]) => {
                 return (construct.permissions ? construct.permissions() : []) as unknown as AwsIamPolicyStatements;
-            })
+            }),
         );
         if (statements.length === 0) {
             return;
@@ -478,7 +478,7 @@ class LiftPlugin {
 
     private getAllConstructClasses(): StaticConstructInterface[] {
         const result = flatten(
-            LiftPlugin.getAllProviderClasses().map((providerClass) => providerClass.getAllConstructClasses())
+            LiftPlugin.getAllProviderClasses().map((providerClass) => providerClass.getAllConstructClasses()),
         );
 
         return result;

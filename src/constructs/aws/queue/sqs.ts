@@ -39,7 +39,7 @@ export async function pollMessages({
                 if (progressCallback && messages.length > 0) {
                     progressCallback(messages.length);
                 }
-            })
+            }),
         );
         await sleep(200);
     }
@@ -52,7 +52,7 @@ async function pollMoreMessages(
     aws: AwsProvider,
     queueUrl: string,
     messages: Message[],
-    visibilityTimeout?: number
+    visibilityTimeout?: number,
 ): Promise<void> {
     const messagesResponse = await aws.request<ReceiveMessageRequest, ReceiveMessageResult>("SQS", "receiveMessage", {
         QueueUrl: queueUrl,
@@ -76,7 +76,7 @@ export async function retryMessages(
     aws: AwsProvider,
     queueUrl: string,
     dlqUrl: string,
-    messages: Message[]
+    messages: Message[],
 ): Promise<{
     numberOfMessagesRetried: number;
     numberOfMessagesNotRetried: number;
@@ -106,13 +106,13 @@ export async function retryMessages(
                         MessageBody: message.Body as string,
                     };
                 }),
-            })
-        )
+            }),
+        ),
     );
 
     const messagesToDelete = messages.filter((message) => {
         const isMessageInFailedList = sendResults.some(({ Failed }) =>
-            Failed.some((failedMessage) => message.MessageId === failedMessage.Id)
+            Failed.some((failedMessage) => message.MessageId === failedMessage.Id),
         );
 
         return !isMessageInFailedList;
@@ -129,20 +129,20 @@ export async function retryMessages(
                         ReceiptHandle: message.ReceiptHandle as string,
                     };
                 }),
-            })
-        )
+            }),
+        ),
     );
 
     const numberOfMessagesRetried = deletionResults.reduce((total, { Successful }) => total + Successful.length, 0);
     const numberOfMessagesNotRetried = sendResults.reduce((total, { Failed }) => total + Failed.length, 0);
     const numberOfMessagesRetriedButNotDeleted = deletionResults.reduce(
         (total, { Failed }) => total + Failed.length,
-        0
+        0,
     );
 
     if (numberOfMessagesRetriedButNotDeleted > 0) {
         getUtils().log.warning(
-            `${numberOfMessagesRetriedButNotDeleted} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`
+            `${numberOfMessagesRetriedButNotDeleted} failed messages were not successfully deleted from the dead letter queue. These messages will be retried in the main queue, but they will also still be present in the dead letter queue.`,
         );
     }
 

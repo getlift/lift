@@ -9,9 +9,7 @@ module.exports = {
     testPathIgnorePatterns: ["dist"],
     testEnvironment: "node",
     testTimeout: 10000,
-    globals: {
-        "ts-jest": {
-            isolatedModules: true,
-        },
+    transform: {
+        "^.+\\.ts$": ["ts-jest"],
     },
 };
