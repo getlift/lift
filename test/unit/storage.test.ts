@@ -78,8 +78,8 @@ describe("storage", () => {
     });
 
     it("supports custom lifecycleRules with auto-capitalization and default Status", () => {
-        const lifecycleConfig =
-            cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties.LifecycleConfiguration;
+        const lifecycleConfig = cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties
+            .LifecycleConfiguration as { Rules: unknown[] };
         expect(lifecycleConfig.Rules).toEqual([
             // Default rules
             {
