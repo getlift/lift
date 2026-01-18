@@ -76,4 +76,32 @@ describe("storage", () => {
             },
         });
     });
+
+    it("supports custom lifecycleRules with auto-capitalization and default Status", () => {
+        const lifecycleConfig =
+            cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties.LifecycleConfiguration;
+        expect(lifecycleConfig.Rules).toEqual([
+            // Default rules
+            {
+                Status: "Enabled",
+                Transitions: [{ StorageClass: "INTELLIGENT_TIERING", TransitionInDays: 0 }],
+            },
+            {
+                Status: "Enabled",
+                NoncurrentVersionExpiration: { NoncurrentDays: 30 },
+            },
+            // User rules (lowercase keys capitalized, Status: Enabled added by default)
+            {
+                Prefix: "tmp/",
+                ExpirationInDays: 1,
+                Status: "Enabled",
+            },
+            // User rule with already-capitalized keys and custom Status
+            {
+                Prefix: "cache/",
+                ExpirationInDays: 7,
+                Status: "Disabled",
+            },
+        ]);
+    });
 });

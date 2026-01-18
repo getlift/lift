@@ -1,7 +1,7 @@
 import type { CfnBucket } from "aws-cdk-lib/aws-s3";
-import { BlockPublicAccess, Bucket, BucketEncryption, StorageClass } from "aws-cdk-lib/aws-s3";
+import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
-import { CfnOutput, Duration, Fn, Stack } from "aws-cdk-lib";
+import { CfnOutput, Fn, Stack } from "aws-cdk-lib";
 import type { CfnResource } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
@@ -16,6 +16,10 @@ const STORAGE_DEFINITION = {
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
+        lifecycleRules: {
+            type: "array",
+            items: { type: "object" },
+        },
     },
     additionalProperties: false,
 } as const;
@@ -23,7 +27,30 @@ const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
     type: "storage",
     archive: 45,
     encryption: "s3",
+    lifecycleRules: [],
 };
+
+function capitalizeFirstLetter(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function capitalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        const capitalizedKey = capitalizeFirstLetter(key);
+        if (Array.isArray(value)) {
+            result[capitalizedKey] = value.map((item: unknown) =>
+                typeof item === "object" && item !== null ? capitalizeKeys(item as Record<string, unknown>) : item
+            );
+        } else if (typeof value === "object" && value !== null) {
+            result[capitalizedKey] = capitalizeKeys(value as Record<string, unknown>);
+        } else {
+            result[capitalizedKey] = value;
+        }
+    }
+
+    return result;
+}
 
 type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
 
@@ -50,19 +77,40 @@ export class Storage extends AwsConstruct {
             versioned: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
             enforceSSL: true,
-            lifecycleRules: [
-                {
-                    transitions: [
-                        {
-                            storageClass: StorageClass.INTELLIGENT_TIERING,
-                            transitionAfter: Duration.days(0),
-                        },
-                    ],
+        });
+
+        // Default lifecycle rules (always applied)
+        const defaultRules = [
+            {
+                Status: "Enabled",
+                Transitions: [
+                    {
+                        StorageClass: "INTELLIGENT_TIERING",
+                        TransitionInDays: 0,
+                    },
+                ],
+            },
+            {
+                Status: "Enabled",
+                NoncurrentVersionExpiration: {
+                    NoncurrentDays: 30,
                 },
-                {
-                    noncurrentVersionExpiration: Duration.days(30),
-                },
-            ],
+            },
+        ];
+
+        // Transform user rules: capitalize keys and add Status: Enabled by default
+        const userRules = resolvedConfiguration.lifecycleRules.map((rule) => {
+            const capitalizedRule = capitalizeKeys(rule as Record<string, unknown>);
+            if (!("Status" in capitalizedRule)) {
+                capitalizedRule.Status = "Enabled";
+            }
+
+            return capitalizedRule;
+        });
+
+        const cfnBucket = this.bucket.node.defaultChild as CfnBucket;
+        cfnBucket.addPropertyOverride("LifecycleConfiguration", {
+            Rules: [...defaultRules, ...userRules],
         });
 
         this.bucketNameOutput = new CfnOutput(this, "BucketName", {
