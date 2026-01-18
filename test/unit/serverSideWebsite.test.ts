@@ -27,7 +27,7 @@ describe("server-side website", () => {
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3Origin");
+        const originAccessControlLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3OriginAccessControl");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
@@ -38,7 +38,7 @@ describe("server-side website", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             requestFunction,
-            originAccessIdentityLogicalId,
+            originAccessControlLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -55,20 +55,39 @@ describe("server-side website", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"] },
+                                Service: "cloudfront.amazonaws.com",
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
+                            Condition: {
+                                StringEquals: {
+                                    "AWS:SourceArn": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                { Ref: "AWS::Partition" },
+                                                ":cloudfront::",
+                                                { Ref: "AWS::AccountId" },
+                                                ":distribution/",
+                                                { Ref: cfDistributionLogicalId },
+                                            ],
+                                        ],
+                                    },
+                                },
+                            },
                         },
                     ],
                     Version: "2012-10-17",
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toStrictEqual({
-            Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+        expect(cfTemplate.Resources[originAccessControlLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::OriginAccessControl",
             Properties: {
-                CloudFrontOriginAccessIdentityConfig: {
-                    Comment: `Identity for ${cfOriginId2}`,
+                OriginAccessControlConfig: {
+                    OriginAccessControlOriginType: "s3",
+                    SigningBehavior: "always",
+                    SigningProtocol: "sigv4",
                 },
             },
         });
@@ -124,13 +143,9 @@ describe("server-side website", () => {
                         {
                             DomainName: { "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"] },
                             Id: cfOriginId2,
+                            OriginAccessControlId: { "Fn::GetAtt": [originAccessControlLogicalId, "Id"] },
                             S3OriginConfig: {
-                                OriginAccessIdentity: {
-                                    "Fn::Join": [
-                                        "",
-                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId }],
-                                    ],
-                                },
+                                OriginAccessIdentity: "",
                             },
                         },
                     ],
