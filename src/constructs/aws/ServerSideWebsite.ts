@@ -9,6 +9,7 @@ import {
     FunctionEventType,
     HttpVersion,
     OriginProtocolPolicy,
+    S3OriginAccessControl,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct } from "constructs";
@@ -352,7 +353,19 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
-        for (const pattern of Object.keys(this.getAssetPatterns())) {
+        const assetPatterns = Object.keys(this.getAssetPatterns());
+
+        if (assetPatterns.length === 0) {
+            return behaviors;
+        }
+
+        // Create a single OAC with a unique name that includes the stack name
+        // to avoid naming collisions when deploying multiple stages in the same AWS account
+        const originAccessControl = new S3OriginAccessControl(this, "S3OriginAccessControl", {
+            originAccessControlName: ensureNameMaxLength(`${this.provider.stackName}-${this.id}-oac`, 64),
+        });
+
+        for (const pattern of assetPatterns) {
             if (pattern === "/" || pattern === "/*") {
                 throw new ServerlessError(
                     `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
@@ -361,7 +374,7 @@ export class ServerSideWebsite extends AwsConstruct {
             }
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: S3BucketOrigin.withOriginAccessControl(bucket),
+                origin: S3BucketOrigin.withOriginAccessControl(bucket, { originAccessControl }),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
