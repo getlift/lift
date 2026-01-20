@@ -27,7 +27,7 @@ describe("server-side website", () => {
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessControlLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3OriginAccessControl");
+        const originAccessControlLogicalId = computeLogicalId("backend", "S3OriginAccessControl");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
@@ -85,6 +85,8 @@ describe("server-side website", () => {
             Type: "AWS::CloudFront::OriginAccessControl",
             Properties: {
                 OriginAccessControlConfig: {
+                    // Name includes stack name to avoid collisions when deploying multiple stages
+                    Name: "app-dev-backend-oac",
                     OriginAccessControlOriginType: "s3",
                     SigningBehavior: "always",
                     SigningProtocol: "sigv4",
