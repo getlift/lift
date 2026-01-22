@@ -32,3 +32,11 @@ constructs:
                                   - HEAD
                                   - PUT
                                   - POST
+    withLifecycleRules:
+        type: storage
+        lifecycleRules:
+            - prefix: tmp/
+              expirationInDays: 1
+            - Prefix: cache/
+              ExpirationInDays: 7
+              Status: Disabled

@@ -380,7 +380,7 @@ describe("static websites", () => {
                 "FunctionARN": Object {
                   "Fn::GetAtt": Array [
                     "${responseFunction}",
-                    "FunctionARN"
+                    "FunctionARN",
                   ],
                 },
               },
