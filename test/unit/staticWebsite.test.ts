@@ -98,7 +98,7 @@ describe("static websites", () => {
                             {
                                 EventType: "viewer-response",
                                 FunctionARN: {
-                                    Ref: responseFunction,
+                                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
                                 },
                             },
                         ],
@@ -378,7 +378,10 @@ describe("static websites", () => {
               Object {
                 "EventType": "viewer-response",
                 "FunctionARN": Object {
-                  "Ref": "${responseFunction}",
+                  "Fn::GetAtt": Array [
+                    "${responseFunction}",
+                    "FunctionARN"
+                  ],
                 },
               },
               Object {
@@ -438,7 +441,7 @@ describe("static websites", () => {
                             {
                                 EventType: "viewer-response",
                                 FunctionARN: {
-                                    Ref: responseFunction,
+                                    "Fn::GetAtt": [responseFunction, "FunctionARN"],
                                 },
                             },
                         ],
