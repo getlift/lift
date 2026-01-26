@@ -100,6 +100,16 @@ export async function retryMessages(
                         throw new Error(`Found a message with no ID`);
                     }
 
+                    // A FIFO Queue
+                    if( queueUrl.indexOf('.fifo') > -1 ){
+                        return {
+                            Id: message.MessageId,
+                            MessageAttributes: message.MessageAttributes,
+                            MessageBody: message.Body,
+                            MessageGroupId: message.MessageGroupId?message.MessageGroupId:'redrive'
+                        };
+                    }
+                    
                     return {
                         Id: message.MessageId,
                         MessageAttributes: message.MessageAttributes,
