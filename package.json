@@ -24,7 +24,7 @@
     "@serverless/test": "^11.1.1",
     "@serverless/typescript": "^3.27.0",
     "@types/chai": "^4.2.21",
-    "@types/inquirer": "^7.3.3",
+    "@types/inquirer": "^8.2.7",
     "@types/jest": "^27.0.1",
     "@types/js-yaml": "^3.12.5",
     "@types/json-schema": "^7.0.8",
