@@ -91,7 +91,7 @@
       "optional": true
     },
     "serverless": {
-      "optional": true
+      "optional": true 
     }
   }
 }
