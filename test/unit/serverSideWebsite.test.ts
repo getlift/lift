@@ -631,6 +631,13 @@ describe("server-side website", () => {
         expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
             "Properties.DistributionConfig.ViewerCertificate"
         );
+        // The domain output should fall back to the CloudFront domain
+        expect(cfTemplate.Outputs).toMatchObject({
+            [computeLogicalId("backend", "Domain")]: {
+                Description: "Website domain name.",
+                Value: { "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"] },
+            },
+        });
     });
 
     it("should treat empty string domain with valid certificate as unconfigured", async () => {

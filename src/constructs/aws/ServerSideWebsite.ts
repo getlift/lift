@@ -349,12 +349,12 @@ export class ServerSideWebsite extends AwsConstruct {
     }
 
     getMainCustomDomain(): string | undefined {
-        if (this.configuration.domain === undefined) {
+        if (this.domains === undefined || this.domains.length === 0) {
             return undefined;
         }
 
         // In case of multiple domains, we take the first one
-        return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
+        return this.domains[0];
     }
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
