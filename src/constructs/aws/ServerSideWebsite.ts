@@ -92,12 +92,6 @@ export class ServerSideWebsite extends AwsConstruct {
     ) {
         super(scope, id);
 
-        if (configuration.domain !== undefined && configuration.certificate === undefined) {
-            throw new ServerlessError(
-                `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-            );
-        }
         if (configuration.errorPage !== undefined && !configuration.errorPage.endsWith(".html")) {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${id}.errorPage': the custom error page must be a static HTML file. '${configuration.errorPage}' does not end with '.html'.`,
@@ -121,11 +115,23 @@ export class ServerSideWebsite extends AwsConstruct {
         const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
 
         // Cast the domains to an array
-        this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
+        // if configuration.domain is an empty array or an empty string, ignore it
+        this.domains =
+            configuration.domain !== undefined && configuration.domain.length > 0
+                ? flatten([configuration.domain])
+                : undefined;
+        // if configuration.certificate is an empty string, ignore it
         const certificate =
-            configuration.certificate !== undefined
+            configuration.certificate !== undefined && configuration.certificate !== ""
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
+
+        if (this.domains !== undefined && certificate === undefined) {
+            throw new ServerlessError(
+                `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`,
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
 
         // Hide the stage in the URL in REST scenario
         const originPath = configuration.apiGateway === "rest" ? "/" + (provider.getStage() ?? "") : undefined;

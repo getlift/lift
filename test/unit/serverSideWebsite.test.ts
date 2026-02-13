@@ -610,6 +610,65 @@ describe("server-side website", () => {
         });
     });
 
+    it("should treat empty string domain and certificate as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: "",
+                        certificate: "",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases or ViewerCertificate should be set
+        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
+        expect(
+            cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.ViewerCertificate
+        ).toBeUndefined();
+    });
+
+    it("should treat empty string domain with valid certificate as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: "",
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases should be set (domain is empty)
+        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
+    });
+
+    it("should treat empty array domain as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: [],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases should be set (domain is empty array)
+        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
+    });
+
     it("trims CloudFront function names to stay under the limit", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
