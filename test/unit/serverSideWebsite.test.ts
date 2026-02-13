@@ -625,10 +625,12 @@ describe("server-side website", () => {
         });
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         // No Aliases or ViewerCertificate should be set
-        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
-        expect(
-            cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.ViewerCertificate
-        ).toBeUndefined();
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.ViewerCertificate"
+        );
     });
 
     it("should treat empty string domain with valid certificate as unconfigured", async () => {
@@ -647,7 +649,9 @@ describe("server-side website", () => {
         });
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         // No Aliases should be set (domain is empty)
-        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
     });
 
     it("should treat empty array domain as unconfigured", async () => {
@@ -666,7 +670,9 @@ describe("server-side website", () => {
         });
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         // No Aliases should be set (domain is empty array)
-        expect(cfTemplate.Resources[cfDistributionLogicalId].Properties.DistributionConfig.Aliases).toBeUndefined();
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
     });
 
     it("trims CloudFront function names to stay under the limit", async () => {
