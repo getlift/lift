@@ -14,6 +14,62 @@ const DATABASE_DEFINITION = {
         type: { const: "database/dynamodb-single-table" },
         localSecondaryIndexes: { type: "boolean" },
         gsiCount: { type: "integer", minimum: 1, maximum: 20 },
+        gsis: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    index: {
+                        enum: [
+                            "GSI-1-PK",
+                            "GSI-2-PK",
+                            "GSI-3-PK",
+                            "GSI-4-PK",
+                            "GSI-5-PK",
+                            "GSI-6-PK",
+                            "GSI-7-PK",
+                            "GSI-8-PK",
+                            "GSI-9-PK",
+                            "GSI-10-PK",
+                            "GSI-11-PK",
+                            "GSI-12-PK",
+                            "GSI-13-PK",
+                            "GSI-14-PK",
+                            "GSI-15-PK",
+                            "GSI-16-PK",
+                            "GSI-17-PK",
+                            "GSI-18-PK",
+                            "GSI-19-PK",
+                            "GSI-20-PK",
+                            "GSI-1-SK",
+                            "GSI-2-SK",
+                            "GSI-3-SK",
+                            "GSI-4-SK",
+                            "GSI-5-SK",
+                            "GSI-6-SK",
+                            "GSI-7-SK",
+                            "GSI-8-SK",
+                            "GSI-9-SK",
+                            "GSI-10-SK",
+                            "GSI-11-SK",
+                            "GSI-12-SK",
+                            "GSI-13-SK",
+                            "GSI-14-SK",
+                            "GSI-15-SK",
+                            "GSI-16-SK",
+                            "GSI-17-SK",
+                            "GSI-18-SK",
+                            "GSI-19-SK",
+                            "GSI-20-SK",
+                        ],
+                    },
+                    name: { type: "string" },
+                    type: { enum: ["string", "number"] },
+                },
+                required: ["index"],
+                additionalProperties: false,
+            },
+        },
     },
     additionalProperties: false,
 } as const;
@@ -23,6 +79,7 @@ const DATABASE_DEFAULTS: Required<Configuration> = {
     type: "database/dynamodb-single-table",
     localSecondaryIndexes: false,
     gsiCount: 0,
+    gsis: [],
 };
 
 export class DatabaseDynamoDBSingleTable extends AwsConstruct {
@@ -61,10 +118,21 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
                 globalSecondaryIndex <= resolvedConfiguration.gsiCount;
                 globalSecondaryIndex++
             ) {
+                const partitionKey = `GSI-${globalSecondaryIndex}-PK`;
+                const partitionKeyMetadata = resolvedConfiguration.gsis.find((gsi) => gsi.index === partitionKey);
+                const sortKey = `GSI-${globalSecondaryIndex}-SK`;
+                const sortKeyMetadata = resolvedConfiguration.gsis.find((gsi) => gsi.index === sortKey);
+
                 this.table.addGlobalSecondaryIndex({
                     indexName: `GSI-${globalSecondaryIndex}`,
-                    partitionKey: { name: `GSI-${globalSecondaryIndex}-PK`, type: AttributeType.STRING },
-                    sortKey: { name: `GSI-${globalSecondaryIndex}-SK`, type: AttributeType.STRING },
+                    partitionKey: {
+                        name: partitionKeyMetadata?.name ?? partitionKey,
+                        type: partitionKeyMetadata?.type === "number" ? AttributeType.NUMBER : AttributeType.STRING,
+                    },
+                    sortKey: {
+                        name: sortKeyMetadata?.name ?? sortKey,
+                        type: sortKeyMetadata?.type === "number" ? AttributeType.NUMBER : AttributeType.STRING,
+                    },
                 });
             }
         }
