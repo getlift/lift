@@ -18,6 +18,8 @@ import { getStackOutput } from "../CloudFormation";
 import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
 import { awsRequest } from "../classes/aws";
 import ServerlessError from "../utils/error";
+import type { WebLambdaFunctionInterface } from "../interfaces/WebLambdaFunctionInterface";
+import { GetWebLambdaFunctions } from "../utils/GetWebLambdaFunctions";
 
 const AWS_DEFINITION = {
     type: "object",
@@ -70,6 +72,7 @@ export class AwsProvider implements ProviderInterface {
     public naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
+        getLambdaFunctionUrlLogicalId: (functionName: string) => string;
         getRestApiLogicalId: () => string;
         getHttpApiLogicalId: () => string;
     };
@@ -201,6 +204,18 @@ export class AwsProvider implements ProviderInterface {
         merge(this.serverless.service, {
             resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
         });
+    }
+
+    /**
+     * This function can be used by other constructs to get all web Lambda functions
+     * Web Lambda functions must contain at least one of the following keys:
+     * - url
+     * - events.http
+     * - events.httpApi
+     * - events.alb
+     */
+    getWebLambdaFunctions(): WebLambdaFunctionInterface[] {
+        return GetWebLambdaFunctions(this.serverless.service.functions);
     }
 }
 
