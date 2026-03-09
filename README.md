@@ -1,6 +1,6 @@
 ![](docs/img/animation.gif)
 
-Lift is a plugin that leverages the AWS CDK to expand the [Serverless Framework](https://www.serverless.com/) beyond functions.
+Lift is a plugin that leverages the AWS CDK to expand the [Serverless Framework](https://github.com/oss-serverless/serverless) beyond functions.
 
 Deploy production-ready websites, queues, storage buckets and more with a few lines in serverless.yml.
 

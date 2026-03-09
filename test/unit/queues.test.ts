@@ -418,7 +418,7 @@ describe("queues", () => {
             Properties: {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 TopicName: expect.stringMatching(/test-queues-\w+-dev-emails-dlq-alarm-topic/),
-                DisplayName: "[Alert][emails] There are failed jobs in the dead letter queue.",
+                DisplayName: "[Alert][emails] failed jobs in the DLQ.",
             },
         });
         expect(cfTemplate.Resources[computeLogicalId("emails", "AlarmTopicSubscription")]).toMatchObject({
@@ -749,5 +749,33 @@ describe("queues", () => {
                 "Invalid configuration in 'constructs.emails': 'maxBatchingWindow' must be greater than 0 for batchSize > 10, '0' given."
             );
         }
+    });
+    it("should use a function if the function is defined", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("queue-url");
+        const sendSpy = awsMock.mockService("SQS", "sendMessage").resolves();
+
+        await runServerless({
+            fixture: "queuesWorkerRef",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    emails: {
+                        fifo: true,
+                    },
+                },
+            }),
+            command: "emails:send",
+            options: {
+                body: "Message body",
+                "group-id": "123",
+            },
+        });
+
+        expect(sendSpy.callCount).toBe(1);
+        expect(sendSpy.firstCall.firstArg).toStrictEqual({
+            QueueUrl: "queue-url",
+            MessageGroupId: "123",
+            MessageBody: "Message body",
+        });
     });
 });

@@ -1,6 +1,7 @@
 import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
-import type { CfnDistribution, IOriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
+import type { CfnDistribution } from "aws-cdk-lib/aws-cloudfront";
+import { OriginRequestPolicy } from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
@@ -8,13 +9,14 @@ import {
     FunctionEventType,
     HttpVersion,
     OriginProtocolPolicy,
+    S3OriginAccessControl,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration, Fn, RemovalPolicy } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
-import { HttpOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import type { BehaviorOptions, ErrorResponse } from "aws-cdk-lib/aws-cloudfront/lib/distribution";
 import * as path from "path";
@@ -25,7 +27,7 @@ import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";
 import { ensureNameMaxLength } from "../../utils/naming";
-import { s3Put, s3Sync } from "../../utils/s3-sync";
+import { s3PutIfChanged, s3Sync } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 import ServerlessError from "../../utils/error";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
@@ -90,12 +92,6 @@ export class ServerSideWebsite extends AwsConstruct {
     ) {
         super(scope, id);
 
-        if (configuration.domain !== undefined && configuration.certificate === undefined) {
-            throw new ServerlessError(
-                `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`,
-                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-            );
-        }
         if (configuration.errorPage !== undefined && !configuration.errorPage.endsWith(".html")) {
             throw new ServerlessError(
                 `Invalid configuration in 'constructs.${id}.errorPage': the custom error page must be a static HTML file. '${configuration.errorPage}' does not end with '.html'.`,
@@ -109,10 +105,7 @@ export class ServerSideWebsite extends AwsConstruct {
         });
 
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
-        // It is not supported by the AWS CDK yet
-        const backendOriginPolicy = new (class implements IOriginRequestPolicy {
-            public readonly originRequestPolicyId = "b689b0a8-53d0-40ab-baf2-68738e2966ac";
-        })();
+        const backendOriginPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER;
         const backendCachePolicy = CachePolicy.CACHING_DISABLED;
 
         const apiId =
@@ -122,11 +115,23 @@ export class ServerSideWebsite extends AwsConstruct {
         const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
 
         // Cast the domains to an array
-        this.domains = configuration.domain !== undefined ? flatten([configuration.domain]) : undefined;
+        // if configuration.domain is an empty array or an empty string, ignore it
+        this.domains =
+            configuration.domain !== undefined && configuration.domain.length > 0
+                ? flatten([configuration.domain])
+                : undefined;
+        // if configuration.certificate is an empty string, ignore it
         const certificate =
-            configuration.certificate !== undefined
+            configuration.certificate !== undefined && configuration.certificate !== ""
                 ? acm.Certificate.fromCertificateArn(this, "Certificate", configuration.certificate)
                 : undefined;
+
+        if (this.domains !== undefined && certificate === undefined) {
+            throw new ServerlessError(
+                `Invalid configuration in 'constructs.${id}.certificate': if a domain is configured, then a certificate ARN must be configured as well.`,
+                "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+            );
+        }
 
         // Hide the stage in the URL in REST scenario
         const originPath = configuration.apiGateway === "rest" ? "/" + (provider.getStage() ?? "") : undefined;
@@ -239,7 +244,9 @@ export class ServerSideWebsite extends AwsConstruct {
         const progress = getUtils().progress;
         let uploadProgress: Progress | undefined;
         if (progress) {
-            uploadProgress = progress.create();
+            uploadProgress = progress.create({
+                message: "Uploading assets",
+            });
         }
 
         let invalidate = false;
@@ -277,8 +284,13 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${targetKey}'`);
                 }
-                await s3Put(this.provider, bucketName, targetKey, fs.readFileSync(filePath));
-                invalidate = true;
+                const hasChanges = await s3PutIfChanged(
+                    this.provider,
+                    bucketName,
+                    targetKey,
+                    fs.readFileSync(filePath)
+                );
+                invalidate = invalidate || hasChanges;
             }
         }
         if (invalidate) {
@@ -342,17 +354,29 @@ export class ServerSideWebsite extends AwsConstruct {
     }
 
     getMainCustomDomain(): string | undefined {
-        if (this.configuration.domain === undefined) {
+        if (this.domains === undefined || this.domains.length === 0) {
             return undefined;
         }
 
         // In case of multiple domains, we take the first one
-        return typeof this.configuration.domain === "string" ? this.configuration.domain : this.configuration.domain[0];
+        return this.domains[0];
     }
 
     private createCacheBehaviors(bucket: Bucket): Record<string, BehaviorOptions> {
         const behaviors: Record<string, BehaviorOptions> = {};
-        for (const pattern of Object.keys(this.getAssetPatterns())) {
+        const assetPatterns = Object.keys(this.getAssetPatterns());
+
+        if (assetPatterns.length === 0) {
+            return behaviors;
+        }
+
+        // Create a single OAC with a unique name that includes the stack name
+        // to avoid naming collisions when deploying multiple stages in the same AWS account
+        const originAccessControl = new S3OriginAccessControl(this, "S3OriginAccessControl", {
+            originAccessControlName: ensureNameMaxLength(`${this.provider.stackName}-${this.id}-oac`, 64),
+        });
+
+        for (const pattern of assetPatterns) {
             if (pattern === "/" || pattern === "/*") {
                 throw new ServerlessError(
                     `Invalid key in 'constructs.${this.id}.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'.`,
@@ -361,7 +385,7 @@ export class ServerSideWebsite extends AwsConstruct {
             }
             behaviors[pattern] = {
                 // Origins are where CloudFront fetches content
-                origin: new S3Origin(bucket),
+                origin: S3BucketOrigin.withOriginAccessControl(bucket, { originAccessControl }),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list

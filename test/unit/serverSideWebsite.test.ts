@@ -27,7 +27,7 @@ describe("server-side website", () => {
         });
         const bucketLogicalId = computeLogicalId("backend", "Assets");
         const bucketPolicyLogicalId = computeLogicalId("backend", "Assets", "Policy");
-        const originAccessIdentityLogicalId = computeLogicalId("backend", "CDN", "Origin2", "S3Origin");
+        const originAccessControlLogicalId = computeLogicalId("backend", "S3OriginAccessControl");
         const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
         const cfOriginId1 = computeLogicalId("backend", "CDN", "Origin1");
         const cfOriginId2 = computeLogicalId("backend", "CDN", "Origin2");
@@ -38,7 +38,7 @@ describe("server-side website", () => {
             bucketLogicalId,
             bucketPolicyLogicalId,
             requestFunction,
-            originAccessIdentityLogicalId,
+            originAccessControlLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toMatchObject({
@@ -55,20 +55,41 @@ describe("server-side website", () => {
                             Action: "s3:GetObject",
                             Effect: "Allow",
                             Principal: {
-                                CanonicalUser: { "Fn::GetAtt": [originAccessIdentityLogicalId, "S3CanonicalUserId"] },
+                                Service: "cloudfront.amazonaws.com",
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
+                            Condition: {
+                                StringEquals: {
+                                    "AWS:SourceArn": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                { Ref: "AWS::Partition" },
+                                                ":cloudfront::",
+                                                { Ref: "AWS::AccountId" },
+                                                ":distribution/",
+                                                { Ref: cfDistributionLogicalId },
+                                            ],
+                                        ],
+                                    },
+                                },
+                            },
                         },
                     ],
                     Version: "2012-10-17",
                 },
             },
         });
-        expect(cfTemplate.Resources[originAccessIdentityLogicalId]).toStrictEqual({
-            Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+        expect(cfTemplate.Resources[originAccessControlLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::OriginAccessControl",
             Properties: {
-                CloudFrontOriginAccessIdentityConfig: {
-                    Comment: `Identity for ${cfOriginId2}`,
+                OriginAccessControlConfig: {
+                    // Name includes stack name to avoid collisions when deploying multiple stages
+                    Name: "app-dev-backend-oac",
+                    OriginAccessControlOriginType: "s3",
+                    SigningBehavior: "always",
+                    SigningProtocol: "sigv4",
                 },
             },
         });
@@ -124,13 +145,9 @@ describe("server-side website", () => {
                         {
                             DomainName: { "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"] },
                             Id: cfOriginId2,
+                            OriginAccessControlId: { "Fn::GetAtt": [originAccessControlLogicalId, "Id"] },
                             S3OriginConfig: {
-                                OriginAccessIdentity: {
-                                    "Fn::Join": [
-                                        "",
-                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentityLogicalId }],
-                                    ],
-                                },
+                                OriginAccessIdentity: "",
                             },
                         },
                     ],
@@ -506,13 +523,9 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
-        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects").resolves({
-            Deleted: [
-                {
-                    Key: "assets/image.jpg",
-                },
-            ],
-        });
+        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
         await runServerless({
@@ -542,17 +555,31 @@ describe("server-side website", () => {
             Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
             ContentType: "text/html",
         });
-        // image.jpg was deleted
-        sinon.assert.calledOnce(deleteObjectsSpy);
-        expect(deleteObjectsSpy.firstCall.firstArg).toEqual({
+        // image.jpg was tagged as obsolete and copied to trigger lifecycle expiration
+        sinon.assert.calledOnce(getObjectTaggingSpy);
+        expect(getObjectTaggingSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
-            Delete: {
-                Objects: [
+            Key: "assets/image.jpg",
+        });
+        sinon.assert.calledOnce(putObjectTaggingSpy);
+        expect(putObjectTaggingSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            Tagging: {
+                TagSet: [
                     {
-                        Key: "assets/image.jpg",
+                        Key: "Obsolete",
+                        Value: "true",
                     },
                 ],
             },
+        });
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            CopySource: "bucket-name/assets/image.jpg",
+            MetadataDirective: "COPY",
         });
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
@@ -591,6 +618,78 @@ describe("server-side website", () => {
         expect(cfTemplate.Resources[computeLogicalId("backend", "Assets")].Properties).toMatchObject({
             ObjectLockEnabled: true,
         });
+    });
+
+    it("should treat empty string domain and certificate as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: "",
+                        certificate: "",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases or ViewerCertificate should be set
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.ViewerCertificate"
+        );
+        // The domain output should fall back to the CloudFront domain
+        expect(cfTemplate.Outputs).toMatchObject({
+            [computeLogicalId("backend", "Domain")]: {
+                Description: "Website domain name.",
+                Value: { "Fn::GetAtt": [cfDistributionLogicalId, "DomainName"] },
+            },
+        });
+    });
+
+    it("should treat empty string domain with valid certificate as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: "",
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases should be set (domain is empty)
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
+    });
+
+    it("should treat empty array domain as unconfigured", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        domain: [],
+                        certificate:
+                            "arn:aws:acm:us-east-1:123456615250:certificate/0a28e63d-d3a9-4578-9f8b-14347bfe8123",
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        // No Aliases should be set (domain is empty array)
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).not.toHaveProperty(
+            "Properties.DistributionConfig.Aliases"
+        );
     });
 
     it("trims CloudFront function names to stay under the limit", async () => {

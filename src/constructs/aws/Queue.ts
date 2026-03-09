@@ -32,11 +32,16 @@ const QUEUE_DEFINITION = {
     properties: {
         type: { const: "queue" },
         worker: {
-            type: "object",
-            properties: {
-                timeout: { type: "number" },
-            },
-            additionalProperties: true,
+            oneOf: [
+                { type: "string" },
+                {
+                    type: "object",
+                    properties: {
+                        timeout: { type: "number" },
+                    },
+                    additionalProperties: true,
+                },
+            ] as const,
         },
         maxRetries: { type: "number" },
         alarm: { type: "string" },
@@ -127,6 +132,7 @@ export class Queue extends AwsConstruct {
     private readonly queueArnOutput: CfnOutput;
     private readonly queueUrlOutput: CfnOutput;
     private readonly dlqUrlOutput: CfnOutput;
+    private readonly workerName: string;
 
     constructor(
         scope: CdkConstruct,
@@ -146,8 +152,24 @@ export class Queue extends AwsConstruct {
             );
         }
 
+        let functionConfig: number | undefined;
+        if (typeof configuration.worker === "string") {
+            this.workerName = configuration.worker;
+            const slsFunction = provider.getFunction(this.workerName);
+            if (!slsFunction) {
+                throw new ServerlessError(
+                    `Invalid configuration in 'constructs.${this.id}': 'workerRef' needs to point to an existing function.`,
+                    "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+                );
+            }
+            functionConfig = slsFunction.timeout;
+        } else {
+            this.workerName = `${this.id}Worker`;
+            functionConfig = configuration.worker.timeout;
+        }
+
         // The default function timeout is 6 seconds in the Serverless Framework
-        const functionTimeout = configuration.worker.timeout ?? 6;
+        const functionTimeout = functionConfig ?? 6;
 
         // This should be 6 times the lambda function's timeout + MaximumBatchingWindowInSeconds
         // See https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
@@ -232,9 +254,12 @@ export class Queue extends AwsConstruct {
 
         const alarmEmail = configuration.alarm;
         if (alarmEmail !== undefined) {
+            // generate the display name, AWS restriction is 100 chars
+            const displayName = `[Alert][${id}] failed jobs in the DLQ.`.substring(0, 100);
+
             const alarmTopic = new Topic(this, "AlarmTopic", {
                 topicName: `${this.provider.stackName}-${id}-dlq-alarm-topic`,
-                displayName: `[Alert][${id}] There are failed jobs in the dead letter queue.`,
+                displayName,
             });
             new Subscription(this, "AlarmTopicSubscription", {
                 topic: alarmTopic,
@@ -326,10 +351,15 @@ export class Queue extends AwsConstruct {
         const maximumBatchingWindow = this.getMaximumBatchingWindow();
         const maximumConcurrency = this.configuration.maxConcurrency;
 
-        // Override events for the worker
-        this.configuration.worker.events = [
-            // Subscribe the worker to the SQS queue
-            {
+        if (typeof this.configuration.worker !== "string") {
+            // Add the worker, if it is not a reference.
+            this.provider.addFunction(this.workerName, this.configuration.worker);
+        }
+
+        // Subscribe the worker to the SQS queue
+        this.provider.addFunctionEvent({
+            functionName: this.workerName,
+            event: {
                 sqs: {
                     arn: this.queue.queueArn,
                     batchSize: batchSize,
@@ -338,8 +368,7 @@ export class Queue extends AwsConstruct {
                     functionResponseType: "ReportBatchItemFailures",
                 },
             },
-        ];
-        this.provider.addFunction(`${this.id}Worker`, this.configuration.worker);
+        });
     }
 
     private async getQueueUrl(): Promise<string | undefined> {
