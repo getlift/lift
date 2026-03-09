@@ -178,7 +178,8 @@ export async function s3PutIfChanged(
             Bucket: bucket,
             Key: key,
         });
-        if (existingObject.ETag === computeS3ETag(fileContent)) {
+        const existingETag = (existingObject as { ETag?: string } | undefined)?.ETag;
+        if (existingETag === computeS3ETag(fileContent)) {
             return false;
         }
     } catch (error) {
