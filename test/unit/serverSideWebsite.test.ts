@@ -45,6 +45,17 @@ describe("server-side website", () => {
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
+            Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
+            },
         });
         expect(cfTemplate.Resources[bucketPolicyLogicalId]).toMatchObject({
             Properties: {
@@ -523,13 +534,9 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
-        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects").resolves({
-            Deleted: [
-                {
-                    Key: "assets/image.jpg",
-                },
-            ],
-        });
+        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
         await runServerless({
@@ -559,17 +566,31 @@ describe("server-side website", () => {
             Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
             ContentType: "text/html",
         });
-        // image.jpg was deleted
-        sinon.assert.calledOnce(deleteObjectsSpy);
-        expect(deleteObjectsSpy.firstCall.firstArg).toEqual({
+        // image.jpg was tagged as obsolete and copied to trigger lifecycle expiration
+        sinon.assert.calledOnce(getObjectTaggingSpy);
+        expect(getObjectTaggingSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
-            Delete: {
-                Objects: [
+            Key: "assets/image.jpg",
+        });
+        sinon.assert.calledOnce(putObjectTaggingSpy);
+        expect(putObjectTaggingSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            Tagging: {
+                TagSet: [
                     {
-                        Key: "assets/image.jpg",
+                        Key: "Obsolete",
+                        Value: "true",
                     },
                 ],
             },
+        });
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            CopySource: "bucket-name/assets/image.jpg",
+            MetadataDirective: "COPY",
         });
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
