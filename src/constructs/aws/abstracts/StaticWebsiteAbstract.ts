@@ -107,7 +107,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         if (this.domains !== undefined && certificate === undefined) {
             throw new ServerlessError(
                 `Invalid configuration for the static website '${id}': if a domain is configured, then a certificate ARN must be configured in the 'certificate' option.\n` +
-                    "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
+                "See https://github.com/getlift/lift/blob/master/docs/static-website.md#custom-domain",
                 "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
             );
         }
@@ -293,7 +293,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             if (errorPath.startsWith("./") || errorPath.startsWith("../")) {
                 throw new ServerlessError(
                     `The 'errorPage' option of the '${this.id}' static website cannot start with './' or '../'. ` +
-                        `(it cannot be a relative path).`,
+                    `(it cannot be a relative path).`,
                     "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
                 );
             }
