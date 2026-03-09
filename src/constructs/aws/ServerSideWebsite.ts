@@ -103,6 +103,11 @@ export class ServerSideWebsite extends AwsConstruct {
             // Assets are compiled artifacts, we can clear them on serverless remove
             removalPolicy: RemovalPolicy.DESTROY,
         });
+        this.bucket.addLifecycleRule({
+            // Obsolete files are tagged during sync and expire automatically.
+            tagFilters: { Obsolete: "true" },
+            expiration: Duration.days(1),
+        });
 
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
         const backendOriginPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER;

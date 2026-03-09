@@ -86,6 +86,11 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         const bucketProps = this.getBucketProps();
 
         this.bucket = new Bucket(this, "Bucket", bucketProps);
+        this.bucket.addLifecycleRule({
+            // Obsolete files are tagged during sync and expire automatically.
+            tagFilters: { Obsolete: "true" },
+            expiration: Duration.days(1),
+        });
 
         // Cast the domains to an array
         // if configuration.domain is an empty array or an empty string, ignore it

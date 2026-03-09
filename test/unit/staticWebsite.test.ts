@@ -42,6 +42,15 @@ describe("static websites", () => {
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
             Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
                 PublicAccessBlockConfiguration: {
                     BlockPublicAcls: false,
                     BlockPublicPolicy: false,

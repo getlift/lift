@@ -45,6 +45,17 @@ describe("server-side website", () => {
             Type: "AWS::S3::Bucket",
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
+            Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
+            },
         });
         expect(cfTemplate.Resources[bucketPolicyLogicalId]).toMatchObject({
             Properties: {
