@@ -63,4 +63,4 @@ jobs:
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
             - run: npm i
             - name: Typescript checks
-              run: tsc --noEmit
+              run: npx tsc --noEmit
