@@ -11,7 +11,14 @@ function expectLiftStorageStatementIsAdded(cfTemplate: CfTemplate) {
         expect.arrayContaining([
             expect.objectContaining({
                 Effect: "Allow",
-                Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                Action: [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:DeleteObject",
+                    "s3:ListBucket",
+                    "s3:GetObjectAcl",
+                    "s3:PutObjectAcl",
+                ],
             }),
         ])
     );
@@ -101,6 +108,27 @@ describe("permissions", () => {
         });
 
         expectLiftStorageStatementIsAdded(cfTemplate);
+    });
+
+    it("should not include ACL permissions when allowAcl is not set", async () => {
+        const { cfTemplate } = await runServerless({
+            fixture: "permissions",
+            configExt: pluginConfigExt,
+            command: "package",
+        });
+        const statements = get(
+            cfTemplate.Resources.IamRoleLambdaExecution,
+            "Properties.Policies[0].PolicyDocument.Statement"
+        ) as unknown as { Action: string[] }[];
+        // testStorageNoAcl should produce a statement without ACL permissions
+        expect(statements).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    Effect: "Allow",
+                    Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                }),
+            ])
+        );
     });
 
     it("should be possible to disable automatic permissions", async () => {

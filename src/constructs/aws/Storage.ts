@@ -16,6 +16,10 @@ const STORAGE_DEFINITION = {
         encryption: {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
+        allowAcl: { type: "boolean" },
+        cors: {
+            anyOf: [{ type: "array", items: { type: "object" } }, { type: "string" }],
+        },
         lifecycleRules: {
             type: "array",
             items: { type: "object" },
@@ -23,7 +27,7 @@ const STORAGE_DEFINITION = {
     },
     additionalProperties: false,
 } as const;
-const STORAGE_DEFAULTS: Required<FromSchema<typeof STORAGE_DEFINITION>> = {
+const STORAGE_DEFAULTS: Omit<Required<FromSchema<typeof STORAGE_DEFINITION>>, "allowAcl" | "cors"> = {
     type: "storage",
     archive: 45,
     encryption: "s3",
@@ -59,6 +63,7 @@ export class Storage extends AwsConstruct {
     public static schema = STORAGE_DEFINITION;
 
     private readonly bucket: Bucket;
+    private readonly allowAcl: boolean;
     // a remplacer par StorageExtensionsKeys
     private readonly bucketNameOutput: CfnOutput;
 
@@ -66,6 +71,7 @@ export class Storage extends AwsConstruct {
         super(scope, id);
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
+        this.allowAcl = resolvedConfiguration.allowAcl === true;
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
@@ -113,6 +119,28 @@ export class Storage extends AwsConstruct {
             Rules: [...defaultRules, ...userRules],
         });
 
+        if (this.allowAcl) {
+            cfnBucket.addPropertyOverride("OwnershipControls", {
+                Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }],
+            });
+        }
+
+        if (resolvedConfiguration.cors !== undefined) {
+            let corsRules;
+            if (typeof resolvedConfiguration.cors === "string") {
+                corsRules = [
+                    {
+                        AllowedOrigins: [resolvedConfiguration.cors],
+                        AllowedMethods: ["GET", "PUT", "DELETE"],
+                        AllowedHeaders: ["*"],
+                    },
+                ];
+            } else {
+                corsRules = resolvedConfiguration.cors.map((rule) => capitalizeKeys(rule as Record<string, unknown>));
+            }
+            cfnBucket.addPropertyOverride("CorsConfiguration", { CorsRules: corsRules });
+        }
+
         this.bucketNameOutput = new CfnOutput(this, "BucketName", {
             value: this.bucket.bucketName,
         });
@@ -126,11 +154,16 @@ export class Storage extends AwsConstruct {
     }
 
     permissions(): PolicyStatement[] {
+        const actions = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"];
+        if (this.allowAcl) {
+            actions.push("s3:GetObjectAcl", "s3:PutObjectAcl");
+        }
+
         return [
-            new PolicyStatement(
-                ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
-                [this.bucket.bucketArn, Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"]))]
-            ),
+            new PolicyStatement(actions, [
+                this.bucket.bucketArn,
+                Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"])),
+            ]),
         ];
     }
 
