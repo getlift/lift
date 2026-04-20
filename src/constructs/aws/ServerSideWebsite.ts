@@ -27,7 +27,7 @@ import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";
 import { ensureNameMaxLength } from "../../utils/naming";
-import { s3Put, s3Sync } from "../../utils/s3-sync";
+import { s3PutIfChanged, s3Sync } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 import ServerlessError from "../../utils/error";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
@@ -102,6 +102,11 @@ export class ServerSideWebsite extends AwsConstruct {
         this.bucket = new Bucket(this, "Assets", {
             // Assets are compiled artifacts, we can clear them on serverless remove
             removalPolicy: RemovalPolicy.DESTROY,
+        });
+        this.bucket.addLifecycleRule({
+            // Obsolete files are tagged during sync and expire automatically.
+            tagFilters: { Obsolete: "true" },
+            expiration: Duration.days(1),
         });
 
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
@@ -284,8 +289,13 @@ export class ServerSideWebsite extends AwsConstruct {
                 } else {
                     getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${targetKey}'`);
                 }
-                await s3Put(this.provider, bucketName, targetKey, fs.readFileSync(filePath));
-                invalidate = true;
+                const hasChanges = await s3PutIfChanged(
+                    this.provider,
+                    bucketName,
+                    targetKey,
+                    fs.readFileSync(filePath)
+                );
+                invalidate = invalidate || hasChanges;
             }
         }
         if (invalidate) {
