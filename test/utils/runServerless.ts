@@ -11,6 +11,9 @@ type RunServerlessPromiseReturn = ReturnType<typeof originalRunServerless>;
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 type RunServerlessReturn = ThenArg<RunServerlessPromiseReturn>;
 
+const serverlessPackage = process.env.SERVERLESS_TEST_PACKAGE ?? "osls";
+const serverlessDir = path.dirname(require.resolve(`${serverlessPackage}/package.json`));
+
 const computeLogicalId = (serverless: Serverless, ...address: string[]): string => {
     const initialNode = serverless.stack.node;
     const foundNode = [...address].reduce((currentNode, nextNodeId) => {
@@ -39,7 +42,7 @@ export const runServerless = async (
 ): Promise<RunServerlessReturn & { computeLogicalId: ComputeLogicalId }> => {
     const runServerlessReturnValues = await setupRunServerlessFixturesEngine({
         fixturesDir: path.resolve(__dirname, "../fixtures"),
-        serverlessDir: path.resolve(__dirname, "../../node_modules/serverless"),
+        serverlessDir,
     })(options);
 
     return {
