@@ -19,6 +19,9 @@ import { getUtils } from "./logger";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
+const readFile = util.promisify(fs.readFile);
+
+const S3_UPLOAD_CONCURRENCY = 16;
 
 type S3Objects = Record<string, S3Object>;
 
@@ -45,11 +48,11 @@ export async function s3Sync({
 
     // Upload files by chunks
     let skippedFiles = 0;
-    for (const batch of chunk(filesToUpload, 2)) {
+    for (const batch of chunk(filesToUpload, S3_UPLOAD_CONCURRENCY)) {
         await Promise.all(
             batch.map(async (file) => {
                 const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
-                const fileContent = fs.readFileSync(path.posix.join(localPath, file));
+                const fileContent = await readFile(path.posix.join(localPath, file));
 
                 // Check that the file isn't already uploaded
                 if (targetKey in existingS3Objects) {

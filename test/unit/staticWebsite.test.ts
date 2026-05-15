@@ -553,18 +553,22 @@ describe("static websites", () => {
 
         // scripts.js and styles.css were updated
         sinon.assert.callCount(putObjectSpy, 2);
-        expect(putObjectSpy.firstCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "scripts.js",
-            Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/scripts.js")),
-            ContentType: "application/javascript",
-        });
-        expect(putObjectSpy.secondCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "styles.css",
-            Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/styles.css")),
-            ContentType: "text/css",
-        });
+        expect(putObjectSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "scripts.js",
+                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/scripts.js")),
+                    ContentType: "application/javascript",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "styles.css",
+                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/styles.css")),
+                    ContentType: "text/css",
+                },
+            ])
+        );
         // image.jpg was deleted
         sinon.assert.calledOnce(deleteObjectsSpy);
         expect(deleteObjectsSpy.firstCall.firstArg).toEqual({
