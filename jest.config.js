@@ -4,6 +4,8 @@ const { compilerOptions } = require("./tsconfig");
 module.exports = {
     moduleNameMapper: Object.assign(pathsToModuleNameMapper(compilerOptions.paths, { prefix: "<rootDir>" }), {
         axios: "axios/dist/node/axios.cjs",
+        filenamify: "<rootDir>/test/utils/filenamify.ts",
+        "https-proxy-agent": "<rootDir>/test/utils/httpsProxyAgent.ts",
     }),
     preset: "ts-jest",
     testPathIgnorePatterns: ["dist"],

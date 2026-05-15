@@ -17,7 +17,10 @@ jobs:
                     - 22
                     - 24
                 serverless:
-                    - "3"
+                    - package: "osls@3"
+                      module: osls
+                    - package: "serverless@3"
+                      module: serverless
                     # - "4" Official way to test plugins for serverless is missing.
         steps:
             - uses: actions/checkout@v4
@@ -29,10 +32,11 @@ jobs:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
             - run: npm i
-            - run: npm i serverless@${{ matrix.serverless }}
+            - run: npm i --save-dev "${{ matrix.serverless.package }}"
             - name: Run jest unit tests
               env:
                   NODE_OPTIONS: "--max_old_space_size=4096"
+                  SERVERLESS_TEST_PACKAGE: ${{ matrix.serverless.module }}
               run: npm test
     lint:
         name: Lint

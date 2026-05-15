@@ -1,4 +1,5 @@
 import path from "path";
+import { runInThisContext } from "vm";
 import { Names } from "aws-cdk-lib";
 import type originalRunServerless from "@serverless/test/run-serverless";
 import setupRunServerlessFixturesEngine from "@serverless/test/setup-run-serverless-fixtures-engine";
@@ -10,6 +11,29 @@ type ComputeLogicalId = (...address: string[]) => string;
 type RunServerlessPromiseReturn = ReturnType<typeof originalRunServerless>;
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 type RunServerlessReturn = ThenArg<RunServerlessPromiseReturn>;
+
+const serverlessPackage = process.env.SERVERLESS_TEST_PACKAGE ?? "osls";
+const serverlessDir = path.resolve(__dirname, `../../node_modules/${serverlessPackage}`);
+
+// Jest 27 runs tests in a VM context that does not expose all Node 20 globals.
+// Latest OSLS dependencies expect these web platform APIs to be available.
+[
+    "structuredClone",
+    "ReadableStream",
+    "Blob",
+    "File",
+    "URLSearchParams",
+    "URL",
+    "AbortSignal",
+    "MessagePort",
+    "DOMException",
+].forEach((globalName) => {
+    if (!(globalName in globalThis)) {
+        Object.assign(globalThis, {
+            [globalName]: runInThisContext(globalName) as unknown,
+        });
+    }
+});
 
 const computeLogicalId = (serverless: Serverless, ...address: string[]): string => {
     const initialNode = serverless.stack.node;
@@ -39,7 +63,7 @@ export const runServerless = async (
 ): Promise<RunServerlessReturn & { computeLogicalId: ComputeLogicalId }> => {
     const runServerlessReturnValues = await setupRunServerlessFixturesEngine({
         fixturesDir: path.resolve(__dirname, "../fixtures"),
-        serverlessDir: path.resolve(__dirname, "../../node_modules/serverless"),
+        serverlessDir,
     })(options);
 
     return {
