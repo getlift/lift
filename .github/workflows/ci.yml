@@ -17,7 +17,7 @@ jobs:
                     - 22
                     - 24
                 serverless:
-                    - package: "osls@>=3.54.1 <3.65.0"
+                    - package: "osls@3"
                       module: osls
                     - package: "serverless@3"
                       module: serverless
@@ -32,7 +32,7 @@ jobs:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
             - run: npm i
-            - run: npm i "${{ matrix.serverless.package }}"
+            - run: npm i --save-dev "${{ matrix.serverless.package }}"
             - name: Run jest unit tests
               env:
                   NODE_OPTIONS: "--max_old_space_size=4096"
