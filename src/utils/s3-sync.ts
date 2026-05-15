@@ -21,7 +21,7 @@ const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
 const readFile = util.promisify(fs.readFile);
 
-const S3_UPLOAD_CONCURRENCY = 32;
+const S3_UPLOAD_CONCURRENCY = 16;
 
 type S3Objects = Record<string, S3Object>;
 
