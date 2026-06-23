@@ -43,5 +43,7 @@ resources:
                 BucketName: ${construct:bar.queueUrl}
 
 plugins:
-    - ../../../dist/src/plugin.js
-    - ./extra-plugin.js
+    localPath: ../../../dist/src
+    modules:
+        - plugin.js
+        - ./extra-plugin.js

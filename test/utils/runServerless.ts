@@ -74,7 +74,10 @@ export const runServerless = async (
 };
 
 export const pluginConfigExt = {
-    plugins: [path.join(process.cwd(), "src/plugin.ts")],
+    plugins: {
+        localPath: path.join(process.cwd(), "src"),
+        modules: ["plugin.ts"],
+    },
 };
 
 export const baseConfig: AWS = {
@@ -82,5 +85,8 @@ export const baseConfig: AWS = {
     provider: {
         name: "aws",
     },
-    plugins: [path.join(process.cwd(), "src/plugin.ts")],
+    plugins: {
+        localPath: path.join(process.cwd(), "src"),
+        modules: ["plugin.ts"],
+    },
 };

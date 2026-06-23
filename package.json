@@ -5,6 +5,9 @@
   "repository": "https://github.com/getlift/lift",
   "description": "Lift",
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.1073.0",
+    "@aws-sdk/client-s3": "^3.1073.0",
+    "@aws-sdk/client-sqs": "^3.1073.0",
     "aws-cdk-lib": "^2.215.0",
     "chalk": "^4.1.1",
     "change-case": "^4.1.2",
@@ -48,7 +51,7 @@
     "json-schema-to-ts": "^1.6.4",
     "lint-staged": "^11.0.0",
     "nodemon": "^3.1.11",
-    "osls": "^3.72.0",
+    "osls": "^3.72.0 || ^4.0.0-beta.0",
     "prettier": "^2.3.2",
     "sinon": "^11.1.1",
     "stdout-stderr": "^0.1.13",
@@ -83,7 +86,7 @@
   },
   "types": "dist/src/plugin.d.ts",
   "peerDependencies": {
-    "osls": "^3",
+    "osls": "^3 || ^4.0.0-beta.0",
     "serverless": "^3 || ^4"
   },
   "peerDependenciesMeta": {

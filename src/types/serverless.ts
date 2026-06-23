@@ -33,6 +33,10 @@ export type Provider = {
      * Send a request to the AWS API.
      */
     request: <Input, Output>(service: string, method: string, params: Input) => Promise<Output>;
+    /**
+     * Build AWS SDK v3 client configuration.
+     */
+    getAwsSdkV3Config?: () => Promise<Record<string, unknown>>;
 };
 
 export type Serverless = {
