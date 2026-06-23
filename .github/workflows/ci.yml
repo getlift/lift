@@ -19,7 +19,7 @@ jobs:
                 serverless:
                     - package: "osls@3"
                       module: osls
-                    - package: "osls@4.0.0-beta"
+                    - package: "osls@beta"
                       module: osls
                     - package: "serverless@3"
                       module: serverless

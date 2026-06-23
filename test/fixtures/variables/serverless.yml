@@ -43,6 +43,8 @@ resources:
                 BucketName: ${construct:bar.queueUrl}
 
 plugins:
+    # osls v4 validates local plugin entries. This fixture loads the built Lift plugin
+    # from the repository dist folder, which is outside this test service directory.
     localPath: ../../../dist/src
     modules:
         - plugin.js
