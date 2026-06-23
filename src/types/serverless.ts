@@ -34,9 +34,28 @@ export type Provider = {
      */
     request: <Input, Output>(service: string, method: string, params: Input) => Promise<Output>;
     /**
+     * Fetch credentials resolved by the framework.
+     */
+    getCredentials?: () => {
+        credentials?: {
+            accessKeyId?: string;
+            secretAccessKey?: string;
+            sessionToken?: string;
+            getPromise?: () => Promise<void>;
+        };
+        accessKeyId?: string;
+        secretAccessKey?: string;
+        sessionToken?: string;
+        getPromise?: () => Promise<void>;
+    };
+    /**
      * Build AWS SDK v3 client configuration.
      */
     getAwsSdkV3Config?: () => Promise<Record<string, unknown>>;
+    /**
+     * Whether S3 transfer acceleration is configured.
+     */
+    isS3TransferAccelerationEnabled?: () => boolean;
 };
 
 export type Serverless = {

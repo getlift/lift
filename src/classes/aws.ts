@@ -5,11 +5,45 @@ import type {
     ListObjectsV2Request,
 } from "aws-sdk/clients/s3";
 import type { CreateInvalidationRequest, CreateInvalidationResult } from "aws-sdk/clients/cloudfront";
-import { CloudFrontClient, CreateInvalidationCommand } from "@aws-sdk/client-cloudfront";
-import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
-import { PurgeQueueCommand, SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { CloudFormationClient } from "@aws-sdk/client-cloudformation";
+import * as CloudFormationCommands from "@aws-sdk/client-cloudformation";
+import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
+import * as CloudFrontCommands from "@aws-sdk/client-cloudfront";
+import { S3Client } from "@aws-sdk/client-s3";
+import * as S3Commands from "@aws-sdk/client-s3";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import * as SQSCommands from "@aws-sdk/client-sqs";
 import type { AwsProvider } from "@lift/providers";
 import type { Provider as LegacyAwsProvider } from "../types/serverless";
+
+type AwsSdkV3Client = {
+    send(command: object): Promise<unknown>;
+};
+type AwsSdkV3ClientConstructor = new (config: Record<string, unknown>) => AwsSdkV3Client;
+type AwsSdkV3CommandConstructor = new (params: unknown) => object;
+type AwsSdkV3Service = {
+    Client: AwsSdkV3ClientConstructor;
+    commands: Record<string, unknown>;
+};
+
+const awsSdkV3Services: Partial<Record<string, AwsSdkV3Service>> = {
+    CloudFormation: {
+        Client: CloudFormationClient,
+        commands: CloudFormationCommands,
+    },
+    CloudFront: {
+        Client: CloudFrontClient,
+        commands: CloudFrontCommands,
+    },
+    S3: {
+        Client: S3Client,
+        commands: S3Commands,
+    },
+    SQS: {
+        Client: SQSClient,
+        commands: SQSCommands,
+    },
+};
 
 // This is defined as a separate function to allow mocking in tests
 export async function awsRequest<Input, Output>(
@@ -18,37 +52,48 @@ export async function awsRequest<Input, Output>(
     method: string,
     provider: LegacyAwsProvider
 ): Promise<Output> {
-    if (provider.getAwsSdkV3Config) {
-        const config = await provider.getAwsSdkV3Config();
-        if (service === "CloudFront" && method === "createInvalidation") {
-            return (await new CloudFrontClient(config).send(
-                new CreateInvalidationCommand(params as ConstructorParameters<typeof CreateInvalidationCommand>[0])
-            )) as Output;
-        }
-        if (service === "S3" && method === "deleteObjects") {
-            return (await new S3Client(config).send(
-                new DeleteObjectsCommand(params as ConstructorParameters<typeof DeleteObjectsCommand>[0])
-            )) as Output;
-        }
-        if (service === "S3" && method === "listObjectsV2") {
-            return (await new S3Client(config).send(
-                new ListObjectsV2Command(params as ConstructorParameters<typeof ListObjectsV2Command>[0])
-            )) as Output;
-        }
-        if (service === "SQS" && method === "purgeQueue") {
-            return (await new SQSClient(config).send(
-                new PurgeQueueCommand(params as ConstructorParameters<typeof PurgeQueueCommand>[0])
-            )) as Output;
-        }
-        if (service === "SQS" && method === "sendMessage") {
-            return (await new SQSClient(config).send(
-                new SendMessageCommand(params as ConstructorParameters<typeof SendMessageCommand>[0])
-            )) as Output;
-        }
+    const sdkService = awsSdkV3Services[service];
+    if (sdkService === undefined) {
+        throw new Error(`Unsupported AWS SDK v3 service ${service}`);
+    }
+
+    const Command = sdkService.commands[`${method.charAt(0).toUpperCase()}${method.slice(1)}Command`] as
+        | AwsSdkV3CommandConstructor
+        | undefined;
+    if (Command === undefined) {
         throw new Error(`Unsupported AWS SDK v3 request ${service}.${method}`);
     }
 
-    return await provider.request<Input, Output>(service, method, params);
+    const client = new sdkService.Client(await getAwsSdkV3Config(provider, service));
+
+    return (await client.send(new Command(params))) as Output;
+}
+
+async function getAwsSdkV3Config(provider: LegacyAwsProvider, service: string): Promise<Record<string, unknown>> {
+    if (provider.getAwsSdkV3Config) {
+        return provider.getAwsSdkV3Config();
+    }
+
+    const config: Record<string, unknown> = {
+        region: provider.getRegion(),
+    };
+    const credentialsConfig = provider.getCredentials ? provider.getCredentials() : {};
+    const credentials = credentialsConfig.credentials ?? credentialsConfig;
+    if (credentials.getPromise) {
+        await credentials.getPromise();
+    }
+    if (credentials.accessKeyId !== undefined && credentials.secretAccessKey !== undefined) {
+        config.credentials = {
+            accessKeyId: credentials.accessKeyId,
+            secretAccessKey: credentials.secretAccessKey,
+            sessionToken: credentials.sessionToken,
+        };
+    }
+    if (service === "S3" && provider.isS3TransferAccelerationEnabled) {
+        config.useAccelerateEndpoint = provider.isS3TransferAccelerationEnabled();
+    }
+
+    return config;
 }
 
 export async function emptyBucket(aws: AwsProvider, bucketName: string): Promise<void> {
