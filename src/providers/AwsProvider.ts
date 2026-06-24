@@ -1,6 +1,10 @@
 import type { CfnOutput } from "aws-cdk-lib";
 import { App, DefaultStackSynthesizer, Stack } from "aws-cdk-lib";
 import { get, merge } from "lodash";
+import { CloudFormationClient } from "@aws-sdk/client-cloudformation";
+import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
+import { S3Client } from "@aws-sdk/client-s3";
+import { SQSClient } from "@aws-sdk/client-sqs";
 import type { AwsCfInstruction, AwsLambdaVpcConfig } from "@serverless/typescript";
 import type { ProviderInterface } from "@lift/providers";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
@@ -16,7 +20,7 @@ import {
 } from "@lift/constructs/aws";
 import { getStackOutput } from "../CloudFormation";
 import type { CloudformationTemplate, Provider as LegacyAwsProvider, Serverless } from "../types/serverless";
-import { awsRequest } from "../classes/aws";
+import { getAwsSdkV3Config } from "../classes/aws";
 import ServerlessError from "../utils/error";
 
 const AWS_DEFINITION = {
@@ -67,6 +71,10 @@ export class AwsProvider implements ProviderInterface {
     public readonly region: string;
     public readonly stackName: string;
     private readonly legacyProvider: LegacyAwsProvider;
+    private cloudFormationClient?: CloudFormationClient;
+    private cloudFrontClient?: CloudFrontClient;
+    private s3Client?: S3Client;
+    private sqsClient?: SQSClient;
     public naming: {
         getStackName: () => string;
         getLambdaLogicalId: (functionName: string) => string;
@@ -190,11 +198,40 @@ export class AwsProvider implements ProviderInterface {
         return getStackOutput(this, output);
     }
 
-    /**
-     * Send a request to the AWS API.
-     */
-    request<Input, Output>(service: string, method: string, params: Input): Promise<Output> {
-        return awsRequest<Input, Output>(params, service, method, this.legacyProvider);
+    async getCloudFormationClient(): Promise<CloudFormationClient> {
+        if (this.cloudFormationClient === undefined) {
+            const config = await getAwsSdkV3Config(this.legacyProvider);
+            this.cloudFormationClient = new CloudFormationClient(config);
+        }
+
+        return this.cloudFormationClient;
+    }
+
+    async getCloudFrontClient(): Promise<CloudFrontClient> {
+        if (this.cloudFrontClient === undefined) {
+            const config = await getAwsSdkV3Config(this.legacyProvider);
+            this.cloudFrontClient = new CloudFrontClient(config);
+        }
+
+        return this.cloudFrontClient;
+    }
+
+    async getS3Client(): Promise<S3Client> {
+        if (this.s3Client === undefined) {
+            const config = await getAwsSdkV3Config(this.legacyProvider);
+            this.s3Client = new S3Client(config);
+        }
+
+        return this.s3Client;
+    }
+
+    async getSqsClient(): Promise<SQSClient> {
+        if (this.sqsClient === undefined) {
+            const config = await getAwsSdkV3Config(this.legacyProvider);
+            this.sqsClient = new SQSClient(config);
+        }
+
+        return this.sqsClient;
     }
 
     appendCloudformationResources(): void {

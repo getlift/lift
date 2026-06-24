@@ -77,6 +77,54 @@ describe("storage", () => {
         });
     });
 
+    it("should not set OwnershipControls by default", () => {
+        expect(cfTemplate.Resources[computeLogicalId("default", "Bucket")].Properties).not.toHaveProperty(
+            "OwnershipControls"
+        );
+    });
+
+    it("should set OwnershipControls when allowAcl is true", () => {
+        expect(cfTemplate.Resources[computeLogicalId("withAcl", "Bucket")].Properties).toMatchObject({
+            OwnershipControls: {
+                Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }],
+            },
+        });
+    });
+
+    it("should not set CorsConfiguration by default", () => {
+        expect(cfTemplate.Resources[computeLogicalId("default", "Bucket")].Properties).not.toHaveProperty(
+            "CorsConfiguration"
+        );
+    });
+
+    it("should configure CORS with default methods when cors is a string", () => {
+        expect(cfTemplate.Resources[computeLogicalId("withCorsString", "Bucket")].Properties).toMatchObject({
+            CorsConfiguration: {
+                CorsRules: [
+                    {
+                        AllowedOrigins: ["*"],
+                        AllowedMethods: ["GET", "PUT", "DELETE"],
+                        AllowedHeaders: ["*"],
+                    },
+                ],
+            },
+        });
+    });
+
+    it("should configure CORS with full rules when cors is an array", () => {
+        expect(cfTemplate.Resources[computeLogicalId("withCorsRules", "Bucket")].Properties).toMatchObject({
+            CorsConfiguration: {
+                CorsRules: [
+                    {
+                        AllowedOrigins: ["https://example.com"],
+                        AllowedMethods: ["PUT"],
+                        AllowedHeaders: ["*"],
+                    },
+                ],
+            },
+        });
+    });
+
     it("supports custom lifecycleRules with auto-capitalization and default Status", () => {
         const lifecycleConfig = cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties
             .LifecycleConfiguration as { Rules: unknown[] };

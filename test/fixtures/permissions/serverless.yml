@@ -13,3 +13,6 @@ functions:
 constructs:
     testStorage:
         type: storage
+        allowAcl: true
+    testStorageNoAcl:
+        type: storage

@@ -1,18 +1,17 @@
+import {
+    CopyObjectCommand,
+    GetObjectTaggingCommand,
+    HeadObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    PutObjectTaggingCommand,
+} from "@aws-sdk/client-s3";
 import type {
-    CopyObjectOutput,
-    CopyObjectRequest,
-    GetObjectTaggingOutput,
-    GetObjectTaggingRequest,
-    HeadObjectOutput,
-    HeadObjectRequest,
-    ListObjectsV2Output,
-    ListObjectsV2Request,
-    PutObjectOutput,
-    PutObjectRequest,
-    PutObjectTaggingOutput,
-    PutObjectTaggingRequest,
-    Object as S3Object,
-} from "aws-sdk/clients/s3";
+    HeadObjectCommandOutput,
+    ListObjectsV2CommandOutput,
+    PutObjectCommandInput,
+    _Object as S3Object,
+} from "@aws-sdk/client-s3";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import { chunk, flatten } from "lodash";
@@ -25,8 +24,10 @@ import { getUtils } from "./logger";
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
+const readFile = util.promisify(fs.readFile);
 
-const UPLOAD_BATCH_SIZE = 2;
+const S3_UPLOAD_CONCURRENCY = 16;
+
 const TAGGING_BATCH_SIZE = 10;
 
 type S3Objects = Record<string, S3Object>;
@@ -54,11 +55,11 @@ export async function s3Sync({
 
     // Upload files by chunks
     let skippedFiles = 0;
-    for (const batch of chunk(filesToUpload, UPLOAD_BATCH_SIZE)) {
+    for (const batch of chunk(filesToUpload, S3_UPLOAD_CONCURRENCY)) {
         await Promise.all(
             batch.map(async (file) => {
                 const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
-                const fileContent = fs.readFileSync(path.posix.join(localPath, file));
+                const fileContent = await readFile(path.posix.join(localPath, file));
 
                 // Check that the file isn't already uploaded
                 if (targetKey in existingS3Objects) {
@@ -123,17 +124,19 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
 }
 
 async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: string): Promise<S3Objects> {
-    let result;
+    let result: ListObjectsV2CommandOutput;
     let continuationToken = undefined;
-    const objects: S3Objects = {};
+    const objects: Record<string, S3Object> = {};
+    const s3Client = await aws.getS3Client();
     do {
-        result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
-            Bucket: bucketName,
-            Prefix: pathPrefix,
-            MaxKeys: 1000,
-            ContinuationToken: continuationToken,
-        });
-
+        result = await s3Client.send(
+            new ListObjectsV2Command({
+                Bucket: bucketName,
+                Prefix: pathPrefix,
+                MaxKeys: 1000,
+                ContinuationToken: continuationToken,
+            })
+        );
         (result.Contents ?? []).forEach((object) => {
             if (object.Key === undefined) {
                 return;
@@ -159,12 +162,13 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
     if (contentType === false) {
         contentType = "application/octet-stream";
     }
-    await aws.request<PutObjectRequest, PutObjectOutput>("S3", "putObject", {
+    const params: PutObjectCommandInput = {
         Bucket: bucket,
         Key: key,
         Body: fileContent,
         ContentType: contentType,
-    });
+    };
+    await (await aws.getS3Client()).send(new PutObjectCommand(params));
 }
 
 export async function s3PutIfChanged(
@@ -174,12 +178,15 @@ export async function s3PutIfChanged(
     fileContent: Buffer
 ): Promise<boolean> {
     try {
-        const existingObject = await aws.request<HeadObjectRequest, HeadObjectOutput>("S3", "headObject", {
-            Bucket: bucket,
-            Key: key,
-        });
-        const existingETag = (existingObject as { ETag?: string } | undefined)?.ETag;
-        if (existingETag === computeS3ETag(fileContent)) {
+        const existingObject: HeadObjectCommandOutput = await (
+            await aws.getS3Client()
+        ).send(
+            new HeadObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            })
+        );
+        if (existingObject.ETag === computeS3ETag(fileContent)) {
             return false;
         }
     } catch (error) {
@@ -197,45 +204,48 @@ export async function s3PutIfChanged(
 async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<string[]> {
     try {
         const taggedKeys: string[] = [];
+        const s3Client = await aws.getS3Client();
 
         for (const batch of chunk(keys, TAGGING_BATCH_SIZE)) {
             const batchResults = await Promise.all(
                 batch.map(async (key) => {
-                    const getTagsResponse = await aws.request<GetObjectTaggingRequest, GetObjectTaggingOutput>(
-                        "S3",
-                        "getObjectTagging",
-                        {
+                    const getTagsResponse = await s3Client.send(
+                        new GetObjectTaggingCommand({
                             Bucket: bucket,
                             Key: key,
-                        }
+                        })
                     );
-                    const currentTagSet = getTagsResponse.TagSet;
+                    const currentTagSet = getTagsResponse.TagSet ?? [];
                     if (currentTagSet.some((tag) => tag.Key === "Obsolete" && tag.Value === "true")) {
                         return false;
                     }
 
-                    await aws.request<PutObjectTaggingRequest, PutObjectTaggingOutput>("S3", "putObjectTagging", {
-                        Bucket: bucket,
-                        Key: key,
-                        Tagging: {
-                            TagSet: [
-                                ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
-                                {
-                                    Key: "Obsolete",
-                                    Value: "true",
-                                },
-                            ],
-                        },
-                    });
+                    await s3Client.send(
+                        new PutObjectTaggingCommand({
+                            Bucket: bucket,
+                            Key: key,
+                            Tagging: {
+                                TagSet: [
+                                    ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
+                                    {
+                                        Key: "Obsolete",
+                                        Value: "true",
+                                    },
+                                ],
+                            },
+                        })
+                    );
 
                     // Copy object to refresh LastModified and trigger lifecycle expiry only once.
                     const encodedKey = encodeURIComponent(key).replace(/%2F/g, "/");
-                    await aws.request<CopyObjectRequest, CopyObjectOutput>("S3", "copyObject", {
-                        Bucket: bucket,
-                        Key: key,
-                        CopySource: `${bucket}/${encodedKey}`,
-                        MetadataDirective: "COPY",
-                    });
+                    await s3Client.send(
+                        new CopyObjectCommand({
+                            Bucket: bucket,
+                            Key: key,
+                            CopySource: `${bucket}/${encodedKey}`,
+                            MetadataDirective: "COPY",
+                        })
+                    );
 
                     return true;
                 })

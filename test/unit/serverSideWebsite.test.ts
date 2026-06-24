@@ -547,25 +547,28 @@ describe("server-side website", () => {
 
         // scripts.js and styles.css were updated
         sinon.assert.callCount(putObjectSpy, 3);
-        expect(putObjectSpy.firstCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "assets/scripts.js",
-            Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/scripts.js")),
-            ContentType: "application/javascript",
-        });
-        expect(putObjectSpy.secondCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "assets/styles.css",
-            Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/styles.css")),
-            ContentType: "text/css",
-        });
-        // It should upload the custom error page
-        expect(putObjectSpy.thirdCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "error.html",
-            Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
-            ContentType: "text/html",
-        });
+        expect(putObjectSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/scripts.js",
+                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/scripts.js")),
+                    ContentType: "application/javascript",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/styles.css",
+                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/styles.css")),
+                    ContentType: "text/css",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "error.html",
+                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
+                    ContentType: "text/html",
+                },
+            ])
+        );
         // image.jpg was tagged as obsolete and copied to trigger lifecycle expiration
         sinon.assert.calledOnce(getObjectTaggingSpy);
         expect(getObjectTaggingSpy.firstCall.firstArg).toEqual({

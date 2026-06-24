@@ -32,6 +32,21 @@ constructs:
                                   - HEAD
                                   - PUT
                                   - POST
+    withAcl:
+        type: storage
+        allowAcl: true
+    withCorsString:
+        type: storage
+        cors: "*"
+    withCorsRules:
+        type: storage
+        cors:
+            - allowedOrigins:
+                  - "https://example.com"
+              allowedMethods:
+                  - PUT
+              allowedHeaders:
+                  - "*"
     withLifecycleRules:
         type: storage
         lifecycleRules:

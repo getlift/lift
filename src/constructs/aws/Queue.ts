@@ -10,7 +10,7 @@ import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
 import { CfnOutput, Duration } from "aws-cdk-lib";
 import chalk from "chalk";
-import type { PurgeQueueRequest, SendMessageRequest } from "aws-sdk/clients/sqs";
+import { PurgeQueueCommand, SendMessageCommand, type SendMessageCommandInput } from "@aws-sdk/client-sqs";
 import { isNil } from "lodash";
 import type { Ora } from "ora";
 import ora from "ora";
@@ -461,9 +461,7 @@ export class Queue extends AwsConstruct {
         } else {
             progressV2 = ora("Purging the dead letter queue of failed messages").start();
         }
-        await this.provider.request<PurgeQueueRequest, void>("SQS", "purgeQueue", {
-            QueueUrl: dlqUrl,
-        });
+        await (await this.provider.getSqsClient()).send(new PurgeQueueCommand({ QueueUrl: dlqUrl }));
         /**
          * Sometimes messages are still returned after the purge is issued.
          * For a less confusing experience, we wait 500ms so that if the user re-runs `sls queue:failed` there
@@ -605,7 +603,7 @@ export class Queue extends AwsConstruct {
 
         const body = typeof options.body === "string" ? options.body : await this.askMessageBody();
 
-        const params: SendMessageRequest = {
+        const params: SendMessageCommandInput = {
             QueueUrl: queueUrl,
             MessageBody: body,
         };
@@ -614,7 +612,7 @@ export class Queue extends AwsConstruct {
             params.MessageGroupId = options["group-id"] as string;
         }
 
-        await this.provider.request<SendMessageRequest, never>("SQS", "sendMessage", params);
+        await (await this.provider.getSqsClient()).send(new SendMessageCommand(params));
 
         getUtils().log.success("Message sent to SQS");
     }
