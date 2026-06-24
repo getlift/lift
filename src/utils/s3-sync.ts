@@ -1,12 +1,10 @@
 import type {
-    DeleteObjectsOutput,
-    DeleteObjectsRequest,
-    ListObjectsV2Output,
-    ListObjectsV2Request,
-    PutObjectOutput,
-    PutObjectRequest,
-    Object as S3Object,
-} from "aws-sdk/clients/s3";
+    DeleteObjectsCommandOutput,
+    ListObjectsV2CommandOutput,
+    PutObjectCommandInput,
+    _Object as S3Object,
+} from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
 import * as fs from "fs";
 import * as util from "util";
 import * as path from "path";
@@ -126,16 +124,19 @@ async function listFilesRecursively(directory: string): Promise<string[]> {
 }
 
 async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: string): Promise<S3Objects> {
-    let result;
+    let result: ListObjectsV2CommandOutput;
     let continuationToken = undefined;
     const objects: Record<string, S3Object> = {};
+    const s3Client = await aws.getS3Client();
     do {
-        result = await aws.request<ListObjectsV2Request, ListObjectsV2Output>("S3", "listObjectsV2", {
-            Bucket: bucketName,
-            Prefix: pathPrefix,
-            MaxKeys: 1000,
-            ContinuationToken: continuationToken,
-        });
+        result = await s3Client.send(
+            new ListObjectsV2Command({
+                Bucket: bucketName,
+                Prefix: pathPrefix,
+                MaxKeys: 1000,
+                ContinuationToken: continuationToken,
+            })
+        );
         (result.Contents ?? []).forEach((object) => {
             if (object.Key === undefined) {
                 return;
@@ -158,25 +159,30 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
     if (contentType === false) {
         contentType = "application/octet-stream";
     }
-    await aws.request<PutObjectRequest, PutObjectOutput>("S3", "putObject", {
+    const params: PutObjectCommandInput = {
         Bucket: bucket,
         Key: key,
         Body: fileContent,
         ContentType: contentType,
-    });
+    };
+    await (await aws.getS3Client()).send(new PutObjectCommand(params));
 }
 
 async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-    const response = await aws.request<DeleteObjectsRequest, DeleteObjectsOutput>("S3", "deleteObjects", {
-        Bucket: bucket,
-        Delete: {
-            Objects: keys.map((key) => {
-                return {
-                    Key: key,
-                };
-            }),
-        },
-    });
+    const response = await (
+        await aws.getS3Client()
+    ).send(
+        new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: {
+                Objects: keys.map((key) => {
+                    return {
+                        Key: key,
+                    };
+                }),
+            },
+        })
+    );
 
     // S3 deleteObjects operation will fail silently
     // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property

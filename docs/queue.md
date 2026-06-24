@@ -76,21 +76,22 @@ Our `publisher` function can send messages into the SQS queue using the AWS SDK:
 
 ```js
 // src/publisher.js
-const AWS = require('aws-sdk');
-const sqs = new AWS.SQS({
-    apiVersion: 'latest',
+const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
+const sqs = new SQSClient({
     region: process.env.AWS_REGION,
 });
 
 exports.handler = async function(event, context) {
     // Send a message into SQS
-    await sqs.sendMessage({
-        QueueUrl: process.env.QUEUE_URL,
-        // Any message data we want to send
-        MessageBody: JSON.stringify({
-            fileName: 'foo/bar.mp4'
-        }),
-    }).promise();
+    await sqs.send(
+        new SendMessageCommand({
+            QueueUrl: process.env.QUEUE_URL,
+            // Any message data we want to send
+            MessageBody: JSON.stringify({
+                fileName: 'foo/bar.mp4'
+            }),
+        })
+    );
 }
 ```
 

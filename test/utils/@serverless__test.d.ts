@@ -6,7 +6,6 @@ declare module "@serverless/test/run-serverless" {
         options: Record<string, boolean | string>;
         configExt: Partial<AWS> | Record<string, unknown>;
         env: Record<string, string>;
-        awsRequestStubMap: unknwon;
     }>;
 
     type RunServerlessFixtureOption = {

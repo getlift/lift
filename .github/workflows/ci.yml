@@ -19,9 +19,11 @@ jobs:
                 serverless:
                     - package: "osls@3"
                       module: osls
+                    - package: "osls@beta"
+                      module: osls
                     - package: "serverless@3"
                       module: serverless
-                    # - "4" Official way to test plugins for serverless is missing.
+                    # - "serverless@4" Official way to test plugins for serverless is missing.
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4

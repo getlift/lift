@@ -1,4 +1,4 @@
-import type { DescribeStacksInput, DescribeStacksOutput } from "aws-sdk/clients/cloudformation";
+import { DescribeStacksCommand, type DescribeStacksCommandOutput } from "@aws-sdk/client-cloudformation";
 import type { CfnOutput } from "aws-cdk-lib";
 import { Stack } from "aws-cdk-lib";
 import type { AwsProvider } from "@lift/providers";
@@ -10,11 +10,9 @@ export async function getStackOutput(aws: AwsProvider, output: CfnOutput): Promi
 
     getUtils().log.debug(`Fetching output "${outputId}" in stack "${stackName}"`);
 
-    let data: DescribeStacksOutput;
+    let data: DescribeStacksCommandOutput;
     try {
-        data = await aws.request<DescribeStacksInput, DescribeStacksOutput>("CloudFormation", "describeStacks", {
-            StackName: stackName,
-        });
+        data = await (await aws.getCloudFormationClient()).send(new DescribeStacksCommand({ StackName: stackName }));
     } catch (e) {
         if (e instanceof Error && e.message === `Stack with id ${stackName} does not exist`) {
             getUtils().log.debug(e.message);
