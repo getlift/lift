@@ -224,6 +224,27 @@ With the example above:
 - `https://<domain>/images/*` -> serves the files uploaded from the local `assets/animations` directory
 - `https://<domain>/favicon.ico` -> serves the file uploaded from `public/favicon.ico`
 
+### Versioned assets
+
+Enable `versionedAssets` for "zero-downtime deployments" if your application generates asset URLs with unique hashes:
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        versionedAssets: true
+        assets:
+            '/build/*': public/build
+```
+
+This is useful for frameworks such as Laravel with Vite, where the deployed PHP code references asset paths from a manifest file.
+
+When `versionedAssets` is enabled, Lift uploads assets **before** the CloudFormation deployment starts, so the new hashed files are already available by the time the new Lambda code is deployed.
+
+Lift also keeps obsolete files in S3 temporarily instead of deleting them immediately (they are marked for deletion and cleaned up by S3 after 1 day).
+
+If your asset URLs do not contain a version/hash/fingerprint, do not enable this: assets would be updated before the new code is deployed, so users would receive the new asset versions while still running the old code.
+
 ### API Gateway
 
 API Gateway provides 2 versions of APIs:

@@ -28,6 +28,7 @@ import type { ConstructCommands } from "@lift/constructs";
 import type { AwsProvider } from "@lift/providers";
 import { ensureNameMaxLength } from "../../utils/naming";
 import { s3PutIfChanged, s3Sync } from "../../utils/s3-sync";
+import type { S3SyncDeleteMode, S3SyncUploadMode } from "../../utils/s3-sync";
 import { emptyBucket, invalidateCloudFrontCache } from "../../classes/aws";
 import ServerlessError from "../../utils/error";
 import { redirectToMainDomain } from "../../classes/cloudfrontFunctions";
@@ -48,6 +49,7 @@ const SCHEMA = {
             minProperties: 1,
         },
         errorPage: { type: "string" },
+        versionedAssets: { type: "boolean" },
         domain: {
             anyOf: [
                 { type: "string" },
@@ -65,6 +67,18 @@ const SCHEMA = {
 } as const;
 
 type Configuration = FromSchema<typeof SCHEMA>;
+type UploadAssetsOptions = {
+    uploadMode: S3SyncUploadMode;
+    deleteMode: S3SyncDeleteMode;
+    restoreObsoleteTags: boolean;
+    failOnMissingBucket: boolean;
+    clearCache: boolean;
+    forceCacheClear?: boolean;
+};
+type UploadAssetsResult = {
+    bucketFound: boolean;
+    hasChanges: boolean;
+};
 
 export class ServerSideWebsite extends AwsConstruct {
     public static type = "server-side-website";
@@ -83,6 +97,8 @@ export class ServerSideWebsite extends AwsConstruct {
     private readonly domainOutput: CfnOutput;
     private readonly cnameOutput: CfnOutput;
     private readonly distributionIdOutput: CfnOutput;
+    private preDeployAssetsSynced = false;
+    private preDeployAssetsChanged = false;
 
     constructor(
         scope: Construct,
@@ -103,11 +119,13 @@ export class ServerSideWebsite extends AwsConstruct {
             // Assets are compiled artifacts, we can clear them on serverless remove
             removalPolicy: RemovalPolicy.DESTROY,
         });
-        this.bucket.addLifecycleRule({
-            // Obsolete files are tagged during sync and expire automatically.
-            tagFilters: { Obsolete: "true" },
-            expiration: Duration.days(1),
-        });
+        if (configuration.versionedAssets === true) {
+            this.bucket.addLifecycleRule({
+                // Obsolete files are tagged during sync and expire automatically.
+                tagFilters: { Obsolete: "true" },
+                expiration: Duration.days(1),
+            });
+        }
 
         // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header
         const backendOriginPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER;
@@ -221,14 +239,49 @@ export class ServerSideWebsite extends AwsConstruct {
         };
     }
 
+    async preDeploy(): Promise<void> {
+        if (this.configuration.versionedAssets !== true) {
+            return;
+        }
+
+        const result = await this.uploadAssets({
+            uploadMode: "sync",
+            deleteMode: "none",
+            restoreObsoleteTags: true,
+            failOnMissingBucket: false,
+            clearCache: false,
+        });
+        this.preDeployAssetsSynced = result.bucketFound;
+        this.preDeployAssetsChanged = result.hasChanges;
+    }
+
     async postDeploy(): Promise<void> {
-        await this.uploadAssets();
+        const versionedAssets = this.configuration.versionedAssets === true;
+        const assetsAlreadySynced = versionedAssets && this.preDeployAssetsSynced;
+
+        await this.uploadAssets({
+            uploadMode: assetsAlreadySynced ? "none" : "sync",
+            deleteMode: versionedAssets ? "tag" : "delete",
+            restoreObsoleteTags: versionedAssets && !assetsAlreadySynced,
+            failOnMissingBucket: true,
+            clearCache: true,
+            forceCacheClear: this.preDeployAssetsChanged,
+        });
+
+        this.preDeployAssetsSynced = false;
+        this.preDeployAssetsChanged = false;
     }
 
     async uploadAssetsCommand(): Promise<void> {
         getUtils().log(`Deploying the assets for the '${this.id}' website`);
 
-        await this.uploadAssets();
+        await this.uploadAssets({
+            uploadMode: "sync",
+            deleteMode: this.configuration.versionedAssets === true ? "tag" : "delete",
+            restoreObsoleteTags: this.configuration.versionedAssets === true,
+            failOnMissingBucket: true,
+            clearCache: true,
+        });
 
         const domain = await this.getDomain();
         if (domain !== undefined) {
@@ -237,9 +290,13 @@ export class ServerSideWebsite extends AwsConstruct {
         }
     }
 
-    async uploadAssets(): Promise<void> {
+    async uploadAssets(options: UploadAssetsOptions): Promise<UploadAssetsResult> {
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
+            if (!options.failOnMissingBucket) {
+                return { bucketFound: false, hasChanges: false };
+            }
+
             throw new ServerlessError(
                 `Could not find the bucket in which to deploy the '${this.id}' website: did you forget to run 'serverless deploy' first?`,
                 "LIFT_MISSING_STACK_OUTPUT"
@@ -250,11 +307,11 @@ export class ServerSideWebsite extends AwsConstruct {
         let uploadProgress: Progress | undefined;
         if (progress) {
             uploadProgress = progress.create({
-                message: "Uploading assets",
+                message: options.uploadMode === "sync" ? "Uploading assets" : "Cleaning up obsolete assets",
             });
         }
 
-        let invalidate = false;
+        let invalidate = options.forceCacheClear === true;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
             if (!fs.existsSync(filePath)) {
                 throw new ServerlessError(
@@ -269,20 +326,31 @@ export class ServerSideWebsite extends AwsConstruct {
 
             if (fs.lstatSync(filePath).isDirectory()) {
                 // Directory
+                const uploadMessage =
+                    options.uploadMode === "sync"
+                        ? `Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`
+                        : `Cleaning up obsolete assets in 's3://${bucketName}/${s3PathPrefix}'`;
                 if (uploadProgress) {
-                    uploadProgress.update(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
+                    uploadProgress.update(uploadMessage);
                 } else {
-                    getUtils().log(`Uploading '${filePath}' to 's3://${bucketName}/${s3PathPrefix}'`);
+                    getUtils().log(uploadMessage);
                 }
                 const { hasChanges } = await s3Sync({
                     aws: this.provider,
                     localPath: filePath,
                     targetPathPrefix: s3PathPrefix,
                     bucketName,
+                    uploadMode: options.uploadMode,
+                    deleteMode: options.deleteMode,
+                    restoreObsoleteTags: options.restoreObsoleteTags,
                 });
                 invalidate = invalidate || hasChanges;
             } else {
                 // File
+                if (options.uploadMode === "none") {
+                    continue;
+                }
+
                 const targetKey = path.posix.join(s3PathPrefix, path.basename(filePath));
                 if (uploadProgress) {
                     uploadProgress.update(`Uploading '${filePath}' to 's3://${bucketName}/${targetKey}'`);
@@ -293,12 +361,15 @@ export class ServerSideWebsite extends AwsConstruct {
                     this.provider,
                     bucketName,
                     targetKey,
-                    fs.readFileSync(filePath)
+                    fs.readFileSync(filePath),
+                    {
+                        removeObsoleteTag: options.restoreObsoleteTags,
+                    }
                 );
                 invalidate = invalidate || hasChanges;
             }
         }
-        if (invalidate) {
+        if (invalidate && options.clearCache) {
             if (uploadProgress) {
                 uploadProgress.update(`Clearing CloudFront DNS cache`);
             } else {
@@ -310,6 +381,8 @@ export class ServerSideWebsite extends AwsConstruct {
         if (uploadProgress) {
             uploadProgress.remove();
         }
+
+        return { bucketFound: true, hasChanges: invalidate };
     }
 
     private async clearCDNCache(): Promise<void> {

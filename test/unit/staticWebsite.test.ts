@@ -42,15 +42,6 @@ describe("static websites", () => {
             UpdateReplacePolicy: "Delete",
             DeletionPolicy: "Delete",
             Properties: {
-                LifecycleConfiguration: {
-                    Rules: [
-                        {
-                            ExpirationInDays: 1,
-                            Status: "Enabled",
-                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
-                        },
-                    ],
-                },
                 PublicAccessBlockConfiguration: {
                     BlockPublicAcls: false,
                     BlockPublicPolicy: false,
@@ -526,7 +517,7 @@ describe("static websites", () => {
         sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
         /*
          * This scenario simulates the following:
-         * - index.html is up to date but still tagged obsolete, the tag should be removed
+         * - index.html is up to date, it should be ignored
          * - styles.css has changes, it should be updated to S3
          * - scripts.js is new, it should be created in S3
          * - image.jpg doesn't exist on disk, it should be removed from S3
@@ -545,21 +536,13 @@ describe("static websites", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
-        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").callsFake((params) => {
-            const key = (params as { Key: string }).Key;
-            if (key === "index.html") {
-                return Promise.resolve({
-                    TagSet: [
-                        { Key: "Cache", Value: "forever" },
-                        { Key: "Obsolete", Value: "true" },
-                    ],
-                });
-            }
-
-            return Promise.resolve({ TagSet: [] });
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects").resolves({
+            Deleted: [
+                {
+                    Key: "image.jpg",
+                },
+            ],
         });
-        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
-        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
         await runServerless({
@@ -586,47 +569,17 @@ describe("static websites", () => {
                 },
             ])
         );
-        expect(getObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
-            expect.arrayContaining([
-                {
-                    Bucket: "bucket-name",
-                    Key: "index.html",
-                },
-                {
-                    Bucket: "bucket-name",
-                    Key: "image.jpg",
-                },
-            ])
-        );
-        expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
-            expect.arrayContaining([
-                {
-                    Bucket: "bucket-name",
-                    Key: "index.html",
-                    Tagging: {
-                        TagSet: [{ Key: "Cache", Value: "forever" }],
-                    },
-                },
-                {
-                    Bucket: "bucket-name",
-                    Key: "image.jpg",
-                    Tagging: {
-                        TagSet: [
-                            {
-                                Key: "Obsolete",
-                                Value: "true",
-                            },
-                        ],
-                    },
-                },
-            ])
-        );
-        sinon.assert.calledOnce(copyObjectSpy);
-        expect(copyObjectSpy.firstCall.firstArg).toEqual({
+        // image.jpg was deleted
+        sinon.assert.calledOnce(deleteObjectsSpy);
+        expect(deleteObjectsSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
-            Key: "image.jpg",
-            CopySource: "bucket-name/image.jpg",
-            MetadataDirective: "COPY",
+            Delete: {
+                Objects: [
+                    {
+                        Key: "image.jpg",
+                    },
+                ],
+            },
         });
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
