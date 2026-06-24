@@ -759,6 +759,9 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
+        awsMock.mockService("S3", "headObject").resolves({
+            ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "error.html"))),
+        });
         const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
         const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
         const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
@@ -768,7 +771,7 @@ describe("server-side website", () => {
         await website.preDeploy();
         const uploadCountAfterPreDeploy = putObjectSpy.callCount;
 
-        expect(uploadCountAfterPreDeploy).toBe(3);
+        expect(uploadCountAfterPreDeploy).toBe(2);
         sinon.assert.notCalled(deleteObjectsSpy);
         sinon.assert.notCalled(putObjectTaggingSpy);
         sinon.assert.notCalled(cloudfrontInvalidationSpy);
@@ -803,7 +806,7 @@ describe("server-side website", () => {
             },
         });
         sinon.assert.calledOnce(copyObjectSpy);
-        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+        sinon.assert.notCalled(cloudfrontInvalidationSpy);
     });
 
     it("should do a full post-deploy sync when pre-deploy cannot find the assets bucket", async () => {
@@ -824,6 +827,9 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
+        awsMock.mockService("S3", "headObject").resolves({
+            ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "error.html"))),
+        });
         const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
         const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
         const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
@@ -837,7 +843,7 @@ describe("server-side website", () => {
 
         await website.postDeploy();
 
-        sinon.assert.callCount(putObjectSpy, 3);
+        sinon.assert.callCount(putObjectSpy, 2);
         sinon.assert.notCalled(deleteObjectsSpy);
         sinon.assert.calledOnce(putObjectTaggingSpy);
         expect(putObjectTaggingSpy.firstCall.firstArg).toMatchObject({
@@ -845,7 +851,7 @@ describe("server-side website", () => {
             Key: "assets/image.jpg",
         });
         sinon.assert.calledOnce(copyObjectSpy);
-        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+        sinon.assert.notCalled(cloudfrontInvalidationSpy);
     });
 
     it("allows overriding server side website properties", async () => {
