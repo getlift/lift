@@ -1,6 +1,10 @@
 import { merge } from "lodash";
 import * as sinon from "sinon";
-import type { DeleteMessageBatchResult, ReceiveMessageResult, SendMessageBatchResult } from "aws-sdk/clients/sqs";
+import type {
+    DeleteMessageBatchCommandOutput,
+    ReceiveMessageCommandOutput,
+    SendMessageBatchCommandOutput,
+} from "@aws-sdk/client-sqs";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { pluginConfigExt, runServerless } from "../utils/runServerless";
 import { mockAws } from "../utils/mockAws";
@@ -474,7 +478,8 @@ describe("queues", () => {
         stackOutputStub.onSecondCall().resolves("dlq-url");
         const receiveStub = awsMock.mockService("SQS", "receiveMessage");
         // First call: 1 message is found
-        const sqsResponse: ReceiveMessageResult = {
+        const sqsResponse: ReceiveMessageCommandOutput = {
+            $metadata: {},
             Messages: [
                 {
                     MessageId: "abcd",
@@ -488,9 +493,11 @@ describe("queues", () => {
         receiveStub.onFirstCall().resolves(sqsResponse);
         // On next calls: no messages found
         receiveStub.resolves({
+            $metadata: {},
             Messages: [],
         });
-        const sendResult: SendMessageBatchResult = {
+        const sendResult: SendMessageBatchCommandOutput = {
+            $metadata: {},
             Successful: [
                 {
                     Id: "abcd",
@@ -501,7 +508,8 @@ describe("queues", () => {
             Failed: [],
         };
         const sendSpy = awsMock.mockService("SQS", "sendMessageBatch").resolves(sendResult);
-        const deleteResult: DeleteMessageBatchResult = {
+        const deleteResult: DeleteMessageBatchCommandOutput = {
+            $metadata: {},
             Successful: [
                 {
                     Id: "abcd",

@@ -1,12 +1,5 @@
-import type {
-    DeleteMessageBatchRequest,
-    DeleteMessageBatchResult,
-    Message,
-    ReceiveMessageRequest,
-    ReceiveMessageResult,
-    SendMessageBatchRequest,
-    SendMessageBatchResult,
-} from "aws-sdk/clients/sqs";
+import type { Message, ReceiveMessageCommandOutput } from "@aws-sdk/client-sqs";
+import { DeleteMessageBatchCommand, ReceiveMessageCommand, SendMessageBatchCommand } from "@aws-sdk/client-sqs";
 import type { AwsProvider } from "@lift/providers";
 import { chunk } from "lodash";
 import { sleep } from "../../../utils/sleep";
@@ -54,14 +47,18 @@ async function pollMoreMessages(
     messages: Message[],
     visibilityTimeout?: number
 ): Promise<void> {
-    const messagesResponse = await aws.request<ReceiveMessageRequest, ReceiveMessageResult>("SQS", "receiveMessage", {
-        QueueUrl: queueUrl,
-        // 10 is the maximum
-        MaxNumberOfMessages: 10,
-        WaitTimeSeconds: 3,
-        // By default only hide messages for 1 second to avoid disrupting the queue too much
-        VisibilityTimeout: visibilityTimeout ?? 1,
-    });
+    const messagesResponse = await (
+        await aws.getSqsClient()
+    ).send(
+        new ReceiveMessageCommand({
+            QueueUrl: queueUrl,
+            // 10 is the maximum
+            MaxNumberOfMessages: 10,
+            WaitTimeSeconds: 3,
+            // By default only hide messages for 1 second to avoid disrupting the queue too much
+            VisibilityTimeout: visibilityTimeout ?? 1,
+        })
+    );
     for (const newMessage of messagesResponse.Messages ?? []) {
         const alreadyInTheList = messages.some((message) => {
             return message.MessageId === newMessage.MessageId;
@@ -91,28 +88,31 @@ export async function retryMessages(
     }
 
     const sendBatches = chunk(messages, 10);
+    const sqsClient = await aws.getSqsClient();
     const sendResults = await Promise.all(
         sendBatches.map((batch) =>
-            aws.request<SendMessageBatchRequest, SendMessageBatchResult>("SQS", "sendMessageBatch", {
-                QueueUrl: queueUrl,
-                Entries: batch.map((message) => {
-                    if (message.MessageId === undefined) {
-                        throw new Error(`Found a message with no ID`);
-                    }
+            sqsClient.send(
+                new SendMessageBatchCommand({
+                    QueueUrl: queueUrl,
+                    Entries: batch.map((message) => {
+                        if (message.MessageId === undefined) {
+                            throw new Error(`Found a message with no ID`);
+                        }
 
-                    return {
-                        Id: message.MessageId,
-                        MessageAttributes: message.MessageAttributes,
-                        MessageBody: message.Body as string,
-                    };
-                }),
-            })
+                        return {
+                            Id: message.MessageId,
+                            MessageAttributes: message.MessageAttributes,
+                            MessageBody: message.Body as string,
+                        };
+                    }),
+                })
+            )
         )
     );
 
     const messagesToDelete = messages.filter((message) => {
         const isMessageInFailedList = sendResults.some(({ Failed }) =>
-            Failed.some((failedMessage) => message.MessageId === failedMessage.Id)
+            (Failed ?? []).some((failedMessage) => message.MessageId === failedMessage.Id)
         );
 
         return !isMessageInFailedList;
@@ -121,22 +121,27 @@ export async function retryMessages(
     const deleteBatches = chunk(messagesToDelete, 10);
     const deletionResults = await Promise.all(
         deleteBatches.map((batch) =>
-            aws.request<DeleteMessageBatchRequest, DeleteMessageBatchResult>("SQS", "deleteMessageBatch", {
-                QueueUrl: dlqUrl,
-                Entries: batch.map((message) => {
-                    return {
-                        Id: message.MessageId as string,
-                        ReceiptHandle: message.ReceiptHandle as string,
-                    };
-                }),
-            })
+            sqsClient.send(
+                new DeleteMessageBatchCommand({
+                    QueueUrl: dlqUrl,
+                    Entries: batch.map((message) => {
+                        return {
+                            Id: message.MessageId as string,
+                            ReceiptHandle: message.ReceiptHandle as string,
+                        };
+                    }),
+                })
+            )
         )
     );
 
-    const numberOfMessagesRetried = deletionResults.reduce((total, { Successful }) => total + Successful.length, 0);
-    const numberOfMessagesNotRetried = sendResults.reduce((total, { Failed }) => total + Failed.length, 0);
+    const numberOfMessagesRetried = deletionResults.reduce(
+        (total, { Successful }) => total + (Successful ?? []).length,
+        0
+    );
+    const numberOfMessagesNotRetried = sendResults.reduce((total, { Failed }) => total + (Failed ?? []).length, 0);
     const numberOfMessagesRetriedButNotDeleted = deletionResults.reduce(
-        (total, { Failed }) => total + Failed.length,
+        (total, { Failed }) => total + (Failed ?? []).length,
         0
     );
 

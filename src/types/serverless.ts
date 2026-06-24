@@ -1,7 +1,13 @@
 import type { AWS } from "@serverless/typescript";
+import type { CloudFormationClientConfig } from "@aws-sdk/client-cloudformation";
+import type { CloudFrontClientConfig } from "@aws-sdk/client-cloudfront";
+import type { S3ClientConfig } from "@aws-sdk/client-s3";
+import type { SQSClientConfig } from "@aws-sdk/client-sqs";
 import type { Stack } from "aws-cdk-lib";
 
 export type Hook = () => void | Promise<void>;
+
+export type AwsSdkV3Config = CloudFormationClientConfig & CloudFrontClientConfig & S3ClientConfig & SQSClientConfig;
 
 export type VariableResolver = {
     /**
@@ -30,10 +36,6 @@ export type Provider = {
     };
     getRegion: () => string;
     /**
-     * Send a request to the AWS API.
-     */
-    request: <Input, Output>(service: string, method: string, params: Input) => Promise<Output>;
-    /**
      * Fetch credentials resolved by the framework.
      */
     getCredentials?: () => {
@@ -51,11 +53,7 @@ export type Provider = {
     /**
      * Build AWS SDK v3 client configuration.
      */
-    getAwsSdkV3Config?: () => Promise<Record<string, unknown>>;
-    /**
-     * Whether S3 transfer acceleration is configured.
-     */
-    isS3TransferAccelerationEnabled?: () => boolean;
+    getAwsSdkV3Config?: () => Promise<AwsSdkV3Config>;
 };
 
 export type Serverless = {
