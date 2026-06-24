@@ -3,6 +3,7 @@ import {
     CopyObjectCommand,
     DeleteObjectsCommand,
     GetObjectTaggingCommand,
+    HeadObjectCommand,
     ListObjectsV2Command,
     PutObjectCommand,
     PutObjectTaggingCommand,
@@ -107,6 +108,10 @@ const awsSdkV3Operations: Partial<Record<string, AwsSdkV3Operation>> = {
     "S3.getObjectTagging": {
         Client: S3Client as unknown as AwsSdkV3ClientConstructor,
         Command: GetObjectTaggingCommand as unknown as AwsSdkV3CommandConstructor,
+    },
+    "S3.headObject": {
+        Client: S3Client as unknown as AwsSdkV3ClientConstructor,
+        Command: HeadObjectCommand as unknown as AwsSdkV3CommandConstructor,
     },
     "S3.listObjectsV2": {
         Client: S3Client as unknown as AwsSdkV3ClientConstructor,

@@ -67,6 +67,11 @@ export async function s3Sync({
                     const etag = computeS3ETag(fileContent);
                     if (etag === existingObject.ETag) {
                         skippedFiles++;
+                        if (await s3RemoveObsoleteTagIfPresent(aws, bucketName, targetKey)) {
+                            getUtils().log.verbose(`${file} was tagged for deletion, removing the tag to keep it`);
+                            hasChanges = true;
+                            fileChangeCount++;
+                        }
 
                         return;
                     }
@@ -90,7 +95,7 @@ export async function s3Sync({
     if (keysToTag.length > 0) {
         const taggedKeys = await s3TagAsObsolete(aws, bucketName, keysToTag);
         taggedKeys.forEach((key) => {
-            getUtils().log.verbose(`Tagging obsolete ${key}`);
+            getUtils().log.verbose(`Tagging ${key} for deletion in 24 hours`);
             fileChangeCount++;
         });
         if (taggedKeys.length > 0) {
@@ -187,7 +192,7 @@ export async function s3PutIfChanged(
             })
         );
         if (existingObject.ETag === computeS3ETag(fileContent)) {
-            return false;
+            return s3RemoveObsoleteTagIfPresent(aws, bucket, key);
         }
     } catch (error) {
         const code = (error as { code?: string; name?: string }).code ?? (error as { name?: string }).name;
@@ -197,6 +202,32 @@ export async function s3PutIfChanged(
     }
 
     await s3Put(aws, bucket, key, fileContent);
+
+    return true;
+}
+
+async function s3RemoveObsoleteTagIfPresent(aws: AwsProvider, bucket: string, key: string): Promise<boolean> {
+    const s3Client = await aws.getS3Client();
+    const getTagsResponse = await s3Client.send(
+        new GetObjectTaggingCommand({
+            Bucket: bucket,
+            Key: key,
+        })
+    );
+    const currentTagSet = getTagsResponse.TagSet ?? [];
+    if (!currentTagSet.some((tag) => tag.Key === "Obsolete" && tag.Value === "true")) {
+        return false;
+    }
+
+    await s3Client.send(
+        new PutObjectTaggingCommand({
+            Bucket: bucket,
+            Key: key,
+            Tagging: {
+                TagSet: currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
+            },
+        })
+    );
 
     return true;
 }

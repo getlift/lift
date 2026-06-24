@@ -519,6 +519,7 @@ describe("server-side website", () => {
          * - assets/styles.css has changes, it should be updated to S3
          * - assets/scripts.js is new, it should be created in S3
          * - assets/image.jpg doesn't exist on disk, it should be removed from S3
+         * - error.html is up to date but still tagged obsolete, the tag should be removed
          */
         awsMock.mockService("S3", "listObjectsV2").resolves({
             IsTruncated: false,
@@ -534,7 +535,22 @@ describe("server-side website", () => {
             ],
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
-        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        awsMock.mockService("S3", "headObject").resolves({
+            ETag: computeS3ETag(fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html"))),
+        });
+        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").callsFake((params) => {
+            const key = (params as { Key: string }).Key;
+            if (key === "error.html") {
+                return Promise.resolve({
+                    TagSet: [
+                        { Key: "Cache", Value: "forever" },
+                        { Key: "Obsolete", Value: "true" },
+                    ],
+                });
+            }
+
+            return Promise.resolve({ TagSet: [] });
+        });
         const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
         const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
@@ -546,7 +562,7 @@ describe("server-side website", () => {
         });
 
         // scripts.js and styles.css were updated
-        sinon.assert.callCount(putObjectSpy, 3);
+        sinon.assert.callCount(putObjectSpy, 2);
         expect(putObjectSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
             expect.arrayContaining([
                 {
@@ -561,33 +577,47 @@ describe("server-side website", () => {
                     Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/styles.css")),
                     ContentType: "text/css",
                 },
+            ])
+        );
+        expect(getObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/logo.png",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/image.jpg",
+                },
                 {
                     Bucket: "bucket-name",
                     Key: "error.html",
-                    Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/error.html")),
-                    ContentType: "text/html",
                 },
             ])
         );
-        // image.jpg was tagged as obsolete and copied to trigger lifecycle expiration
-        sinon.assert.calledOnce(getObjectTaggingSpy);
-        expect(getObjectTaggingSpy.firstCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "assets/image.jpg",
-        });
-        sinon.assert.calledOnce(putObjectTaggingSpy);
-        expect(putObjectTaggingSpy.firstCall.firstArg).toEqual({
-            Bucket: "bucket-name",
-            Key: "assets/image.jpg",
-            Tagging: {
-                TagSet: [
-                    {
-                        Key: "Obsolete",
-                        Value: "true",
+        expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/image.jpg",
+                    Tagging: {
+                        TagSet: [
+                            {
+                                Key: "Obsolete",
+                                Value: "true",
+                            },
+                        ],
                     },
-                ],
-            },
-        });
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "error.html",
+                    Tagging: {
+                        TagSet: [{ Key: "Cache", Value: "forever" }],
+                    },
+                },
+            ])
+        );
         sinon.assert.calledOnce(copyObjectSpy);
         expect(copyObjectSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
