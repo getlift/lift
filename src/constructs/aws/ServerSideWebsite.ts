@@ -71,7 +71,6 @@ type UploadAssetsOptions = {
     uploadMode: S3SyncUploadMode;
     deleteMode: S3SyncDeleteMode;
     restoreObsoleteTags: boolean;
-    invalidateDirectoryChanges: boolean;
     failOnMissingBucket: boolean;
     clearCache: boolean;
     forceCacheClear?: boolean;
@@ -79,7 +78,6 @@ type UploadAssetsOptions = {
 type UploadAssetsResult = {
     bucketFound: boolean;
     hasChanges: boolean;
-    shouldClearCache: boolean;
 };
 
 export class ServerSideWebsite extends AwsConstruct {
@@ -250,12 +248,12 @@ export class ServerSideWebsite extends AwsConstruct {
             uploadMode: "sync",
             deleteMode: "none",
             restoreObsoleteTags: true,
-            invalidateDirectoryChanges: false,
             failOnMissingBucket: false,
             clearCache: false,
         });
         this.preDeployAssetsSynced = result.bucketFound;
-        this.preDeployCacheInvalidationNeeded = result.shouldClearCache;
+        // The cache clearing is deferred to postDeploy (preDeploy runs before the new code is live).
+        this.preDeployCacheInvalidationNeeded = result.hasChanges;
     }
 
     async postDeploy(): Promise<void> {
@@ -266,7 +264,6 @@ export class ServerSideWebsite extends AwsConstruct {
             uploadMode: assetsAlreadySynced ? "none" : "sync",
             deleteMode: versionedAssets ? "tag" : "delete",
             restoreObsoleteTags: versionedAssets && !assetsAlreadySynced,
-            invalidateDirectoryChanges: !versionedAssets,
             failOnMissingBucket: true,
             clearCache: true,
             forceCacheClear: this.preDeployCacheInvalidationNeeded,
@@ -283,7 +280,6 @@ export class ServerSideWebsite extends AwsConstruct {
             uploadMode: "sync",
             deleteMode: this.configuration.versionedAssets === true ? "tag" : "delete",
             restoreObsoleteTags: this.configuration.versionedAssets === true,
-            invalidateDirectoryChanges: this.configuration.versionedAssets !== true,
             failOnMissingBucket: true,
             clearCache: true,
         });
@@ -299,7 +295,7 @@ export class ServerSideWebsite extends AwsConstruct {
         const bucketName = await this.getBucketName();
         if (bucketName === undefined) {
             if (!options.failOnMissingBucket) {
-                return { bucketFound: false, hasChanges: false, shouldClearCache: false };
+                return { bucketFound: false, hasChanges: false };
             }
 
             throw new ServerlessError(
@@ -317,7 +313,6 @@ export class ServerSideWebsite extends AwsConstruct {
         }
 
         let hasChanges = false;
-        let shouldClearCache = options.forceCacheClear === true;
         for (const [pattern, filePath] of Object.entries(this.getAssetPatterns())) {
             if (!fs.existsSync(filePath)) {
                 throw new ServerlessError(
@@ -351,7 +346,6 @@ export class ServerSideWebsite extends AwsConstruct {
                     restoreObsoleteTags: options.restoreObsoleteTags,
                 });
                 hasChanges = hasChanges || directoryHasChanges;
-                shouldClearCache = shouldClearCache || (options.invalidateDirectoryChanges && directoryHasChanges);
             } else {
                 // File
                 if (options.uploadMode === "none") {
@@ -374,10 +368,12 @@ export class ServerSideWebsite extends AwsConstruct {
                     }
                 );
                 hasChanges = hasChanges || fileHasChanges;
-                shouldClearCache = shouldClearCache || fileHasChanges;
             }
         }
-        if (shouldClearCache && options.clearCache) {
+        // Clear the CloudFront cache when assets changed (incl. changes uploaded during preDeploy,
+        // signalled via forceCacheClear). Versioned/hashed assets don't strictly need it, but
+        // non-versioned assets (favicons, images, …) commonly live alongside them and do.
+        if ((hasChanges || options.forceCacheClear === true) && options.clearCache) {
             if (uploadProgress) {
                 uploadProgress.update(`Clearing CloudFront DNS cache`);
             } else {
@@ -390,7 +386,7 @@ export class ServerSideWebsite extends AwsConstruct {
             uploadProgress.remove();
         }
 
-        return { bucketFound: true, hasChanges, shouldClearCache };
+        return { bucketFound: true, hasChanges };
     }
 
     private async clearCDNCache(): Promise<void> {

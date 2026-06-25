@@ -42,7 +42,54 @@ describe("s3 sync", () => {
             Bucket: "bucket-name",
             Key: "assets/old.png",
         });
-        sinon.assert.calledOnce(putObjectTaggingSpy);
+        // The Obsolete tag is set via the in-place copy, not a separate PutObjectTagging call.
+        sinon.assert.notCalled(putObjectTaggingSpy);
         sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/old.png",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
+        });
+    });
+
+    it("preserves existing tags (and URL-encodes them) when tagging an obsolete file", async () => {
+        const awsMock = mockAws();
+        const awsProvider = {
+            getS3Client: () => Promise.resolve(new S3Client({ region: "us-east-1" })),
+        } as AwsProvider;
+
+        awsMock.mockService("S3", "listObjectsV2").resolves({
+            IsTruncated: false,
+            Contents: [{ Key: "assets/logo.png" }, { Key: "assets/old.png" }],
+        });
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
+        // The obsolete file already carries unrelated tags (one needing URL-encoding) plus a stale
+        // Obsolete tag that should be dropped before re-adding Obsolete=true.
+        awsMock.mockService("S3", "getObjectTagging").resolves({
+            TagSet: [
+                { Key: "Cache", Value: "forever" },
+                { Key: "Team", Value: "a/b c" },
+                { Key: "Obsolete", Value: "false" },
+            ],
+        });
+
+        await s3Sync({
+            aws: awsProvider,
+            localPath: path.join(__dirname, "../fixtures/serverSideWebsite/public"),
+            targetPathPrefix: "assets",
+            bucketName: "bucket-name",
+            uploadMode: "none",
+            deleteMode: "tag",
+            restoreObsoleteTags: false,
+        });
+
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/old.png",
+            TaggingDirective: "REPLACE",
+            Tagging: "Cache=forever&Team=a%2Fb%20c&Obsolete=true",
+        });
     });
 });

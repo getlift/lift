@@ -47,6 +47,10 @@ export function mockVersionedAssetSync({
                     ],
                 });
             }
+            if (key === obsoleteKey) {
+                // The obsolete file carries an unrelated tag that must be preserved by the copy.
+                return Promise.resolve({ TagSet: [{ Key: "Cache", Value: "forever" }] });
+            }
 
             return Promise.resolve({ TagSet: [] });
         }),
@@ -86,29 +90,24 @@ export function expectVersionedAssetSync({
             },
         ])
     );
-    expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
-        expect.arrayContaining([
-            {
-                Bucket: "bucket-name",
-                Key: "index.html",
-                Tagging: {
-                    TagSet: [{ Key: "Cache", Value: "forever" }],
-                },
+    // The Obsolete tag is removed from a current file via PutObjectTagging (restore path).
+    expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual([
+        {
+            Bucket: "bucket-name",
+            Key: "index.html",
+            Tagging: {
+                TagSet: [{ Key: "Cache", Value: "forever" }],
             },
-            {
-                Bucket: "bucket-name",
-                Key: obsoleteKey,
-                Tagging: {
-                    TagSet: [
-                        {
-                            Key: "Obsolete",
-                            Value: "true",
-                        },
-                    ],
-                },
-            },
-        ])
-    );
+        },
+    ]);
+    // Obsolete files are tagged through an in-place copy (sets the tag and resets the lifecycle expiry).
     sinon.assert.calledOnce(copyObjectSpy);
+    expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
+        Bucket: "bucket-name",
+        Key: obsoleteKey,
+        TaggingDirective: "REPLACE",
+        // The pre-existing Cache tag is preserved alongside the added Obsolete tag.
+        Tagging: "Cache=forever&Obsolete=true",
+    });
     sinon.assert.calledOnce(cloudfrontInvalidationSpy);
 }

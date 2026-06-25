@@ -316,23 +316,17 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
                         return false;
                     }
 
-                    await s3Client.send(
-                        new PutObjectTaggingCommand({
-                            Bucket: bucket,
-                            Key: key,
-                            Tagging: {
-                                TagSet: [
-                                    ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
-                                    {
-                                        Key: "Obsolete",
-                                        Value: "true",
-                                    },
-                                ],
-                            },
-                        })
-                    );
-
-                    // Copy object to refresh LastModified and trigger lifecycle expiry only once.
+                    // Copy the object onto itself to refresh LastModified (so the lifecycle expiry
+                    // counts from now) and set the Obsolete tag in the same call. Setting the tag
+                    // here (rather than via a separate PutObjectTagging) avoids a window where the
+                    // copy could read a not-yet-propagated tag and produce an untagged object that
+                    // never expires. The full tag set is provided so existing tags are preserved.
+                    const tagging = [
+                        ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
+                        { Key: "Obsolete", Value: "true" },
+                    ]
+                        .map((tag) => `${encodeURIComponent(tag.Key ?? "")}=${encodeURIComponent(tag.Value ?? "")}`)
+                        .join("&");
                     const encodedKey = encodeURIComponent(key).replace(/%2F/g, "/");
                     await s3Client.send(
                         new CopyObjectCommand({
@@ -340,6 +334,8 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
                             Key: key,
                             CopySource: `${bucket}/${encodedKey}`,
                             MetadataDirective: "COPY",
+                            TaggingDirective: "REPLACE",
+                            Tagging: tagging,
                         })
                     );
 
@@ -358,8 +354,8 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
     } catch (error) {
         console.log(error);
         throw new ServerlessError(
-            `Unable to tag some files in S3. The "static-website" and "server-side-website" construct require the s3:GetObjectTagging and s3:PutObjectTagging IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-            "LIFT_S3_DELETE_OBJECTS_FAILURE"
+            `Unable to tag some files in S3. The "static-website" and "server-side-website" constructs require the s3:GetObjectTagging, s3:PutObjectTagging, s3:GetObject and s3:PutObject (the obsolete files are copied in place to reset their lifecycle expiry) IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+            "LIFT_S3_TAG_OBJECTS_FAILURE"
         );
     }
 }

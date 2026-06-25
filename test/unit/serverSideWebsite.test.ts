@@ -711,35 +711,26 @@ describe("server-side website", () => {
                 },
             ])
         );
-        expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
-            expect.arrayContaining([
-                {
-                    Bucket: "bucket-name",
-                    Key: "assets/logo.png",
-                    Tagging: {
-                        TagSet: [{ Key: "Cache", Value: "forever" }],
-                    },
+        // logo.png is a current file: its Obsolete tag is removed via PutObjectTagging (restore path).
+        expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual([
+            {
+                Bucket: "bucket-name",
+                Key: "assets/logo.png",
+                Tagging: {
+                    TagSet: [{ Key: "Cache", Value: "forever" }],
                 },
-                {
-                    Bucket: "bucket-name",
-                    Key: "assets/image.jpg",
-                    Tagging: {
-                        TagSet: [
-                            {
-                                Key: "Obsolete",
-                                Value: "true",
-                            },
-                        ],
-                    },
-                },
-            ])
-        );
+            },
+        ]);
+        // image.jpg is obsolete: it is tagged through an in-place copy (sets the tag and resets
+        // the lifecycle expiry in a single call).
         sinon.assert.calledOnce(copyObjectSpy);
         expect(copyObjectSpy.firstCall.firstArg).toEqual({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
             CopySource: "bucket-name/assets/image.jpg",
             MetadataDirective: "COPY",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
         });
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
@@ -792,21 +783,17 @@ describe("server-side website", () => {
                 },
             ])
         );
-        sinon.assert.calledOnce(putObjectTaggingSpy);
-        expect(putObjectTaggingSpy.firstCall.firstArg).toEqual({
+        // image.jpg is tagged obsolete through an in-place copy, not a separate PutObjectTagging call.
+        sinon.assert.notCalled(putObjectTaggingSpy);
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
-            Tagging: {
-                TagSet: [
-                    {
-                        Key: "Obsolete",
-                        Value: "true",
-                    },
-                ],
-            },
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
         });
-        sinon.assert.calledOnce(copyObjectSpy);
-        sinon.assert.notCalled(cloudfrontInvalidationSpy);
+        // The assets uploaded during preDeploy warrant a cache invalidation, deferred to postDeploy.
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
 
     it("should do a full post-deploy sync when pre-deploy cannot find the assets bucket", async () => {
@@ -845,13 +832,17 @@ describe("server-side website", () => {
 
         sinon.assert.callCount(putObjectSpy, 2);
         sinon.assert.notCalled(deleteObjectsSpy);
-        sinon.assert.calledOnce(putObjectTaggingSpy);
-        expect(putObjectTaggingSpy.firstCall.firstArg).toMatchObject({
+        // image.jpg is tagged obsolete through an in-place copy, not a separate PutObjectTagging call.
+        sinon.assert.notCalled(putObjectTaggingSpy);
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
         });
-        sinon.assert.calledOnce(copyObjectSpy);
-        sinon.assert.notCalled(cloudfrontInvalidationSpy);
+        // The assets uploaded during the full post-deploy sync warrant a cache invalidation.
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
 
     it("allows overriding server side website properties", async () => {
