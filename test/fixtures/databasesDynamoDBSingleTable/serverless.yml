@@ -13,6 +13,22 @@ constructs:
     databaseWithGlobalSecondaryIndexes:
         type: database/dynamodb-single-table
         gsiCount: 2
+    databaseWithRenamedIndexes:
+        type: database/dynamodb-single-table
+        gsiCount: 1
+        gsis:
+            - index: GSI-1-PK
+              name: CustomPK1
+            - index: GSI-1-SK
+              name: CustomSK1
+    databaseWithNumberTypeIndexes:
+        type: database/dynamodb-single-table
+        gsiCount: 1
+        gsis:
+            - index: GSI-1-PK
+              type: number
+            - index: GSI-1-SK
+              type: number
     extendedDatabase:
         type: database/dynamodb-single-table
         extensions:
