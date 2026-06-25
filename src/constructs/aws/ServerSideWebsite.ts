@@ -39,6 +39,7 @@ const SCHEMA = {
     properties: {
         type: { const: "server-side-website" },
         apiGateway: { enum: ["http", "rest"] },
+        originName: { type: "string" },
         assets: {
             type: "object",
             additionalProperties: { type: "string" },
@@ -108,12 +109,6 @@ export class ServerSideWebsite extends AwsConstruct {
         const backendOriginPolicy = OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER;
         const backendCachePolicy = CachePolicy.CACHING_DISABLED;
 
-        const apiId =
-            configuration.apiGateway === "rest"
-                ? this.provider.naming.getRestApiLogicalId()
-                : this.provider.naming.getHttpApiLogicalId();
-        const apiGatewayDomain = Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
-
         // Cast the domains to an array
         // if configuration.domain is an empty array or an empty string, ignore it
         this.domains =
@@ -140,7 +135,7 @@ export class ServerSideWebsite extends AwsConstruct {
             comment: `${provider.stackName} ${id} website CDN`,
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
-                origin: new HttpOrigin(apiGatewayDomain, {
+                origin: new HttpOrigin(this.getCloudFrontOrigin(), {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
                     originPath,
@@ -457,5 +452,58 @@ export class ServerSideWebsite extends AwsConstruct {
 
     private getErrorPageFileName(): string {
         return this.configuration.errorPage !== undefined ? path.basename(this.configuration.errorPage) : "";
+    }
+
+    private getCloudFrontOrigin(): string {
+        const functions = this.provider.getWebLambdaFunctions();
+        const functionsUsingLambdaUrl = functions.reduce((count, func) => count + (func.usesLambdaUrl ? 1 : 0), 0);
+
+        // Fail if no web functions defined
+        if (functions.length === 0) {
+            throw new ServerlessError(
+                "Error trying to detect CloudFront origin. Please check that at least one Lambda function uses 'url', 'events.httpApi', 'events.http' or 'events.alb'.",
+                "LIFT_INVALID_STACK_CONFIGURATION"
+            );
+        }
+
+        // Try to use ApiGateway if one or more functions are defined and none uses Lambda URL
+        if (functions.length >= 1 && functionsUsingLambdaUrl === 0) {
+            return this.getApiGatewayUrl();
+        }
+
+        // Try to use Lambda URL if only one web function is defined
+        if (functions.length === 1 && functionsUsingLambdaUrl === 1) {
+            return this.getLambdaUrl(functions[0].name);
+        }
+
+        // Try to use configured origin
+        if (this.configuration.originName !== undefined) {
+            const selectedWebFunction = functions.find((f) => f.name === this.configuration.originName);
+            if (selectedWebFunction) {
+                return selectedWebFunction.usesLambdaUrl
+                    ? this.getLambdaUrl(selectedWebFunction.name)
+                    : this.getApiGatewayUrl();
+            }
+        }
+
+        throw new ServerlessError(
+            `Error trying to detect CloudFront origin. Invalid or missing 'constructs.${this.id}.originName' key.`,
+            "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
+        );
+    }
+
+    private getApiGatewayUrl() {
+        const apiId =
+            this.configuration.apiGateway === "rest"
+                ? this.provider.naming.getRestApiLogicalId()
+                : this.provider.naming.getHttpApiLogicalId();
+
+        return Fn.join(".", [Fn.ref(apiId), `execute-api.${this.provider.region}.amazonaws.com`]);
+    }
+
+    private getLambdaUrl(name: string) {
+        const lambdaUrlId = this.provider.naming.getLambdaFunctionUrlLogicalId(name);
+
+        return Fn.select(2, Fn.split("/", Fn.getAtt(lambdaUrlId, "FunctionUrl").toString()));
     }
 }
