@@ -8,7 +8,6 @@ import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import { PolicyStatement } from "../../CloudFormation";
-import ServerlessError from "../../utils/error";
 
 const STORAGE_DEFINITION = {
     type: "object",
@@ -60,23 +59,24 @@ function capitalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Validate and normalize the `publicPath` option into a bare key prefix (no leading/trailing slash).
+ * Normalize the `publicPath` option into the S3 object key pattern that is made public (i.e. the
+ * part appended after the bucket ARN in the public-read bucket policy).
  * Returns undefined when `publicPath` is not set.
+ *
+ * - `public`            -> `public/*` (only that prefix is public)
+ * - `/`, `*` or empty   -> `*`        (the whole bucket is public)
  */
-function normalizePublicPath(id: string, publicPath: string | undefined): string | undefined {
+function normalizePublicPath(publicPath: string | undefined): string | undefined {
     if (publicPath === undefined) {
         return undefined;
     }
 
     const prefix = publicPath.replace(/^\/+/, "").replace(/\/+$/, "");
     if (prefix === "" || prefix === "*") {
-        throw new ServerlessError(
-            `Invalid configuration in 'constructs.${id}.publicPath': it must be a sub-path (e.g. 'public') so that only that prefix is made public. '${publicPath}' would expose the whole bucket.`,
-            "LIFT_INVALID_CONSTRUCT_CONFIGURATION"
-        );
+        return "*";
     }
 
-    return prefix;
+    return `${prefix}/*`;
 }
 
 type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
@@ -87,7 +87,7 @@ export class Storage extends AwsConstruct {
 
     private readonly bucket: Bucket;
     private readonly allowAcl: boolean;
-    private readonly publicPrefix: string | undefined;
+    private readonly publicObjects: string | undefined;
     // a remplacer par StorageExtensionsKeys
     private readonly bucketNameOutput: CfnOutput;
 
@@ -96,7 +96,7 @@ export class Storage extends AwsConstruct {
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
         this.allowAcl = resolvedConfiguration.allowAcl === true;
-        this.publicPrefix = normalizePublicPath(id, resolvedConfiguration.publicPath);
+        this.publicObjects = normalizePublicPath(resolvedConfiguration.publicPath);
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
@@ -110,7 +110,7 @@ export class Storage extends AwsConstruct {
             // *policy* levers (so the public-read bucket policy below can take effect) — ACLs stay
             // the legacy path. See the public access matrix in the docs.
             blockPublicAccess:
-                this.publicPrefix === undefined
+                this.publicObjects === undefined
                     ? BlockPublicAccess.BLOCK_ALL
                     : new BlockPublicAccess({
                           // With `allowAcl`, accept public-ACL writes (e.g. Laravel's `storePublicly()`)
@@ -124,16 +124,16 @@ export class Storage extends AwsConstruct {
             enforceSSL: true,
         });
 
-        if (this.publicPrefix !== undefined) {
-            // Grant anonymous read to objects under the public prefix only — everything else stays
-            // private. `GetObject` only (no `ListBucket`), so the prefix cannot be listed.
-            // This statement is appended to the same bucket policy as the `enforceSSL` deny statement.
+        if (this.publicObjects !== undefined) {
+            // Grant anonymous read to the public objects (a single prefix, or the whole bucket when
+            // `publicPath` is `/` or `*`). `GetObject` only (no `ListBucket`), so objects cannot be
+            // listed. Appended to the same bucket policy as the `enforceSSL` deny statement.
             this.bucket.addToResourcePolicy(
                 new IamPolicyStatement({
                     effect: Effect.ALLOW,
                     principals: [new AnyPrincipal()],
                     actions: ["s3:GetObject"],
-                    resources: [`${this.bucket.bucketArn}/${this.publicPrefix}/*`],
+                    resources: [`${this.bucket.bucketArn}/${this.publicObjects}`],
                 })
             );
         }
@@ -205,7 +205,7 @@ export class Storage extends AwsConstruct {
             bucketName: this.bucket.bucketName,
         };
 
-        if (this.publicPrefix !== undefined) {
+        if (this.publicObjects !== undefined) {
             // Base URL of the bucket (no key), e.g. https://<bucket>.s3.<region>.amazonaws.com
             variables.publicUrl = this.bucket.virtualHostedUrlForObject();
         }

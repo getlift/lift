@@ -1,4 +1,4 @@
-import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
+import { pluginConfigExt, runServerless } from "../utils/runServerless";
 
 describe("storage", () => {
     let cfTemplate: { Resources: Record<string, { Properties: Record<string, unknown> }> };
@@ -190,23 +190,21 @@ describe("storage", () => {
         });
     });
 
-    it("rejects a publicPath that would expose the whole bucket", async () => {
-        await expect(() => {
-            return runServerless({
-                command: "package",
-                config: Object.assign({}, baseConfig, {
-                    constructs: {
-                        avatars: {
-                            type: "storage",
-                            publicPath: "/",
-                        },
-                    },
-                }),
+    it.each([["withPublicPathSlash"], ["withPublicPathStar"]])(
+        "makes the whole bucket public when publicPath is '/' or '*' (%p)",
+        (useCase) => {
+            const bucketLogicalId = computeLogicalId(useCase, "Bucket");
+            const policy = cfTemplate.Resources[computeLogicalId(useCase, "Bucket", "Policy")].Properties
+                .PolicyDocument as { Statement: unknown[] };
+            expect(policy.Statement).toContainEqual({
+                Action: "s3:GetObject",
+                Effect: "Allow",
+                Principal: { AWS: "*" },
+                // The whole bucket (every object) is public, not just a prefix
+                Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
             });
-        }).rejects.toThrowError(
-            "Invalid configuration in 'constructs.avatars.publicPath': it must be a sub-path (e.g. 'public') so that only that prefix is made public. '/' would expose the whole bucket."
-        );
-    });
+        }
+    );
 
     it("supports custom lifecycleRules with auto-capitalization and default Status", () => {
         const lifecycleConfig = cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties

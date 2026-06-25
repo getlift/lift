@@ -179,7 +179,16 @@ Every object stored under the `public/` prefix immediately becomes **publicly re
 
 Unlike the `assets` of the [`server-side-website`](server-side-website.md) construct, a `storage` bucket is **never emptied or cleared on deploy**, which makes `publicPath` the right place for files generated or uploaded by the application at runtime.
 
-`publicPath` must be a sub-path (e.g. `public`) — `/` or `*` are rejected, as they would expose the whole bucket.
+To make the **entire bucket** public instead of a single prefix, set `publicPath` to `/` or `*`:
+
+```yaml
+constructs:
+    avatars:
+        type: storage
+        publicPath: "*" # every object in the bucket is publicly readable
+```
+
+⚠️ With `/` or `*`, _all_ files in the bucket are publicly readable — only do this for buckets that store exclusively public files. Prefer a sub-path (e.g. `public`) when the bucket also holds private files.
 
 ## Extensions
 
