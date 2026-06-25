@@ -1,6 +1,6 @@
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
-import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import type { CfnDistribution, ErrorResponse } from "aws-cdk-lib/aws-cloudfront";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import {
     AllowedMethods,
     CachePolicy,
@@ -14,8 +14,7 @@ import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
-import { Duration, RemovalPolicy } from "aws-cdk-lib";
-import { CfnOutput } from "aws-cdk-lib";
+import { CfnOutput, Duration, RemovalPolicy } from "aws-cdk-lib";
 import type { ConstructCommands } from "@lift/constructs";
 import { AwsConstruct } from "@lift/constructs/abstracts";
 import type { AwsProvider } from "@lift/providers";
@@ -52,6 +51,7 @@ export const COMMON_STATIC_WEBSITE_DEFINITION = {
         },
         errorPage: { type: "string" },
         redirectToMainDomain: { type: "boolean" },
+        versionedAssets: { type: "boolean" },
     },
     additionalProperties: false,
     required: ["path"],
@@ -86,6 +86,13 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
         const bucketProps = this.getBucketProps();
 
         this.bucket = new Bucket(this, "Bucket", bucketProps);
+        if (this.configuration.versionedAssets === true) {
+            this.bucket.addLifecycleRule({
+                // Obsolete files are tagged during sync and expire automatically.
+                tagFilters: { Obsolete: "true" },
+                expiration: Duration.days(1),
+            });
+        }
 
         // Cast the domains to an array
         // if configuration.domain is an empty array or an empty string, ignore it
@@ -219,6 +226,8 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             aws: this.provider,
             localPath: this.configuration.path,
             bucketName,
+            deleteMode: this.configuration.versionedAssets === true ? "tag" : "delete",
+            restoreObsoleteTags: this.configuration.versionedAssets === true,
         });
         if (hasChanges) {
             if (uploadProgress) {
