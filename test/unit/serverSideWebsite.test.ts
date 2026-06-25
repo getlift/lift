@@ -1,10 +1,51 @@
 import * as sinon from "sinon";
 import * as fs from "fs";
 import * as path from "path";
+import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
+import { S3Client } from "@aws-sdk/client-s3";
+import { Stack } from "aws-cdk-lib";
+import { merge } from "lodash";
+import type { AwsProvider } from "../../src/providers";
+import { ServerSideWebsite } from "../../src/constructs/aws/ServerSideWebsite";
 import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { computeS3ETag } from "../../src/utils/s3-sync";
 import { mockAws } from "../utils/mockAws";
+
+const serverSideWebsiteFixturePath = path.join(__dirname, "../fixtures/serverSideWebsite");
+
+function createServerSideWebsite({
+    getStackOutput = sinon.stub().resolves("bucket-name"),
+}: {
+    getStackOutput?: sinon.SinonStub;
+} = {}): ServerSideWebsite {
+    const provider = {
+        stackName: "app-dev",
+        region: "us-east-1",
+        naming: {
+            getHttpApiLogicalId: () => "HttpApi",
+            getRestApiLogicalId: () => "ApiGatewayRestApi",
+        },
+        getStage: () => undefined,
+        getStackOutput,
+        getS3Client: () => Promise.resolve(new S3Client({ region: "us-east-1" })),
+        getCloudFrontClient: () => Promise.resolve(new CloudFrontClient({ region: "us-east-1" })),
+    } as unknown as AwsProvider;
+
+    return new ServerSideWebsite(
+        new Stack(),
+        "backend",
+        {
+            type: "server-side-website",
+            versionedAssets: true,
+            assets: {
+                "/assets/*": path.join(serverSideWebsiteFixturePath, "public"),
+            },
+            errorPage: path.join(serverSideWebsiteFixturePath, "error.html"),
+        },
+        provider
+    );
+}
 
 describe("server-side website", () => {
     afterEach(() => {
@@ -181,6 +222,37 @@ describe("server-side website", () => {
             [computeLogicalId("backend", "DistributionId")]: {
                 Description: "ID of the CloudFront distribution.",
                 Value: { Ref: cfDistributionLogicalId },
+            },
+        });
+    });
+
+    it("should add an obsolete asset lifecycle rule when versioned assets are enabled", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        versionedAssets: true,
+                        assets: {
+                            "/assets/*": "public",
+                        },
+                    },
+                },
+            }),
+        });
+
+        expect(cfTemplate.Resources[computeLogicalId("backend", "Assets")]).toMatchObject({
+            Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
             },
         });
     });
@@ -575,6 +647,201 @@ describe("server-side website", () => {
             },
         });
         // A CloudFront invalidation was triggered
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+    });
+
+    it("should tag obsolete assets instead of deleting them when versioned assets are enabled", async () => {
+        const awsMock = mockAws();
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
+        awsMock.mockService("S3", "listObjectsV2").resolves({
+            IsTruncated: false,
+            Contents: [
+                {
+                    Key: "assets/logo.png",
+                    ETag: computeS3ETag(
+                        fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/logo.png"))
+                    ),
+                },
+                { Key: "assets/styles.css" },
+                { Key: "assets/image.jpg" },
+            ],
+        });
+        const putObjectSpy = awsMock.mockService("S3", "putObject");
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
+        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").callsFake((params) => {
+            const key = (params as { Key: string }).Key;
+            if (key === "assets/logo.png") {
+                return Promise.resolve({
+                    TagSet: [
+                        { Key: "Cache", Value: "forever" },
+                        { Key: "Obsolete", Value: "true" },
+                    ],
+                });
+            }
+
+            return Promise.resolve({ TagSet: [] });
+        });
+        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
+        const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
+
+        await runServerless({
+            fixture: "serverSideWebsite",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    backend: {
+                        versionedAssets: true,
+                    },
+                },
+            }),
+            command: "backend:assets:upload",
+        });
+
+        sinon.assert.callCount(putObjectSpy, 3);
+        sinon.assert.notCalled(deleteObjectsSpy);
+        expect(getObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/logo.png",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/image.jpg",
+                },
+            ])
+        );
+        // logo.png is a current file: its Obsolete tag is removed via PutObjectTagging (restore path).
+        expect(putObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual([
+            {
+                Bucket: "bucket-name",
+                Key: "assets/logo.png",
+                Tagging: {
+                    TagSet: [{ Key: "Cache", Value: "forever" }],
+                },
+            },
+        ]);
+        // image.jpg is obsolete: it is tagged through an in-place copy (sets the tag and resets
+        // the lifecycle expiry in a single call).
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toEqual({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            CopySource: "bucket-name/assets/image.jpg",
+            MetadataDirective: "COPY",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
+        });
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+    });
+
+    it("should pre-upload versioned assets and only clean up obsolete assets after deploy", async () => {
+        const awsMock = mockAws();
+        const website = createServerSideWebsite();
+        awsMock.mockService("S3", "listObjectsV2").resolves({
+            IsTruncated: false,
+            Contents: [
+                {
+                    Key: "assets/logo.png",
+                    ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "public/logo.png"))),
+                },
+                { Key: "assets/styles.css" },
+                { Key: "assets/image.jpg" },
+            ],
+        });
+        const putObjectSpy = awsMock.mockService("S3", "putObject");
+        awsMock.mockService("S3", "headObject").resolves({
+            ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "error.html"))),
+        });
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
+        const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
+        const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
+
+        await website.preDeploy();
+        const uploadCountAfterPreDeploy = putObjectSpy.callCount;
+
+        expect(uploadCountAfterPreDeploy).toBe(2);
+        sinon.assert.notCalled(deleteObjectsSpy);
+        sinon.assert.notCalled(putObjectTaggingSpy);
+        sinon.assert.notCalled(cloudfrontInvalidationSpy);
+
+        await website.postDeploy();
+
+        sinon.assert.callCount(putObjectSpy, uploadCountAfterPreDeploy);
+        sinon.assert.notCalled(deleteObjectsSpy);
+        expect(getObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
+            expect.arrayContaining([
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/logo.png",
+                },
+                {
+                    Bucket: "bucket-name",
+                    Key: "assets/image.jpg",
+                },
+            ])
+        );
+        // image.jpg is tagged obsolete through an in-place copy, not a separate PutObjectTagging call.
+        sinon.assert.notCalled(putObjectTaggingSpy);
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
+        });
+        // The assets uploaded during preDeploy warrant a cache invalidation, deferred to postDeploy.
+        sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+    });
+
+    it("should do a full post-deploy sync when pre-deploy cannot find the assets bucket", async () => {
+        const awsMock = mockAws();
+        const getStackOutput = sinon.stub();
+        getStackOutput.onFirstCall().resolves(undefined);
+        getStackOutput.resolves("bucket-name");
+        const website = createServerSideWebsite({ getStackOutput });
+        awsMock.mockService("S3", "listObjectsV2").resolves({
+            IsTruncated: false,
+            Contents: [
+                {
+                    Key: "assets/logo.png",
+                    ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "public/logo.png"))),
+                },
+                { Key: "assets/styles.css" },
+                { Key: "assets/image.jpg" },
+            ],
+        });
+        const putObjectSpy = awsMock.mockService("S3", "putObject");
+        awsMock.mockService("S3", "headObject").resolves({
+            ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "error.html"))),
+        });
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
+        const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
+        awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
+
+        await website.preDeploy();
+
+        sinon.assert.notCalled(putObjectSpy);
+        sinon.assert.notCalled(putObjectTaggingSpy);
+
+        await website.postDeploy();
+
+        sinon.assert.callCount(putObjectSpy, 2);
+        sinon.assert.notCalled(deleteObjectsSpy);
+        // image.jpg is tagged obsolete through an in-place copy, not a separate PutObjectTagging call.
+        sinon.assert.notCalled(putObjectTaggingSpy);
+        sinon.assert.calledOnce(copyObjectSpy);
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/image.jpg",
+            TaggingDirective: "REPLACE",
+            Tagging: "Obsolete=true",
+        });
+        // The assets uploaded during the full post-deploy sync warrant a cache invalidation.
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
 

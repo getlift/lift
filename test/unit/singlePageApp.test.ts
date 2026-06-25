@@ -1,6 +1,11 @@
-import { get } from "lodash";
+import { get, merge } from "lodash";
 import * as sinon from "sinon";
-import { baseConfig, runServerless } from "../utils/runServerless";
+import * as path from "path";
+import * as CloudFormationHelpers from "../../src/CloudFormation";
+import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
+import { expectVersionedAssetSync, mockVersionedAssetSync } from "../utils/versionedAssets";
+
+const singlePageAppFixturePath = path.join(__dirname, "../fixtures/singlePageApp");
 
 describe("single page app", () => {
     afterEach(() => {
@@ -124,6 +129,57 @@ describe("single page app", () => {
                 return event.request;
             }"
         `);
+    });
+
+    it("should add an obsolete asset lifecycle rule when versioned assets are enabled", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "single-page-app",
+                        path: ".",
+                        versionedAssets: true,
+                    },
+                },
+            }),
+        });
+
+        expect(cfTemplate.Resources[computeLogicalId("landing", "Bucket")]).toMatchObject({
+            Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it("should tag obsolete files instead of deleting them when versioned assets are enabled", async () => {
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
+        const mocks = mockVersionedAssetSync({
+            fixturePath: singlePageAppFixturePath,
+            obsoleteKey: "old.js",
+        });
+
+        await runServerless({
+            fixture: "singlePageApp",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    landing: {
+                        versionedAssets: true,
+                    },
+                },
+            }),
+            command: "landing:upload",
+        });
+
+        expectVersionedAssetSync({ obsoleteKey: "old.js", mocks });
     });
 
     it("allows overriding single page app properties", async () => {

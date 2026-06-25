@@ -1,11 +1,14 @@
 import * as sinon from "sinon";
 import * as fs from "fs";
 import * as path from "path";
-import { get } from "lodash";
+import { get, merge } from "lodash";
 import { baseConfig, pluginConfigExt, runServerless } from "../utils/runServerless";
 import * as CloudFormationHelpers from "../../src/CloudFormation";
 import { computeS3ETag } from "../../src/utils/s3-sync";
 import { mockAws } from "../utils/mockAws";
+import { expectVersionedAssetSync, mockVersionedAssetSync } from "../utils/versionedAssets";
+
+const staticWebsiteFixturePath = path.join(__dirname, "../fixtures/staticWebsites");
 
 describe("static websites", () => {
     afterEach(() => {
@@ -583,6 +586,57 @@ describe("static websites", () => {
         });
         // A CloudFront invalidation was triggered
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
+    });
+
+    it("should add an obsolete asset lifecycle rule when versioned assets are enabled", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "static-website",
+                        path: ".",
+                        versionedAssets: true,
+                    },
+                },
+            }),
+        });
+
+        expect(cfTemplate.Resources[computeLogicalId("landing", "Bucket")]).toMatchObject({
+            Properties: {
+                LifecycleConfiguration: {
+                    Rules: [
+                        {
+                            ExpirationInDays: 1,
+                            Status: "Enabled",
+                            TagFilters: [{ Key: "Obsolete", Value: "true" }],
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it("should tag obsolete files instead of deleting them when versioned assets are enabled", async () => {
+        sinon.stub(CloudFormationHelpers, "getStackOutput").resolves("bucket-name");
+        const mocks = mockVersionedAssetSync({
+            fixturePath: staticWebsiteFixturePath,
+            obsoleteKey: "image.jpg",
+        });
+
+        await runServerless({
+            fixture: "staticWebsites",
+            configExt: merge({}, pluginConfigExt, {
+                constructs: {
+                    landing: {
+                        versionedAssets: true,
+                    },
+                },
+            }),
+            command: "landing:upload",
+        });
+
+        expectVersionedAssetSync({ obsoleteKey: "image.jpg", mocks });
     });
 
     it("allows overriding static website properties", async () => {

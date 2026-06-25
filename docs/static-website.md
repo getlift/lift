@@ -146,6 +146,20 @@ All files in that directory will be deployed and made available publicly.
 
 When using a JavaScript bundler (for example when working with Webpack, VueJS, React, etc.), upload the compiled files. For example this could be the `dist/` directory.
 
+### Versioned assets
+
+Enable `versionedAssets` for "zero-downtime deployments" if your website generates asset URLs with unique hashes:
+
+```yaml
+constructs:
+    landing:
+        type: static-website
+        path: dist
+        versionedAssets: true
+```
+
+When `versionedAssets` is enabled, Lift keeps obsolete files in S3 temporarily instead of deleting them immediately (they are marked for deletion and cleaned up by S3 after 1 day). This means that users navigating to a page that references an old asset (during the deployment or after) will still be able to load it.
+
 ### Custom domain
 
 ```yaml

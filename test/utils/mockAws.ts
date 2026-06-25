@@ -1,5 +1,14 @@
 import { CloudFrontClient, CreateInvalidationCommand } from "@aws-sdk/client-cloudfront";
-import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+    CopyObjectCommand,
+    DeleteObjectsCommand,
+    GetObjectTaggingCommand,
+    HeadObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    PutObjectTaggingCommand,
+    S3Client,
+} from "@aws-sdk/client-s3";
 import {
     DeleteMessageBatchCommand,
     PurgeQueueCommand,
@@ -92,6 +101,18 @@ const awsSdkV3Operations: Partial<Record<string, AwsSdkV3Operation>> = {
         Client: S3Client as unknown as AwsSdkV3ClientConstructor,
         Command: DeleteObjectsCommand as unknown as AwsSdkV3CommandConstructor,
     },
+    "S3.copyObject": {
+        Client: S3Client as unknown as AwsSdkV3ClientConstructor,
+        Command: CopyObjectCommand as unknown as AwsSdkV3CommandConstructor,
+    },
+    "S3.getObjectTagging": {
+        Client: S3Client as unknown as AwsSdkV3ClientConstructor,
+        Command: GetObjectTaggingCommand as unknown as AwsSdkV3CommandConstructor,
+    },
+    "S3.headObject": {
+        Client: S3Client as unknown as AwsSdkV3ClientConstructor,
+        Command: HeadObjectCommand as unknown as AwsSdkV3CommandConstructor,
+    },
     "S3.listObjectsV2": {
         Client: S3Client as unknown as AwsSdkV3ClientConstructor,
         Command: ListObjectsV2Command as unknown as AwsSdkV3CommandConstructor,
@@ -99,6 +120,10 @@ const awsSdkV3Operations: Partial<Record<string, AwsSdkV3Operation>> = {
     "S3.putObject": {
         Client: S3Client as unknown as AwsSdkV3ClientConstructor,
         Command: PutObjectCommand as unknown as AwsSdkV3CommandConstructor,
+    },
+    "S3.putObjectTagging": {
+        Client: S3Client as unknown as AwsSdkV3ClientConstructor,
+        Command: PutObjectTaggingCommand as unknown as AwsSdkV3CommandConstructor,
     },
     "SQS.deleteMessageBatch": {
         Client: SQSClient as unknown as AwsSdkV3ClientConstructor,

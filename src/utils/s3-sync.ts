@@ -1,17 +1,25 @@
+import {
+    CopyObjectCommand,
+    DeleteObjectsCommand,
+    GetObjectTaggingCommand,
+    HeadObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    PutObjectTaggingCommand,
+} from "@aws-sdk/client-s3";
 import type {
-    DeleteObjectsCommandOutput,
+    HeadObjectCommandOutput,
     ListObjectsV2CommandOutput,
     PutObjectCommandInput,
     _Object as S3Object,
 } from "@aws-sdk/client-s3";
-import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
-import * as fs from "fs";
-import * as util from "util";
-import * as path from "path";
 import * as crypto from "crypto";
-import { lookup } from "mime-types";
+import * as fs from "fs";
 import { chunk, flatten } from "lodash";
+import { lookup } from "mime-types";
+import * as path from "path";
 import type { AwsProvider } from "@lift/providers";
+import * as util from "util";
 import ServerlessError from "./error";
 import { getUtils } from "./logger";
 
@@ -21,7 +29,11 @@ const readFile = util.promisify(fs.readFile);
 
 const S3_UPLOAD_CONCURRENCY = 16;
 
+const TAGGING_BATCH_SIZE = 10;
+
 type S3Objects = Record<string, S3Object>;
+export type S3SyncDeleteMode = "delete" | "tag" | "none";
+export type S3SyncUploadMode = "sync" | "none";
 
 /**
  * Synchronize a local folder to a S3 bucket.
@@ -33,69 +45,82 @@ export async function s3Sync({
     localPath,
     targetPathPrefix,
     bucketName,
+    uploadMode = "sync",
+    deleteMode = "delete",
+    restoreObsoleteTags = deleteMode === "tag",
 }: {
     aws: AwsProvider;
     localPath: string;
     targetPathPrefix?: string;
     bucketName: string;
+    uploadMode?: S3SyncUploadMode;
+    deleteMode?: S3SyncDeleteMode;
+    restoreObsoleteTags?: boolean;
 }): Promise<{ hasChanges: boolean; fileChangeCount: number }> {
     let hasChanges = false;
     let fileChangeCount = 0;
     const filesToUpload: string[] = await listFilesRecursively(localPath);
     const existingS3Objects = await s3ListAll(aws, bucketName, targetPathPrefix);
 
-    // Upload files by chunks
     let skippedFiles = 0;
-    for (const batch of chunk(filesToUpload, S3_UPLOAD_CONCURRENCY)) {
-        await Promise.all(
-            batch.map(async (file) => {
-                const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
-                const fileContent = await readFile(path.posix.join(localPath, file));
+    if (uploadMode === "sync") {
+        // Upload files by chunks
+        for (const batch of chunk(filesToUpload, S3_UPLOAD_CONCURRENCY)) {
+            await Promise.all(
+                batch.map(async (file) => {
+                    const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
+                    const fileContent = await readFile(path.posix.join(localPath, file));
 
-                // Check that the file isn't already uploaded
-                if (targetKey in existingS3Objects) {
-                    const existingObject = existingS3Objects[targetKey];
-                    const etag = computeS3ETag(fileContent);
-                    if (etag === existingObject.ETag) {
-                        skippedFiles++;
+                    // Check that the file isn't already uploaded
+                    if (targetKey in existingS3Objects) {
+                        const existingObject = existingS3Objects[targetKey];
+                        const etag = computeS3ETag(fileContent);
+                        if (etag === existingObject.ETag) {
+                            skippedFiles++;
+                            if (
+                                restoreObsoleteTags &&
+                                (await s3RemoveObsoleteTagIfPresent(aws, bucketName, targetKey))
+                            ) {
+                                getUtils().log.verbose(`${file} was tagged for deletion, removing the tag to keep it`);
+                                hasChanges = true;
+                                fileChangeCount++;
+                            }
 
-                        return;
+                            return;
+                        }
                     }
-                }
 
-                getUtils().log.verbose(`Uploading ${file}`);
-                await s3Put(aws, bucketName, targetKey, fileContent);
-                hasChanges = true;
-                fileChangeCount++;
-            })
-        );
-    }
-    if (skippedFiles > 0) {
-        getUtils().log.verbose(`Skipped uploading ${skippedFiles} unchanged files`);
+                    getUtils().log.verbose(`Uploading ${file}`);
+                    await s3Put(aws, bucketName, targetKey, fileContent);
+                    hasChanges = true;
+                    fileChangeCount++;
+                })
+            );
+        }
+        if (skippedFiles > 0) {
+            getUtils().log.verbose(`Skipped uploading ${skippedFiles} unchanged files`);
+        }
     }
 
     const targetKeys = filesToUpload.map((file) =>
         targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file
     );
-
-    const keysToDelete = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
-    if (keysToDelete.length > 0) {
-        const batch = chunk(keysToDelete, 1000);
-
-        await Promise.all(
-            batch.map(async (keysToDeleteChunk, index) => {
-                getUtils().log.verbose(`Deleting chunk #${index}`);
-
-                keysToDeleteChunk.map((key) => {
-                    getUtils().log.verbose(`Deleting ${key}`);
-                    fileChangeCount++;
-                });
-
-                await s3Delete(aws, bucketName, keysToDeleteChunk);
-            })
-        );
-
+    const obsoleteKeys = findKeysToDelete(Object.keys(existingS3Objects), targetKeys);
+    if (deleteMode === "delete" && obsoleteKeys.length > 0) {
+        const deletedKeys = await s3Delete(aws, bucketName, obsoleteKeys);
+        deletedKeys.forEach((key) => {
+            getUtils().log.verbose(`Deleting ${key}`);
+            fileChangeCount++;
+        });
         hasChanges = true;
+    }
+    if (deleteMode === "tag" && obsoleteKeys.length > 0) {
+        const taggedKeys = await s3TagAsObsolete(aws, bucketName, obsoleteKeys);
+        taggedKeys.forEach((key) => {
+            getUtils().log.verbose(`Tagging ${key} for deletion in 24 hours`);
+            fileChangeCount++;
+        });
+        hasChanges = hasChanges || taggedKeys.length > 0;
     }
 
     return { hasChanges, fileChangeCount };
@@ -143,6 +168,7 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
             }
             objects[object.Key] = object;
         });
+
         continuationToken = result.NextContinuationToken;
     } while (result.IsTruncated === true);
 
@@ -150,8 +176,10 @@ async function s3ListAll(aws: AwsProvider, bucketName: string, pathPrefix?: stri
 }
 
 function findKeysToDelete(existing: string[], target: string[]): string[] {
-    // Returns every key that shouldn't exist anymore
-    return existing.filter((key) => target.indexOf(key) === -1);
+    const targetSet = new Set(target);
+
+    // Returns every key that shouldn't exist anymore.
+    return existing.filter((key) => !targetSet.has(key));
 }
 
 export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileContent: Buffer): Promise<void> {
@@ -168,29 +196,166 @@ export async function s3Put(aws: AwsProvider, bucket: string, key: string, fileC
     await (await aws.getS3Client()).send(new PutObjectCommand(params));
 }
 
-async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<void> {
-    const response = await (
-        await aws.getS3Client()
-    ).send(
-        new DeleteObjectsCommand({
+export async function s3PutIfChanged(
+    aws: AwsProvider,
+    bucket: string,
+    key: string,
+    fileContent: Buffer,
+    options: { removeObsoleteTag?: boolean } = {}
+): Promise<boolean> {
+    try {
+        const existingObject: HeadObjectCommandOutput = await (
+            await aws.getS3Client()
+        ).send(
+            new HeadObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            })
+        );
+        if (existingObject.ETag === computeS3ETag(fileContent)) {
+            if (options.removeObsoleteTag === true) {
+                return s3RemoveObsoleteTagIfPresent(aws, bucket, key);
+            }
+
+            return false;
+        }
+    } catch (error) {
+        const code = (error as { code?: string; name?: string }).code ?? (error as { name?: string }).name;
+        if (code !== "NotFound" && code !== "NoSuchKey") {
+            throw error;
+        }
+    }
+
+    await s3Put(aws, bucket, key, fileContent);
+
+    return true;
+}
+
+async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<string[]> {
+    const deletedKeys: string[] = [];
+    const batches = chunk(keys, 1000);
+
+    await Promise.all(
+        batches.map(async (keysToDeleteChunk) => {
+            getUtils().log.verbose(`Deleting ${keysToDeleteChunk.length} obsolete assets`);
+
+            const response = await (
+                await aws.getS3Client()
+            ).send(
+                new DeleteObjectsCommand({
+                    Bucket: bucket,
+                    Delete: {
+                        Objects: keysToDeleteChunk.map((key) => {
+                            return {
+                                Key: key,
+                            };
+                        }),
+                    },
+                })
+            );
+
+            keysToDeleteChunk.forEach((key) => deletedKeys.push(key));
+
+            // S3 deleteObjects operation will fail silently
+            // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
+            if (response.Errors !== undefined && response.Errors.length !== 0) {
+                response.Errors.forEach((error) => console.log(error));
+                throw new ServerlessError(
+                    `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+                    "LIFT_S3_DELETE_OBJECTS_FAILURE"
+                );
+            }
+        })
+    );
+
+    return deletedKeys;
+}
+
+async function s3RemoveObsoleteTagIfPresent(aws: AwsProvider, bucket: string, key: string): Promise<boolean> {
+    const s3Client = await aws.getS3Client();
+    const getTagsResponse = await s3Client.send(
+        new GetObjectTaggingCommand({
             Bucket: bucket,
-            Delete: {
-                Objects: keys.map((key) => {
-                    return {
-                        Key: key,
-                    };
-                }),
+            Key: key,
+        })
+    );
+    const currentTagSet = getTagsResponse.TagSet ?? [];
+    if (!currentTagSet.some((tag) => tag.Key === "Obsolete" && tag.Value === "true")) {
+        return false;
+    }
+
+    await s3Client.send(
+        new PutObjectTaggingCommand({
+            Bucket: bucket,
+            Key: key,
+            Tagging: {
+                TagSet: currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
             },
         })
     );
 
-    // S3 deleteObjects operation will fail silently
-    // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
-    if (response.Errors !== undefined && response.Errors.length !== 0) {
-        response.Errors.forEach((error) => console.log(error));
+    return true;
+}
+
+async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[]): Promise<string[]> {
+    try {
+        const taggedKeys: string[] = [];
+        const s3Client = await aws.getS3Client();
+
+        for (const batch of chunk(keys, TAGGING_BATCH_SIZE)) {
+            const batchResults = await Promise.all(
+                batch.map(async (key) => {
+                    const getTagsResponse = await s3Client.send(
+                        new GetObjectTaggingCommand({
+                            Bucket: bucket,
+                            Key: key,
+                        })
+                    );
+                    const currentTagSet = getTagsResponse.TagSet ?? [];
+                    if (currentTagSet.some((tag) => tag.Key === "Obsolete" && tag.Value === "true")) {
+                        return false;
+                    }
+
+                    // Copy the object onto itself to refresh LastModified (so the lifecycle expiry
+                    // counts from now) and set the Obsolete tag in the same call. Setting the tag
+                    // here (rather than via a separate PutObjectTagging) avoids a window where the
+                    // copy could read a not-yet-propagated tag and produce an untagged object that
+                    // never expires. The full tag set is provided so existing tags are preserved.
+                    const tagging = [
+                        ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
+                        { Key: "Obsolete", Value: "true" },
+                    ]
+                        .map((tag) => `${encodeURIComponent(tag.Key ?? "")}=${encodeURIComponent(tag.Value ?? "")}`)
+                        .join("&");
+                    const encodedKey = encodeURIComponent(key).replace(/%2F/g, "/");
+                    await s3Client.send(
+                        new CopyObjectCommand({
+                            Bucket: bucket,
+                            Key: key,
+                            CopySource: `${bucket}/${encodedKey}`,
+                            MetadataDirective: "COPY",
+                            TaggingDirective: "REPLACE",
+                            Tagging: tagging,
+                        })
+                    );
+
+                    return true;
+                })
+            );
+
+            batch.forEach((key, index) => {
+                if (batchResults[index]) {
+                    taggedKeys.push(key);
+                }
+            });
+        }
+
+        return taggedKeys;
+    } catch (error) {
+        console.log(error);
         throw new ServerlessError(
-            `Unable to delete some files in S3. The "static-website" and "server-side-website" construct require the s3:DeleteObject IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
-            "LIFT_S3_DELETE_OBJECTS_FAILURE"
+            `Unable to tag some files in S3. The "static-website" and "server-side-website" constructs require the s3:GetObjectTagging, s3:PutObjectTagging, s3:GetObject and s3:PutObject (the obsolete files are copied in place to reset their lifecycle expiry) IAM permissions to synchronize files to S3, is it missing from your deployment policy?`,
+            "LIFT_S3_TAG_OBJECTS_FAILURE"
         );
     }
 }
