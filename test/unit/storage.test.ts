@@ -125,6 +125,87 @@ describe("storage", () => {
         });
     });
 
+    it("should block all public access by default", () => {
+        expect(cfTemplate.Resources[computeLogicalId("default", "Bucket")].Properties).toMatchObject({
+            PublicAccessBlockConfiguration: {
+                BlockPublicAcls: true,
+                BlockPublicPolicy: true,
+                IgnorePublicAcls: true,
+                RestrictPublicBuckets: true,
+            },
+        });
+    });
+
+    it("should open only the policy levers when publicPath is set", () => {
+        expect(cfTemplate.Resources[computeLogicalId("withPublicPath", "Bucket")].Properties).toMatchObject({
+            PublicAccessBlockConfiguration: {
+                // ACL writes still rejected (strict, no allowAcl)
+                BlockPublicAcls: true,
+                IgnorePublicAcls: true,
+                // Policy levers opened so the public-read bucket policy can take effect
+                BlockPublicPolicy: false,
+                RestrictPublicBuckets: false,
+            },
+        });
+    });
+
+    it("should grant anonymous read scoped to the public prefix only", () => {
+        const bucketLogicalId = computeLogicalId("withPublicPath", "Bucket");
+        const policy = cfTemplate.Resources[computeLogicalId("withPublicPath", "Bucket", "Policy")].Properties
+            .PolicyDocument as { Statement: unknown[] };
+        expect(policy.Statement).toContainEqual({
+            Action: "s3:GetObject",
+            Effect: "Allow",
+            Principal: { AWS: "*" },
+            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/public/*"]] },
+        });
+    });
+
+    it("should accept-but-ignore public ACLs when publicPath is combined with allowAcl", () => {
+        expect(cfTemplate.Resources[computeLogicalId("withPublicPathAndAcl", "Bucket")].Properties).toMatchObject({
+            // storePublicly()/visibility:public writes are accepted...
+            PublicAccessBlockConfiguration: {
+                BlockPublicAcls: false,
+                // ...but the public ACL is inert; the bucket policy is the only public-access mechanism
+                IgnorePublicAcls: true,
+                BlockPublicPolicy: false,
+                RestrictPublicBuckets: false,
+            },
+            OwnershipControls: {
+                Rules: [{ ObjectOwnership: "BucketOwnerPreferred" }],
+            },
+        });
+    });
+
+    it("normalizes the publicPath prefix (strips leading/trailing slashes)", () => {
+        // 'withPublicPathAndAcl' is configured with `publicPath: /public/`
+        const bucketLogicalId = computeLogicalId("withPublicPathAndAcl", "Bucket");
+        const policy = cfTemplate.Resources[computeLogicalId("withPublicPathAndAcl", "Bucket", "Policy")].Properties
+            .PolicyDocument as { Statement: unknown[] };
+        expect(policy.Statement).toContainEqual({
+            Action: "s3:GetObject",
+            Effect: "Allow",
+            Principal: { AWS: "*" },
+            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/public/*"]] },
+        });
+    });
+
+    it.each([["withPublicPathSlash"], ["withPublicPathStar"]])(
+        "makes the whole bucket public when publicPath is '/' or '*' (%p)",
+        (useCase) => {
+            const bucketLogicalId = computeLogicalId(useCase, "Bucket");
+            const policy = cfTemplate.Resources[computeLogicalId(useCase, "Bucket", "Policy")].Properties
+                .PolicyDocument as { Statement: unknown[] };
+            expect(policy.Statement).toContainEqual({
+                Action: "s3:GetObject",
+                Effect: "Allow",
+                Principal: { AWS: "*" },
+                // The whole bucket (every object) is public, not just a prefix
+                Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
+            });
+        }
+    );
+
     it("supports custom lifecycleRules with auto-capitalization and default Status", () => {
         const lifecycleConfig = cfTemplate.Resources[computeLogicalId("withLifecycleRules", "Bucket")].Properties
             .LifecycleConfiguration as { Rules: unknown[] };

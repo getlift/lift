@@ -35,6 +35,19 @@ constructs:
     withAcl:
         type: storage
         allowAcl: true
+    withPublicPath:
+        type: storage
+        publicPath: public
+    withPublicPathAndAcl:
+        type: storage
+        publicPath: /public/
+        allowAcl: true
+    withPublicPathSlash:
+        type: storage
+        publicPath: /
+    withPublicPathStar:
+        type: storage
+        publicPath: "*"
     withCorsString:
         type: storage
         cors: "*"

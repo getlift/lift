@@ -3,6 +3,7 @@ import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3"
 import type { Construct as CdkConstruct } from "constructs";
 import { CfnOutput, Fn, Stack } from "aws-cdk-lib";
 import type { CfnResource } from "aws-cdk-lib";
+import { AnyPrincipal, Effect, PolicyStatement as IamPolicyStatement } from "aws-cdk-lib/aws-iam";
 import type { FromSchema } from "json-schema-to-ts";
 import type { AwsProvider } from "@lift/providers";
 import { AwsConstruct } from "@lift/constructs/abstracts";
@@ -17,6 +18,7 @@ const STORAGE_DEFINITION = {
             anyOf: [{ const: "s3" }, { const: "kms" }],
         },
         allowAcl: { type: "boolean" },
+        publicPath: { type: "string" },
         cors: {
             anyOf: [{ type: "array", items: { type: "object" } }, { type: "string" }],
         },
@@ -27,7 +29,7 @@ const STORAGE_DEFINITION = {
     },
     additionalProperties: false,
 } as const;
-const STORAGE_DEFAULTS: Omit<Required<FromSchema<typeof STORAGE_DEFINITION>>, "allowAcl" | "cors"> = {
+const STORAGE_DEFAULTS: Omit<Required<FromSchema<typeof STORAGE_DEFINITION>>, "allowAcl" | "cors" | "publicPath"> = {
     type: "storage",
     archive: 45,
     encryption: "s3",
@@ -56,6 +58,27 @@ function capitalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
     return result;
 }
 
+/**
+ * Normalize the `publicPath` option into the S3 object key pattern that is made public (i.e. the
+ * part appended after the bucket ARN in the public-read bucket policy).
+ * Returns undefined when `publicPath` is not set.
+ *
+ * - `public`            -> `public/*` (only that prefix is public)
+ * - `/`, `*` or empty   -> `*`        (the whole bucket is public)
+ */
+function normalizePublicPath(publicPath: string | undefined): string | undefined {
+    if (publicPath === undefined) {
+        return undefined;
+    }
+
+    const prefix = publicPath.replace(/^\/+/, "").replace(/\/+$/, "");
+    if (prefix === "" || prefix === "*") {
+        return "*";
+    }
+
+    return `${prefix}/*`;
+}
+
 type Configuration = FromSchema<typeof STORAGE_DEFINITION>;
 
 export class Storage extends AwsConstruct {
@@ -64,6 +87,7 @@ export class Storage extends AwsConstruct {
 
     private readonly bucket: Bucket;
     private readonly allowAcl: boolean;
+    private readonly publicObjects: string | undefined;
     // a remplacer par StorageExtensionsKeys
     private readonly bucketNameOutput: CfnOutput;
 
@@ -72,6 +96,7 @@ export class Storage extends AwsConstruct {
 
         const resolvedConfiguration = Object.assign({}, STORAGE_DEFAULTS, configuration);
         this.allowAcl = resolvedConfiguration.allowAcl === true;
+        this.publicObjects = normalizePublicPath(resolvedConfiguration.publicPath);
 
         const encryptionOptions = {
             s3: BucketEncryption.S3_MANAGED,
@@ -81,9 +106,37 @@ export class Storage extends AwsConstruct {
         this.bucket = new Bucket(this, "Bucket", {
             encryption: encryptionOptions[resolvedConfiguration.encryption],
             versioned: true,
-            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            // By default the bucket is fully private. When `publicPath` is set, we only open the
+            // *policy* levers (so the public-read bucket policy below can take effect) — ACLs stay
+            // the legacy path. See the public access matrix in the docs.
+            blockPublicAccess:
+                this.publicObjects === undefined
+                    ? BlockPublicAccess.BLOCK_ALL
+                    : new BlockPublicAccess({
+                          // With `allowAcl`, accept public-ACL writes (e.g. Laravel's `storePublicly()`)
+                          // but keep them inert via `ignorePublicAcls`; the bucket policy is the only
+                          // thing that ever grants public access.
+                          blockPublicAcls: !this.allowAcl,
+                          ignorePublicAcls: true,
+                          blockPublicPolicy: false,
+                          restrictPublicBuckets: false,
+                      }),
             enforceSSL: true,
         });
+
+        if (this.publicObjects !== undefined) {
+            // Grant anonymous read to the public objects (a single prefix, or the whole bucket when
+            // `publicPath` is `/` or `*`). `GetObject` only (no `ListBucket`), so objects cannot be
+            // listed. Appended to the same bucket policy as the `enforceSSL` deny statement.
+            this.bucket.addToResourcePolicy(
+                new IamPolicyStatement({
+                    effect: Effect.ALLOW,
+                    principals: [new AnyPrincipal()],
+                    actions: ["s3:GetObject"],
+                    resources: [`${this.bucket.bucketArn}/${this.publicObjects}`],
+                })
+            );
+        }
 
         // Default lifecycle rules (always applied)
         const defaultRules = [
@@ -147,10 +200,17 @@ export class Storage extends AwsConstruct {
     }
 
     variables(): Record<string, unknown> {
-        return {
+        const variables: Record<string, unknown> = {
             bucketArn: this.bucket.bucketArn,
             bucketName: this.bucket.bucketName,
         };
+
+        if (this.publicObjects !== undefined) {
+            // Base URL of the bucket (no key), e.g. https://<bucket>.s3.<region>.amazonaws.com
+            variables.publicUrl = this.bucket.virtualHostedUrlForObject();
+        }
+
+        return variables;
     }
 
     permissions(): PolicyStatement[] {

@@ -40,6 +40,10 @@ All storage constructs expose the following variables:
 - `bucketName`: the name of the deployed S3 bucket
 - `bucketArn`: the ARN of the deployed S3 bucket
 
+When [`publicPath`](#public-files) is set, an additional variable is exposed:
+
+- `publicUrl`: the base URL of the bucket (e.g. `https://<bucket>.s3.<region>.amazonaws.com`), used to build URLs to public files
+
 This can be used to reference the bucket from Lambda functions, for example:
 
 ```yaml
@@ -159,6 +163,32 @@ constructs:
 ```
 
 The full form maps directly to [CloudFormation CorsRules](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-corsconfiguration-corsrule.html).
+
+### Public files
+
+By default, the bucket is completely private. To expose **a subset** of the bucket publicly (for example user-uploaded avatars served on a website), use `publicPath`:
+
+```yaml
+constructs:
+    avatars:
+        type: storage
+        publicPath: public
+```
+
+Every object stored under the `public/` prefix immediately becomes **publicly readable** over HTTPS (via a bucket policy), while the rest of the bucket stays private. Files are served directly from S3 at `https://<bucket>.s3.<region>.amazonaws.com/public/...`.
+
+Unlike the `assets` of the [`server-side-website`](server-side-website.md) construct, a `storage` bucket is **never emptied or cleared on deploy**, which makes `publicPath` the right place for files generated or uploaded by the application at runtime.
+
+To make the **entire bucket** public instead of a single prefix, set `publicPath` to `/` or `*`:
+
+```yaml
+constructs:
+    avatars:
+        type: storage
+        publicPath: "*" # every object in the bucket is publicly readable
+```
+
+⚠️ With `/` or `*`, _all_ files in the bucket are publicly readable — only do this for buckets that store exclusively public files. Prefer a sub-path (e.g. `public`) when the bucket also holds private files.
 
 ## Extensions
 
