@@ -33,6 +33,10 @@ export function mockVersionedAssetSync({
             { Key: obsoleteKey },
         ],
     });
+    awsMock.mockService("S3", "headObject").resolves({
+        ContentType: "image/png",
+        Metadata: { cache: "forever" },
+    });
 
     return {
         putObjectSpy: awsMock.mockService("S3", "putObject"),
@@ -105,9 +109,16 @@ export function expectVersionedAssetSync({
     expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
         Bucket: "bucket-name",
         Key: obsoleteKey,
+        MetadataDirective: "REPLACE",
+        Metadata: {
+            cache: "forever",
+        },
+        ContentType: "image/png",
         TaggingDirective: "REPLACE",
         // The pre-existing Cache tag is preserved alongside the added Obsolete tag.
         Tagging: "Cache=forever&Obsolete=true",
     });
+    const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+    expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
     sinon.assert.calledOnce(cloudfrontInvalidationSpy);
 }

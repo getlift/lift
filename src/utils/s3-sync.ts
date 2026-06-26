@@ -8,6 +8,7 @@ import {
     PutObjectTaggingCommand,
 } from "@aws-sdk/client-s3";
 import type {
+    CopyObjectCommandInput,
     HeadObjectCommandOutput,
     ListObjectsV2CommandOutput,
     PutObjectCommandInput,
@@ -33,7 +34,7 @@ const TAGGING_BATCH_SIZE = 10;
 
 type S3Objects = Record<string, S3Object>;
 export type S3SyncDeleteMode = "delete" | "tag" | "none";
-export type S3SyncUploadMode = "sync" | "none";
+export type S3SyncUploadMode = "sync" | "missing" | "none";
 
 /**
  * Synchronize a local folder to a S3 bucket.
@@ -63,16 +64,21 @@ export async function s3Sync({
     const existingS3Objects = await s3ListAll(aws, bucketName, targetPathPrefix);
 
     let skippedFiles = 0;
-    if (uploadMode === "sync") {
+    if (uploadMode !== "none") {
         // Upload files by chunks
         for (const batch of chunk(filesToUpload, S3_UPLOAD_CONCURRENCY)) {
             await Promise.all(
                 batch.map(async (file) => {
                     const targetKey = targetPathPrefix !== undefined ? path.posix.join(targetPathPrefix, file) : file;
-                    const fileContent = await readFile(path.posix.join(localPath, file));
 
-                    // Check that the file isn't already uploaded
                     if (targetKey in existingS3Objects) {
+                        if (uploadMode === "missing") {
+                            skippedFiles++;
+
+                            return;
+                        }
+
+                        const fileContent = await readFile(path.posix.join(localPath, file));
                         const existingObject = existingS3Objects[targetKey];
                         const etag = computeS3ETag(fileContent);
                         if (etag === existingObject.ETag) {
@@ -88,8 +94,16 @@ export async function s3Sync({
 
                             return;
                         }
+
+                        getUtils().log.verbose(`Uploading ${file}`);
+                        await s3Put(aws, bucketName, targetKey, fileContent);
+                        hasChanges = true;
+                        fileChangeCount++;
+
+                        return;
                     }
 
+                    const fileContent = await readFile(path.posix.join(localPath, file));
                     getUtils().log.verbose(`Uploading ${file}`);
                     await s3Put(aws, bucketName, targetKey, fileContent);
                     hasChanges = true;
@@ -98,7 +112,7 @@ export async function s3Sync({
             );
         }
         if (skippedFiles > 0) {
-            getUtils().log.verbose(`Skipped uploading ${skippedFiles} unchanged files`);
+            getUtils().log.verbose(`Skipped uploading ${skippedFiles} existing or unchanged files`);
         }
     }
 
@@ -220,8 +234,7 @@ export async function s3PutIfChanged(
             return false;
         }
     } catch (error) {
-        const code = (error as { code?: string; name?: string }).code ?? (error as { name?: string }).name;
-        if (code !== "NotFound" && code !== "NoSuchKey") {
+        if (!isMissingObjectError(error)) {
             throw error;
         }
     }
@@ -229,6 +242,40 @@ export async function s3PutIfChanged(
     await s3Put(aws, bucket, key, fileContent);
 
     return true;
+}
+
+export async function s3PutIfMissing(
+    aws: AwsProvider,
+    bucket: string,
+    key: string,
+    fileContent: Buffer
+): Promise<boolean> {
+    try {
+        await (
+            await aws.getS3Client()
+        ).send(
+            new HeadObjectCommand({
+                Bucket: bucket,
+                Key: key,
+            })
+        );
+
+        return false;
+    } catch (error) {
+        if (!isMissingObjectError(error)) {
+            throw error;
+        }
+    }
+
+    await s3Put(aws, bucket, key, fileContent);
+
+    return true;
+}
+
+function isMissingObjectError(error: unknown): boolean {
+    const code = (error as { code?: string; name?: string }).code ?? (error as { name?: string }).name;
+
+    return code === "NotFound" || code === "NoSuchKey";
 }
 
 async function s3Delete(aws: AwsProvider, bucket: string, keys: string[]): Promise<string[]> {
@@ -316,11 +363,16 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
                         return false;
                     }
 
+                    const existingObject = await s3Client.send(
+                        new HeadObjectCommand({
+                            Bucket: bucket,
+                            Key: key,
+                        })
+                    );
                     // Copy the object onto itself to refresh LastModified (so the lifecycle expiry
-                    // counts from now) and set the Obsolete tag in the same call. Setting the tag
-                    // here (rather than via a separate PutObjectTagging) avoids a window where the
-                    // copy could read a not-yet-propagated tag and produce an untagged object that
-                    // never expires. The full tag set is provided so existing tags are preserved.
+                    // counts from now) and set the Obsolete tag in the same call. S3 rejects
+                    // self-copies that only change tags, so we preserve the existing metadata and add
+                    // a Lift-owned marker to make this a valid metadata update.
                     const tagging = [
                         ...currentTagSet.filter((tag) => tag.Key !== "Obsolete"),
                         { Key: "Obsolete", Value: "true" },
@@ -329,14 +381,7 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
                         .join("&");
                     const encodedKey = encodeURIComponent(key).replace(/%2F/g, "/");
                     await s3Client.send(
-                        new CopyObjectCommand({
-                            Bucket: bucket,
-                            Key: key,
-                            CopySource: `${bucket}/${encodedKey}`,
-                            MetadataDirective: "COPY",
-                            TaggingDirective: "REPLACE",
-                            Tagging: tagging,
-                        })
+                        new CopyObjectCommand(copyObjectParams(bucket, key, encodedKey, tagging, existingObject))
                     );
 
                     return true;
@@ -358,6 +403,34 @@ async function s3TagAsObsolete(aws: AwsProvider, bucket: string, keys: string[])
             "LIFT_S3_TAG_OBJECTS_FAILURE"
         );
     }
+}
+
+function copyObjectParams(
+    bucket: string,
+    key: string,
+    encodedKey: string,
+    tagging: string,
+    existingObject: HeadObjectCommandOutput
+): CopyObjectCommandInput {
+    return {
+        Bucket: bucket,
+        Key: key,
+        CopySource: `${bucket}/${encodedKey}`,
+        MetadataDirective: "REPLACE",
+        Metadata: {
+            ...existingObject.Metadata,
+            "lift-obsolete-at": new Date().toISOString(),
+        },
+        TaggingDirective: "REPLACE",
+        Tagging: tagging,
+        CacheControl: existingObject.CacheControl,
+        ContentDisposition: existingObject.ContentDisposition,
+        ContentEncoding: existingObject.ContentEncoding,
+        ContentLanguage: existingObject.ContentLanguage,
+        ContentType: existingObject.ContentType,
+        Expires: existingObject.Expires,
+        WebsiteRedirectLocation: existingObject.WebsiteRedirectLocation,
+    };
 }
 
 export function computeS3ETag(fileContent: Buffer): string {

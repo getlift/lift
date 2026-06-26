@@ -682,6 +682,10 @@ describe("server-side website", () => {
             return Promise.resolve({ TagSet: [] });
         });
         const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
+        awsMock.mockService("S3", "headObject").resolves({
+            ContentType: "image/jpeg",
+            Metadata: { cache: "forever" },
+        });
         const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
         const cloudfrontInvalidationSpy = awsMock.mockService("CloudFront", "createInvalidation");
 
@@ -724,26 +728,48 @@ describe("server-side website", () => {
         // image.jpg is obsolete: it is tagged through an in-place copy (sets the tag and resets
         // the lifecycle expiry in a single call).
         sinon.assert.calledOnce(copyObjectSpy);
-        expect(copyObjectSpy.firstCall.firstArg).toEqual({
+        expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
             CopySource: "bucket-name/assets/image.jpg",
-            MetadataDirective: "COPY",
+            MetadataDirective: "REPLACE",
+            Metadata: {
+                cache: "forever",
+            },
+            ContentType: "image/jpeg",
             TaggingDirective: "REPLACE",
             Tagging: "Obsolete=true",
         });
+        const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+        expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
 
-    it("should pre-upload versioned assets and only clean up obsolete assets after deploy", async () => {
+    it("should pre-upload new versioned assets and sync changed assets after deploy", async () => {
         const awsMock = mockAws();
         const website = createServerSideWebsite();
-        awsMock.mockService("S3", "listObjectsV2").resolves({
+        const listObjectsV2Spy = awsMock.mockService("S3", "listObjectsV2");
+        listObjectsV2Spy.onFirstCall().resolves({
             IsTruncated: false,
             Contents: [
                 {
                     Key: "assets/logo.png",
                     ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "public/logo.png"))),
+                },
+                { Key: "assets/styles.css" },
+                { Key: "assets/image.jpg" },
+            ],
+        });
+        listObjectsV2Spy.onSecondCall().resolves({
+            IsTruncated: false,
+            Contents: [
+                {
+                    Key: "assets/logo.png",
+                    ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "public/logo.png"))),
+                },
+                {
+                    Key: "assets/scripts.js",
+                    ETag: computeS3ETag(fs.readFileSync(path.join(serverSideWebsiteFixturePath, "public/scripts.js"))),
                 },
                 { Key: "assets/styles.css" },
                 { Key: "assets/image.jpg" },
@@ -762,14 +788,22 @@ describe("server-side website", () => {
         await website.preDeploy();
         const uploadCountAfterPreDeploy = putObjectSpy.callCount;
 
-        expect(uploadCountAfterPreDeploy).toBe(2);
+        expect(uploadCountAfterPreDeploy).toBe(1);
+        expect(putObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/scripts.js",
+        });
         sinon.assert.notCalled(deleteObjectsSpy);
         sinon.assert.notCalled(putObjectTaggingSpy);
         sinon.assert.notCalled(cloudfrontInvalidationSpy);
 
         await website.postDeploy();
 
-        sinon.assert.callCount(putObjectSpy, uploadCountAfterPreDeploy);
+        sinon.assert.callCount(putObjectSpy, uploadCountAfterPreDeploy + 1);
+        expect(putObjectSpy.secondCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/styles.css",
+        });
         sinon.assert.notCalled(deleteObjectsSpy);
         expect(getObjectTaggingSpy.getCalls().map((call) => call.firstArg as unknown)).toEqual(
             expect.arrayContaining([
@@ -789,9 +823,13 @@ describe("server-side website", () => {
         expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
+            MetadataDirective: "REPLACE",
+            Metadata: {},
             TaggingDirective: "REPLACE",
             Tagging: "Obsolete=true",
         });
+        const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+        expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
         // The assets uploaded during preDeploy warrant a cache invalidation, deferred to postDeploy.
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });
@@ -838,9 +876,13 @@ describe("server-side website", () => {
         expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/image.jpg",
+            MetadataDirective: "REPLACE",
+            Metadata: {},
             TaggingDirective: "REPLACE",
             Tagging: "Obsolete=true",
         });
+        const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+        expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
         // The assets uploaded during the full post-deploy sync warrant a cache invalidation.
         sinon.assert.calledOnce(cloudfrontInvalidationSpy);
     });

@@ -239,11 +239,11 @@ constructs:
 
 This is useful for frameworks such as Laravel with Vite, where the deployed PHP code references asset paths from a manifest file.
 
-When `versionedAssets` is enabled, Lift uploads assets **before** the CloudFormation deployment starts, so the new hashed files are already available by the time the new Lambda code is deployed.
+When `versionedAssets` is enabled, Lift uploads new assets **before** the CloudFormation deployment starts, so new hashed files are already available by the time the new Lambda code is deployed. Assets that already exist in S3 are updated after CloudFormation has successfully deployed, like with the default deployment behavior.
 
 Lift also keeps obsolete files in S3 temporarily instead of deleting them immediately (they are marked for deletion and cleaned up by S3 after 1 day).
 
-If your asset URLs do not contain a version/hash/fingerprint, do not enable this: assets would be updated before the new code is deployed, so users would receive the new asset versions while still running the old code.
+If your asset URLs do not contain a version/hash/fingerprint, this option is not useful: assets are still updated after the new code is deployed.
 
 ### API Gateway
 
