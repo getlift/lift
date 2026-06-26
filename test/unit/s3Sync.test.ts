@@ -10,6 +10,37 @@ describe("s3 sync", () => {
         sinon.restore();
     });
 
+    it("can upload only files that are missing from S3", async () => {
+        const awsMock = mockAws();
+        const awsProvider = {
+            getS3Client: () => Promise.resolve(new S3Client({ region: "us-east-1" })),
+        } as AwsProvider;
+
+        awsMock.mockService("S3", "listObjectsV2").resolves({
+            IsTruncated: false,
+            Contents: [{ Key: "assets/logo.png" }, { Key: "assets/styles.css" }],
+        });
+        const putObjectSpy = awsMock.mockService("S3", "putObject");
+        const deleteObjectsSpy = awsMock.mockService("S3", "deleteObjects");
+
+        const result = await s3Sync({
+            aws: awsProvider,
+            localPath: path.join(__dirname, "../fixtures/serverSideWebsite/public"),
+            targetPathPrefix: "assets",
+            bucketName: "bucket-name",
+            uploadMode: "missing",
+            deleteMode: "none",
+        });
+
+        expect(result).toEqual({ hasChanges: true, fileChangeCount: 1 });
+        sinon.assert.calledOnce(putObjectSpy);
+        expect(putObjectSpy.firstCall.firstArg).toMatchObject({
+            Bucket: "bucket-name",
+            Key: "assets/scripts.js",
+        });
+        sinon.assert.notCalled(deleteObjectsSpy);
+    });
+
     it("can tag obsolete files without reading tags from current files", async () => {
         const awsMock = mockAws();
         const awsProvider = {
@@ -22,6 +53,10 @@ describe("s3 sync", () => {
         });
         const putObjectSpy = awsMock.mockService("S3", "putObject");
         const getObjectTaggingSpy = awsMock.mockService("S3", "getObjectTagging").resolves({ TagSet: [] });
+        awsMock.mockService("S3", "headObject").resolves({
+            ContentType: "image/png",
+            Metadata: { cache: "forever" },
+        });
         const putObjectTaggingSpy = awsMock.mockService("S3", "putObjectTagging").resolves({});
         const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
 
@@ -48,9 +83,16 @@ describe("s3 sync", () => {
         expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/old.png",
+            MetadataDirective: "REPLACE",
+            Metadata: {
+                cache: "forever",
+            },
+            ContentType: "image/png",
             TaggingDirective: "REPLACE",
             Tagging: "Obsolete=true",
         });
+        const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+        expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
     });
 
     it("preserves existing tags (and URL-encodes them) when tagging an obsolete file", async () => {
@@ -64,6 +106,10 @@ describe("s3 sync", () => {
             Contents: [{ Key: "assets/logo.png" }, { Key: "assets/old.png" }],
         });
         const copyObjectSpy = awsMock.mockService("S3", "copyObject").resolves({});
+        awsMock.mockService("S3", "headObject").resolves({
+            ContentType: "image/png",
+            Metadata: { cache: "forever" },
+        });
         // The obsolete file already carries unrelated tags (one needing URL-encoding) plus a stale
         // Obsolete tag that should be dropped before re-adding Obsolete=true.
         awsMock.mockService("S3", "getObjectTagging").resolves({
@@ -88,8 +134,14 @@ describe("s3 sync", () => {
         expect(copyObjectSpy.firstCall.firstArg).toMatchObject({
             Bucket: "bucket-name",
             Key: "assets/old.png",
+            MetadataDirective: "REPLACE",
+            Metadata: {
+                cache: "forever",
+            },
             TaggingDirective: "REPLACE",
             Tagging: "Cache=forever&Team=a%2Fb%20c&Obsolete=true",
         });
+        const copyObjectMetadata = (copyObjectSpy.firstCall.firstArg as { Metadata: Record<string, string> }).Metadata;
+        expect(typeof copyObjectMetadata["lift-obsolete-at"]).toBe("string");
     });
 });
