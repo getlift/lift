@@ -343,25 +343,25 @@ describe("static websites", () => {
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
-            Object {
-              "Properties": Object {
+            {
+              "Properties": {
                 "AutoPublish": true,
                 "FunctionCode": "function handler(event) {
                 var request = event.request;
-                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                if (request.headers["host"].value !== "www.example.com") {
                     return {
                         statusCode: 301,
-                        statusDescription: \\"Moved Permanently\\",
+                        statusDescription: "Moved Permanently",
                         headers: {
                             location: {
-                                value: \\"https://www.example.com\\" + request.uri
+                                value: "https://www.example.com" + request.uri
                             }
                         }
                     };
                 }
                 return request;
             }",
-                "FunctionConfig": Object {
+                "FunctionConfig": {
                   "Comment": "app-dev-us-east-1-landing-request",
                   "Runtime": "cloudfront-js-1.0",
                 },
@@ -377,20 +377,20 @@ describe("static websites", () => {
                 "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
             )
         ).toMatchInlineSnapshot(`
-            Array [
-              Object {
+            [
+              {
                 "EventType": "viewer-response",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
+                "FunctionARN": {
+                  "Fn::GetAtt": [
                     "${responseFunction}",
                     "FunctionARN",
                   ],
                 },
               },
-              Object {
+              {
                 "EventType": "viewer-request",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
+                "FunctionARN": {
+                  "Fn::GetAtt": [
                     "${requestFunction}",
                     "FunctionARN",
                   ],
@@ -494,7 +494,7 @@ describe("static websites", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
         );
         await expect(() => {
@@ -510,7 +510,7 @@ describe("static websites", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
         );
     });
@@ -562,7 +562,7 @@ describe("static websites", () => {
                     Bucket: "bucket-name",
                     Key: "scripts.js",
                     Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/scripts.js")),
-                    ContentType: "application/javascript",
+                    ContentType: "text/javascript",
                 },
                 {
                     Bucket: "bucket-name",

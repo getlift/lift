@@ -111,10 +111,8 @@ export class AwsProvider implements ProviderInterface {
     }
 
     addFunction(functionName: string, functionConfig: unknown): void {
-        if (!this.serverless.configurationInput.functions) {
-            // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
-            this.serverless.configurationInput.functions = {};
-        }
+        // If serverless.yml does not contain any functions, bootstrapping a new empty functions config
+        this.serverless.configurationInput.functions ??= {};
 
         merge(this.serverless.service.functions, {
             [functionName]: functionConfig,
@@ -147,9 +145,7 @@ export class AwsProvider implements ProviderInterface {
         if (!slsFunction) {
             throw new Error(`Serverless function ${functionName} doesn't exit, can not add an event.`);
         }
-        if (!slsFunction.events) {
-            slsFunction.events = [];
-        }
+        slsFunction.events ??= [];
         slsFunction.events.push(event);
     }
 

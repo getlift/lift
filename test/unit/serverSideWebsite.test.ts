@@ -493,7 +493,7 @@ describe("server-side website", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "Invalid configuration in 'constructs.backend.errorPage': the custom error page must be a static HTML file. '/error.css' does not end with '.html'."
         );
     });
@@ -513,7 +513,7 @@ describe("server-side website", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "Invalid key in 'constructs.backend.assets': '/' and '/*' cannot be routed to assets because the root URL already serves the backend application running in Lambda. You must use a sub-path instead, for example '/assets/*'."
         );
     });
@@ -618,7 +618,7 @@ describe("server-side website", () => {
                     Bucket: "bucket-name",
                     Key: "assets/scripts.js",
                     Body: fs.readFileSync(path.join(__dirname, "../fixtures/serverSideWebsite/public/scripts.js")),
-                    ContentType: "application/javascript",
+                    ContentType: "text/javascript",
                 },
                 {
                     Bucket: "bucket-name",

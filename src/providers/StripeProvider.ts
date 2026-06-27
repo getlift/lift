@@ -3,7 +3,7 @@ import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
 import { get, has } from "lodash";
-import { Stripe } from "stripe";
+import Stripe from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
 import type { FromSchema } from "json-schema-to-ts";
@@ -63,7 +63,7 @@ export class StripeProvider implements ProviderInterface {
     public sdk: Stripe;
     constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
         this.config = this.resolveConfiguration(profile);
-        this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2020-08-27" });
+        this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2026-06-24.dahlia" });
     }
 
     createConstruct(type: string, id: string): ConstructInterface {

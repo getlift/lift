@@ -1,4 +1,4 @@
-import type { Message, ReceiveMessageCommandOutput } from "@aws-sdk/client-sqs";
+import type { Message } from "@aws-sdk/client-sqs";
 import { DeleteMessageBatchCommand, ReceiveMessageCommand, SendMessageBatchCommand } from "@aws-sdk/client-sqs";
 import type { AwsProvider } from "@lift/providers";
 import { chunk } from "lodash";

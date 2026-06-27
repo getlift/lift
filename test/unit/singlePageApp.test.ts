@@ -31,10 +31,10 @@ describe("single page app", () => {
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
-            Object {
-              "Properties": Object {
+            {
+              "Properties": {
                 "AutoPublish": true,
-                "FunctionCode": "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|xml|pdf|webmanifest|avif|wasm|lottie)$)([^.]+$)/;
+                "FunctionCode": "var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|xml|pdf|webmanifest|avif|wasm|lottie)$)([^.]+$)/;
 
             function handler(event) {
                 var uri = event.request.uri;
@@ -42,12 +42,12 @@ describe("single page app", () => {
                 var isUriToRedirect = REDIRECT_REGEX.test(uri);
 
                 if (isUriToRedirect) {
-                    request.uri = \\"/index.html\\";
+                    request.uri = "/index.html";
                 }
 
                 return event.request;
             }",
-                "FunctionConfig": Object {
+                "FunctionConfig": {
                   "Comment": "app-dev-us-east-1-landing-request",
                   "Runtime": "cloudfront-js-1.0",
                 },
@@ -63,20 +63,20 @@ describe("single page app", () => {
                 "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
             )
         ).toMatchInlineSnapshot(`
-            Array [
-              Object {
+            [
+              {
                 "EventType": "viewer-response",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
+                "FunctionARN": {
+                  "Fn::GetAtt": [
                     "${responseFunction}",
                     "FunctionARN",
                   ],
                 },
               },
-              Object {
+              {
                 "EventType": "viewer-request",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
+                "FunctionARN": {
+                  "Fn::GetAtt": [
                     "${requestFunction}",
                     "FunctionARN",
                   ],
@@ -104,7 +104,7 @@ describe("single page app", () => {
         });
         const requestFunction = computeLogicalId("landing", "RequestFunction");
         expect(cfTemplate.Resources[requestFunction].Properties.FunctionCode).toMatchInlineSnapshot(`
-            "var REDIRECT_REGEX = /^[^.]+$|\\\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|xml|pdf|webmanifest|avif|wasm|lottie)$)([^.]+$)/;
+            "var REDIRECT_REGEX = /^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|xml|pdf|webmanifest|avif|wasm|lottie)$)([^.]+$)/;
 
             function handler(event) {
                 var uri = event.request.uri;
@@ -112,15 +112,15 @@ describe("single page app", () => {
                 var isUriToRedirect = REDIRECT_REGEX.test(uri);
 
                 if (isUriToRedirect) {
-                    request.uri = \\"/index.html\\";
+                    request.uri = "/index.html";
                 }
-                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                if (request.headers["host"].value !== "www.example.com") {
                     return {
                         statusCode: 301,
-                        statusDescription: \\"Moved Permanently\\",
+                        statusDescription: "Moved Permanently",
                         headers: {
                             location: {
-                                value: \\"https://www.example.com\\" + request.uri
+                                value: "https://www.example.com" + request.uri
                             }
                         }
                     };

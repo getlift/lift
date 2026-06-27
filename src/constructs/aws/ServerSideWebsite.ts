@@ -192,10 +192,8 @@ export class ServerSideWebsite extends AwsConstruct {
             value: this.bucket.bucketName,
         });
         let websiteDomain = this.getMainCustomDomain();
-        if (websiteDomain === undefined) {
-            // Fallback on the CloudFront domain
-            websiteDomain = this.distribution.distributionDomainName;
-        }
+        // Fallback on the CloudFront domain
+        websiteDomain ??= this.distribution.distributionDomainName;
         this.domainOutput = new CfnOutput(this, "Domain", {
             description: "Website domain name.",
             value: websiteDomain,

@@ -639,7 +639,7 @@ export class Queue extends AwsConstruct {
             const data = JSON.parse(body) as unknown;
 
             return JSON.stringify(data, null, 2);
-        } catch (e) {
+        } catch {
             // If it's not valid JSON, we'll print the body as-is
             return body;
         }

@@ -50,7 +50,7 @@ describe("AWS SDK v3 integration", () => {
         const getAwsSdkV3ConfigStub = sinon.stub().resolves({ region: "eu-west-1" });
         const provider = createAwsProvider({
             getAwsSdkV3Config: getAwsSdkV3ConfigStub,
-        } as unknown as LegacyAwsProvider);
+        });
 
         const firstClient = await provider.getSqsClient();
         const secondClient = await provider.getSqsClient();
