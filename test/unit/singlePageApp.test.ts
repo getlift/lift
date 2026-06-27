@@ -29,6 +29,7 @@ describe("single page app", () => {
         });
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const requestFunction = computeLogicalId("landing", "RequestFunction");
+        const responseFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
             {
               "Properties": {
@@ -67,7 +68,7 @@ describe("single page app", () => {
                 "EventType": "viewer-response",
                 "FunctionARN": {
                   "Fn::GetAtt": [
-                    "landingResponseFunctionA308C722",
+                    "${responseFunction}",
                     "FunctionARN",
                   ],
                 },
@@ -76,7 +77,7 @@ describe("single page app", () => {
                 "EventType": "viewer-request",
                 "FunctionARN": {
                   "Fn::GetAtt": [
-                    "landingRequestFunctionD581DA00",
+                    "${requestFunction}",
                     "FunctionARN",
                   ],
                 },

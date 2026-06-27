@@ -9,7 +9,7 @@ import {
     HttpVersion,
     ViewerProtocolPolicy,
 } from "aws-cdk-lib/aws-cloudfront";
-import { S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { S3StaticWebsiteOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import type { BucketProps, CfnBucket } from "aws-cdk-lib/aws-s3";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import type { Construct as CdkConstruct } from "constructs";
@@ -127,7 +127,7 @@ export abstract class StaticWebsiteAbstract extends AwsConstruct {
             defaultRootObject: "index.html",
             defaultBehavior: {
                 // Origins are where CloudFront fetches content
-                origin: S3BucketOrigin.withOriginAccessControl(this.bucket),
+                origin: new S3StaticWebsiteOrigin(this.bucket),
                 allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
                 // Use the "Managed-CachingOptimized" policy
                 // See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
