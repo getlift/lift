@@ -32,12 +32,14 @@ describe("static websites", () => {
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
+        const originAccessControlLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3OriginAccessControl");
         expect(Object.keys(cfTemplate.Resources)).toStrictEqual([
             "ServerlessDeploymentBucket",
             "ServerlessDeploymentBucketPolicy",
             bucketLogicalId,
             bucketPolicyLogicalId,
             responseFunction,
+            originAccessControlLogicalId,
             cfDistributionLogicalId,
         ]);
         expect(cfTemplate.Resources[bucketLogicalId]).toStrictEqual({
@@ -72,8 +74,43 @@ describe("static websites", () => {
                             },
                             Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
                         },
+                        {
+                            Action: "s3:GetObject",
+                            Condition: {
+                                StringEquals: {
+                                    "AWS:SourceArn": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                { Ref: "AWS::Partition" },
+                                                ":cloudfront::",
+                                                { Ref: "AWS::AccountId" },
+                                                ":distribution/",
+                                                { Ref: cfDistributionLogicalId },
+                                            ],
+                                        ],
+                                    },
+                                },
+                            },
+                            Effect: "Allow",
+                            Principal: {
+                                Service: "cloudfront.amazonaws.com",
+                            },
+                            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
+                        },
                     ],
                     Version: "2012-10-17",
+                },
+            },
+        });
+        expect(cfTemplate.Resources[originAccessControlLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::OriginAccessControl",
+            Properties: {
+                OriginAccessControlConfig: {
+                    OriginAccessControlOriginType: "s3",
+                    SigningBehavior: "always",
+                    SigningProtocol: "sigv4",
                 },
             },
         });
@@ -112,24 +149,16 @@ describe("static websites", () => {
                     IPV6Enabled: true,
                     Origins: [
                         {
-                            CustomOriginConfig: {
-                                OriginProtocolPolicy: "http-only",
-                                OriginSSLProtocols: ["TLSv1.2"],
-                            },
                             DomainName: {
-                                "Fn::Select": [
-                                    2,
-                                    {
-                                        "Fn::Split": [
-                                            "/",
-                                            {
-                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
-                                            },
-                                        ],
-                                    },
-                                ],
+                                "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
                             },
                             Id: cfOriginId,
+                            OriginAccessControlId: {
+                                "Fn::GetAtt": [originAccessControlLogicalId, "Id"],
+                            },
+                            S3OriginConfig: {
+                                OriginAccessIdentity: "",
+                            },
                         },
                     ],
                 },
@@ -341,27 +370,26 @@ describe("static websites", () => {
         });
         const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
         const requestFunction = computeLogicalId("landing", "RequestFunction");
-        const responseFunction = computeLogicalId("landing", "ResponseFunction");
         expect(cfTemplate.Resources[requestFunction]).toMatchInlineSnapshot(`
-            Object {
-              "Properties": Object {
+            {
+              "Properties": {
                 "AutoPublish": true,
                 "FunctionCode": "function handler(event) {
                 var request = event.request;
-                if (request.headers[\\"host\\"].value !== \\"www.example.com\\") {
+                if (request.headers["host"].value !== "www.example.com") {
                     return {
                         statusCode: 301,
-                        statusDescription: \\"Moved Permanently\\",
+                        statusDescription: "Moved Permanently",
                         headers: {
                             location: {
-                                value: \\"https://www.example.com\\" + request.uri
+                                value: "https://www.example.com" + request.uri
                             }
                         }
                     };
                 }
                 return request;
             }",
-                "FunctionConfig": Object {
+                "FunctionConfig": {
                   "Comment": "app-dev-us-east-1-landing-request",
                   "Runtime": "cloudfront-js-1.0",
                 },
@@ -377,21 +405,21 @@ describe("static websites", () => {
                 "Properties.DistributionConfig.DefaultCacheBehavior.FunctionAssociations"
             )
         ).toMatchInlineSnapshot(`
-            Array [
-              Object {
+            [
+              {
                 "EventType": "viewer-response",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
-                    "${responseFunction}",
+                "FunctionARN": {
+                  "Fn::GetAtt": [
+                    "landingResponseFunctionA308C722",
                     "FunctionARN",
                   ],
                 },
               },
-              Object {
+              {
                 "EventType": "viewer-request",
-                "FunctionARN": Object {
-                  "Fn::GetAtt": Array [
-                    "${requestFunction}",
+                "FunctionARN": {
+                  "Fn::GetAtt": [
+                    "landingRequestFunctionD581DA00",
                     "FunctionARN",
                   ],
                 },
@@ -420,6 +448,7 @@ describe("static websites", () => {
         const bucketLogicalId = computeLogicalId("landing", "Bucket");
         const responseFunction = computeLogicalId("landing", "ResponseFunction");
         const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
+        const originAccessControlLogicalId = computeLogicalId("landing", "CDN", "Origin1", "S3OriginAccessControl");
         expect(cfTemplate.Resources[cfDistributionLogicalId]).toStrictEqual({
             Type: "AWS::CloudFront::Distribution",
             Properties: {
@@ -455,24 +484,16 @@ describe("static websites", () => {
                     IPV6Enabled: true,
                     Origins: [
                         {
-                            CustomOriginConfig: {
-                                OriginProtocolPolicy: "http-only",
-                                OriginSSLProtocols: ["TLSv1.2"],
-                            },
                             DomainName: {
-                                "Fn::Select": [
-                                    2,
-                                    {
-                                        "Fn::Split": [
-                                            "/",
-                                            {
-                                                "Fn::GetAtt": [bucketLogicalId, "WebsiteURL"],
-                                            },
-                                        ],
-                                    },
-                                ],
+                                "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"],
                             },
                             Id: cfOriginId,
+                            OriginAccessControlId: {
+                                "Fn::GetAtt": [originAccessControlLogicalId, "Id"],
+                            },
+                            S3OriginConfig: {
+                                OriginAccessIdentity: "",
+                            },
                         },
                     ],
                 },
@@ -494,7 +515,7 @@ describe("static websites", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
         );
         await expect(() => {
@@ -510,7 +531,7 @@ describe("static websites", () => {
                     },
                 }),
             });
-        }).rejects.toThrowError(
+        }).rejects.toThrow(
             "The 'errorPage' option of the 'landing' static website cannot start with './' or '../'. (it cannot be a relative path)."
         );
     });
@@ -562,7 +583,7 @@ describe("static websites", () => {
                     Bucket: "bucket-name",
                     Key: "scripts.js",
                     Body: fs.readFileSync(path.join(__dirname, "../fixtures/staticWebsites/public/scripts.js")),
-                    ContentType: "application/javascript",
+                    ContentType: "text/javascript",
                 },
                 {
                     Bucket: "bucket-name",

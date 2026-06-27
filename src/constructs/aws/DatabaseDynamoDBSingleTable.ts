@@ -41,7 +41,9 @@ export class DatabaseDynamoDBSingleTable extends AwsConstruct {
             partitionKey: { name: "PK", type: AttributeType.STRING },
             sortKey: { name: "SK", type: AttributeType.STRING },
             billingMode: BillingMode.PAY_PER_REQUEST,
-            pointInTimeRecovery: true,
+            pointInTimeRecoverySpecification: {
+                pointInTimeRecoveryEnabled: true,
+            },
             timeToLiveAttribute: "TimeToLive",
             stream: StreamViewType.NEW_AND_OLD_IMAGES,
         });

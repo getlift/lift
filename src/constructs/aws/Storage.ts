@@ -159,7 +159,7 @@ export class Storage extends AwsConstruct {
 
         // Transform user rules: capitalize keys and add Status: Enabled by default
         const userRules = resolvedConfiguration.lifecycleRules.map((rule) => {
-            const capitalizedRule = capitalizeKeys(rule as Record<string, unknown>);
+            const capitalizedRule = capitalizeKeys(rule);
             if (!("Status" in capitalizedRule)) {
                 capitalizedRule.Status = "Enabled";
             }
