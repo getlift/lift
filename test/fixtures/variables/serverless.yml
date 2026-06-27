@@ -14,6 +14,7 @@ functions:
         environment:
             VAR1: ${construct:bar.queueUrl}
             CUSTOM_VAR: ${self:custom.variable}
+            PUBLIC_URL: ${construct:bucket.publicUrl}
 
 constructs:
     bar:
@@ -34,6 +35,7 @@ constructs:
         certificate: ${custom-arn:foo}
     bucket:
         type: storage
+        publicPath: public
 
 resources:
     Resources:

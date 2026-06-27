@@ -18,6 +18,9 @@ describe("variables", () => {
         expect(cfTemplate.Resources.FooLambdaFunction).toHaveProperty("Properties.Environment.Variables.CUSTOM_VAR", {
             Ref: "bucketBucketF19722A9",
         });
+        expect(cfTemplate.Resources.FooLambdaFunction).toHaveProperty("Properties.Environment.Variables.PUBLIC_URL", {
+            "Fn::Join": ["", ["https://", { "Fn::GetAtt": ["bucketBucketF19722A9", "RegionalDomainName"] }]],
+        });
     });
 
     it("should resolve variables in constructs", async () => {
