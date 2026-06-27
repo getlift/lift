@@ -26,7 +26,7 @@ jobs:
                     # - "serverless@4" Official way to test plugins for serverless is missing.
         steps:
             - uses: actions/checkout@v7
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node }}
             - uses: actions/cache@v6.1.0
@@ -45,7 +45,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22
             - uses: actions/cache@v6.1.0
@@ -60,7 +60,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22
             - uses: actions/cache@v6.1.0
