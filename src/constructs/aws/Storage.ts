@@ -36,6 +36,23 @@ const STORAGE_DEFAULTS: Omit<Required<FromSchema<typeof STORAGE_DEFINITION>>, "a
     lifecycleRules: [],
 };
 
+const STORAGE_IAM_ACTIONS = [
+    "s3:PutObject",
+    "s3:GetObject",
+    "s3:DeleteObject",
+    "s3:ListBucket",
+    "s3:GetObjectAcl",
+    "s3:PutObjectAcl",
+    "s3:GetObjectTagging",
+    "s3:PutObjectTagging",
+    "s3:DeleteObjectTagging",
+    "s3:GetObjectAttributes",
+    "s3:AbortMultipartUpload",
+    "s3:ListMultipartUploadParts",
+    "s3:ListBucketMultipartUploads",
+    "s3:RestoreObject",
+];
+
 function capitalizeFirstLetter(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
@@ -214,13 +231,8 @@ export class Storage extends AwsConstruct {
     }
 
     permissions(): PolicyStatement[] {
-        const actions = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"];
-        if (this.allowAcl) {
-            actions.push("s3:GetObjectAcl", "s3:PutObjectAcl");
-        }
-
         return [
-            new PolicyStatement(actions, [
+            new PolicyStatement(STORAGE_IAM_ACTIONS, [
                 this.bucket.bucketArn,
                 Stack.of(this).resolve(Fn.join("/", [this.bucket.bucketArn, "*"])),
             ]),

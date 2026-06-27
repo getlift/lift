@@ -18,6 +18,14 @@ function expectLiftStorageStatementIsAdded(cfTemplate: CfTemplate) {
                     "s3:ListBucket",
                     "s3:GetObjectAcl",
                     "s3:PutObjectAcl",
+                    "s3:GetObjectTagging",
+                    "s3:PutObjectTagging",
+                    "s3:DeleteObjectTagging",
+                    "s3:GetObjectAttributes",
+                    "s3:AbortMultipartUpload",
+                    "s3:ListMultipartUploadParts",
+                    "s3:ListBucketMultipartUploads",
+                    "s3:RestoreObject",
                 ],
             }),
         ])
@@ -110,7 +118,7 @@ describe("permissions", () => {
         expectLiftStorageStatementIsAdded(cfTemplate);
     });
 
-    it("should not include ACL permissions when allowAcl is not set", async () => {
+    it("should include object-management permissions when allowAcl is not set", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "permissions",
             configExt: pluginConfigExt,
@@ -125,7 +133,22 @@ describe("permissions", () => {
             expect.arrayContaining([
                 expect.objectContaining({
                     Effect: "Allow",
-                    Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+                    Action: [
+                        "s3:PutObject",
+                        "s3:GetObject",
+                        "s3:DeleteObject",
+                        "s3:ListBucket",
+                        "s3:GetObjectAcl",
+                        "s3:PutObjectAcl",
+                        "s3:GetObjectTagging",
+                        "s3:PutObjectTagging",
+                        "s3:DeleteObjectTagging",
+                        "s3:GetObjectAttributes",
+                        "s3:AbortMultipartUpload",
+                        "s3:ListMultipartUploadParts",
+                        "s3:ListBucketMultipartUploads",
+                        "s3:RestoreObject",
+                    ],
                 }),
             ])
         );
