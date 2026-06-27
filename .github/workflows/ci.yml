@@ -25,11 +25,11 @@ jobs:
                       module: serverless
                     # - "serverless@4" Official way to test plugins for serverless is missing.
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node }}
-            - uses: actions/cache@v4
+            - uses: actions/cache@v6.1.0
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package.json') }}
@@ -44,11 +44,11 @@ jobs:
         name: Lint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v6
               with:
                   node-version: 22
-            - uses: actions/cache@v4
+            - uses: actions/cache@v6.1.0
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
@@ -59,11 +59,11 @@ jobs:
         name: Type
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: actions/setup-node@v6
               with:
                   node-version: 22
-            - uses: actions/cache@v4
+            - uses: actions/cache@v6.1.0
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}

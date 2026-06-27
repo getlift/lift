@@ -13,7 +13,7 @@ jobs:
     release:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   ref: ${{ github.event.release.tag_name }}
             - uses: actions/setup-node@v6
@@ -22,7 +22,7 @@ jobs:
                   registry-url: https://registry.npmjs.org
             # Ensure npm 11.5.1 or later for trusted publishing
             - run: npm install -g npm@latest
-            - uses: actions/cache@v4
+            - uses: actions/cache@v6.1.0
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
