@@ -33,7 +33,21 @@ provider:
         role:
             statements:
                 -   Effect: Allow
-                    Action: ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"]
+                    Action:
+                        - s3:PutObject
+                        - s3:GetObject
+                        - s3:DeleteObject
+                        - s3:ListBucket
+                        - s3:GetObjectAcl
+                        - s3:PutObjectAcl
+                        - s3:GetObjectTagging
+                        - s3:PutObjectTagging
+                        - s3:DeleteObjectTagging
+                        - s3:GetObjectAttributes
+                        - s3:AbortMultipartUpload
+                        - s3:ListMultipartUploadParts
+                        - s3:ListBucketMultipartUploads
+                        - s3:RestoreObject
                     Resource:
                         - ${construct:avatars.bucketArn}
                         - Fn::Join: ['', ['${construct:avatars.bucketArn}', '/*']]

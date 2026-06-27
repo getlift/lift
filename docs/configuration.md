@@ -12,6 +12,16 @@ For exemple, the [`storage` construct](storage.md) will happen the following per
 - `s3:GetObject`
 - `s3:DeleteObject`
 - `s3:ListBucket`
+- `s3:GetObjectAcl`
+- `s3:PutObjectAcl`
+- `s3:GetObjectTagging`
+- `s3:PutObjectTagging`
+- `s3:DeleteObjectTagging`
+- `s3:GetObjectAttributes`
+- `s3:AbortMultipartUpload`
+- `s3:ListMultipartUploadParts`
+- `s3:ListBucketMultipartUploads`
+- `s3:RestoreObject`
 
 You can use the `automaticPermissions` options if you want to opt out of this default behavior. This can be especially useful for production environment where you want to provision fined-grained permissions based on your actual usage of the construct - i.e. you may want to only read from the bucket provisionned uisng the `storage` construct.
 

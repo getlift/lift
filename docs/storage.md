@@ -62,7 +62,7 @@ _How it works: the `${construct:avatars.bucketName}` variable will automatically
 
 ## Permissions
 
-By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to read/write into the bucket**.
+By default, all the Lambda functions deployed in the same `serverless.yml` file **will be allowed to read/write into the bucket** and use common S3 object features such as ACLs, tags, multipart uploads, object attributes, and restores.
 
 In the example below, there are no IAM permissions to set up: `myFunction` will be allowed to read and write into the `avatars` bucket.
 
@@ -130,7 +130,7 @@ constructs:
         allowAcl: true
 ```
 
-This sets the S3 bucket's [Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) to `BucketOwnerPreferred` and grants `s3:GetObjectAcl` and `s3:PutObjectAcl` permissions to Lambda functions.
+This sets the S3 bucket's [Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) to `BucketOwnerPreferred`.
 
 ### CORS
 
