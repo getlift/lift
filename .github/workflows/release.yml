@@ -14,6 +14,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.release.tag_name }}
             - uses: actions/setup-node@v4
               with:
                   node-version: 20
