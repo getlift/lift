@@ -130,7 +130,7 @@ constructs:
         allowAcl: true
 ```
 
-This sets the S3 bucket's [Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) to `BucketOwnerPreferred`. ACL IAM permissions are granted automatically on all storage buckets so libraries can inspect or write ACL metadata when needed.
+This sets the S3 bucket's [Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) to `BucketOwnerPreferred`.
 
 ### CORS
 
