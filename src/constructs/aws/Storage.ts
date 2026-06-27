@@ -224,7 +224,7 @@ export class Storage extends AwsConstruct {
 
         if (this.publicObjects !== undefined) {
             // Base URL of the bucket (no key), e.g. https://<bucket>.s3.<region>.amazonaws.com
-            variables.publicUrl = this.bucket.virtualHostedUrlForObject();
+            variables.publicUrl = Fn.join("", ["https://", this.bucket.bucketRegionalDomainName]);
         }
 
         return variables;
