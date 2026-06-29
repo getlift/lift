@@ -12,6 +12,80 @@ describe("single page app", () => {
         sinon.restore();
     });
 
+    it("should serve assets from a private S3 REST origin", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    landing: {
+                        type: "single-page-app",
+                        path: ".",
+                    },
+                },
+            }),
+        });
+        const bucketLogicalId = computeLogicalId("landing", "Bucket");
+        const bucketPolicyLogicalId = computeLogicalId("landing", "Bucket", "Policy");
+        const cfDistributionLogicalId = computeLogicalId("landing", "CDN");
+        const cfOriginId = computeLogicalId("landing", "CDN", "Origin1");
+        const resources = cfTemplate.Resources as Record<
+            string,
+            { Type: string; Properties?: Record<string, unknown> }
+        >;
+        const originAccessIdentity = Object.entries(resources).find(([, resource]) => {
+            return resource.Type === "AWS::CloudFront::CloudFrontOriginAccessIdentity";
+        });
+
+        if (originAccessIdentity === undefined) {
+            throw new Error("Missing CloudFront origin access identity");
+        }
+        expect(resources[bucketLogicalId]).toStrictEqual({
+            Type: "AWS::S3::Bucket",
+            UpdateReplacePolicy: "Delete",
+            DeletionPolicy: "Delete",
+        });
+        expect(resources[bucketPolicyLogicalId]).toMatchObject({
+            Type: "AWS::S3::BucketPolicy",
+            Properties: {
+                PolicyDocument: {
+                    Statement: [
+                        {
+                            Action: "s3:GetObject",
+                            Effect: "Allow",
+                            Principal: {
+                                CanonicalUser: {
+                                    "Fn::GetAtt": [originAccessIdentity[0], "S3CanonicalUserId"],
+                                },
+                            },
+                            Resource: { "Fn::Join": ["", [{ "Fn::GetAtt": [bucketLogicalId, "Arn"] }, "/*"]] },
+                        },
+                    ],
+                },
+            },
+        });
+        expect(resources[cfDistributionLogicalId]).toMatchObject({
+            Type: "AWS::CloudFront::Distribution",
+            Properties: {
+                DistributionConfig: {
+                    Origins: [
+                        {
+                            DomainName: { "Fn::GetAtt": [bucketLogicalId, "RegionalDomainName"] },
+                            Id: cfOriginId,
+                            S3OriginConfig: {
+                                OriginAccessIdentity: {
+                                    "Fn::Join": [
+                                        "",
+                                        ["origin-access-identity/cloudfront/", { Ref: originAccessIdentity[0] }],
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
     it("should define a request function that redirects nested uris to index.html", async () => {
         const { cfTemplate, computeLogicalId } = await runServerless({
             command: "package",
