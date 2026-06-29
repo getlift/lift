@@ -1,9 +1,10 @@
 name: Release
 
 on:
-    # This job runs when a new release is published
-    release:
-        types: [published]
+    # This job runs when a new version tag is pushed
+    push:
+        tags:
+            - "*"
 
 permissions:
     id-token: write # Required for OIDC
@@ -15,7 +16,7 @@ jobs:
         steps:
             - uses: actions/checkout@v7
               with:
-                  ref: ${{ github.event.release.tag_name }}
+                  ref: ${{ github.ref }}
             - uses: actions/setup-node@v6
               with:
                   node-version: 20
@@ -26,7 +27,7 @@ jobs:
               with:
                   path: ~/.npm
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-            - run: echo "RELEASE_VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+            - run: echo "RELEASE_VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
             - run: test -n "$RELEASE_VERSION"
             - run: npm i
             - run: npm version $RELEASE_VERSION --no-git-tag-version
