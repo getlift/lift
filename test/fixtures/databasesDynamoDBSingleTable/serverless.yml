@@ -19,3 +19,6 @@ constructs:
             table:
                 Properties:
                     TableClass: STANDARD_INFREQUENT_ACCESS
+    databaseWithRemovalPolicyDestroy:
+        type: database/dynamodb-single-table
+        removalPolicy: destroy
