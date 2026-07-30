@@ -1,5 +1,6 @@
 export function redirectToMainDomain(domains: string[] | undefined): string {
-    if (domains === undefined || domains.length < 2) {
+    if (domains === undefined) {
+        // No custom domains specified
         return "";
     }
 
