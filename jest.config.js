@@ -6,9 +6,14 @@ module.exports = {
         axios: "axios/dist/node/axios.cjs",
         filenamify: "<rootDir>/test/utils/filenamify.ts",
         "https-proxy-agent": "<rootDir>/test/utils/httpsProxyAgent.ts",
+        // OSLS 4.1+ removed telemetry, but `@serverless/test` still resolves this module to stub it
+        "^.*/node_modules/(osls|serverless)/lib/utils/telemetry/are-disabled$":
+            "<rootDir>/test/utils/telemetryAreDisabled.ts",
     }),
     preset: "ts-jest",
     testPathIgnorePatterns: ["dist"],
     testEnvironment: "node",
-    testTimeout: 10000,
+    // Tests run the whole Serverless CLI and synthesize a CDK app: the first test of each
+    // file also pays for loading aws-cdk-lib, which takes over 10s on slow CI runners.
+    testTimeout: 60000,
 };
