@@ -63,7 +63,7 @@ export class StripeProvider implements ProviderInterface {
     public sdk: Stripe;
     constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
         this.config = this.resolveConfiguration(profile);
-        this.sdk = new Stripe(this.config.apiKey, { apiVersion: "2026-06-24.dahlia" });
+        this.sdk = new Stripe(this.config.apiKey);
     }
 
     createConstruct(type: string, id: string): ConstructInterface {
