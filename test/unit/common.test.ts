@@ -14,6 +14,17 @@ describe("common", () => {
         ).rejects.toThrow(/The construct 'avatars' has no 'type' defined.*/g);
     });
 
+    it("should accept an empty 'constructs' key", async () => {
+        // A `constructs:` key with no children (e.g. all constructs commented out) is parsed as `null` by YAML
+        const { cfTemplate } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: null,
+            }),
+        });
+        expect(cfTemplate.Resources).toBeDefined();
+    });
+
     it("should not override user defined resources in serverless.yml", async () => {
         const { cfTemplate } = await runServerless({
             fixture: "common",

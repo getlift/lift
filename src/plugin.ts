@@ -221,7 +221,7 @@ class LiftPlugin {
             throw new Error("Constructs are already initialized: this should not happen");
         }
         this.constructs = {};
-        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs", {});
+        const constructsInputConfiguration = get(this.serverless.configurationInput, "constructs") ?? {};
         for (const [id, { type, provider: providerId }] of Object.entries(constructsInputConfiguration)) {
             // Legacy behavior -> defaults to Serverless framework AWS provider
             if (providerId === undefined) {
@@ -345,7 +345,7 @@ class LiftPlugin {
     }
 
     private registerCommands() {
-        const constructsConfiguration = get(this.serverless.configurationInput, "constructs", {}) as Record<
+        const constructsConfiguration = (get(this.serverless.configurationInput, "constructs") ?? {}) as Record<
             string,
             { type?: string }
         >;

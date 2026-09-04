@@ -17,7 +17,7 @@
     "lodash": "^4.17.21",
     "mime-types": "^3.0.2",
     "ora": "^5.4.1",
-    "stripe": "^22.3.0",
+    "stripe": "^22.6.1",
     "toml": "^4.1.1",
     "traverse": "^0.6.6"
   },
@@ -47,7 +47,7 @@
     "json-schema-to-ts": "^3.1.1",
     "lint-staged": "^11.0.0",
     "nodemon": "^3.1.11",
-    "osls": "^3.72.0 || ^4.0.0-beta.0",
+    "osls": "^3.72.0 || ^4.0.0",
     "prettier": "^2.8.8",
     "sinon": "^11.1.1",
     "stdout-stderr": "^0.1.13",
@@ -82,7 +82,7 @@
   },
   "types": "dist/src/plugin.d.ts",
   "peerDependencies": {
-    "osls": "^3 || ^4.0.0-beta.0",
+    "osls": "^3 || ^4",
     "serverless": "^3 || ^4"
   },
   "peerDependenciesMeta": {
