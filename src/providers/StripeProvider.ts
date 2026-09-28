@@ -3,7 +3,7 @@ import { homedir } from "os";
 import { resolve } from "path";
 import { parse as tomlParse } from "toml";
 import { get, has } from "lodash";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import type { ConstructInterface, StaticConstructInterface } from "@lift/constructs";
 import type { ProviderInterface } from "@lift/providers";
 import type { FromSchema } from "json-schema-to-ts";
@@ -63,7 +63,11 @@ export class StripeProvider implements ProviderInterface {
     public sdk: Stripe;
     constructor(private readonly serverless: Serverless, private readonly id: string, profile?: string) {
         this.config = this.resolveConfiguration(profile);
-        this.sdk = new Stripe(this.config.apiKey);
+        // Loaded only when a Stripe provider is used, not every time Lift is loaded: loading the SDK has side effects,
+        // e.g. it writes a hint to stderr when run by Claude Code, which ends up in the output of every deployment
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const StripeSdk = require("stripe") as typeof Stripe;
+        this.sdk = new StripeSdk(this.config.apiKey);
     }
 
     createConstruct(type: string, id: string): ConstructInterface {
