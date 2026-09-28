@@ -19,10 +19,11 @@ jobs:
                   ref: ${{ github.ref }}
             - uses: actions/setup-node@v7
               with:
-                  node-version: 20
+                  node-version: 24
                   registry-url: https://registry.npmjs.org
-            # Ensure npm 11.5.1 or later for trusted publishing
-            - run: npm install -g npm@latest
+            # Ensure npm 11.5.1 or later for trusted publishing. Not `npm@latest`: a new major can drop support for this
+            # Node version (npm 12 requires Node 22.22+ or 24.15+, which made the 1.37.8 release fail before publishing)
+            - run: npm install -g npm@11
             - uses: actions/cache@v6.1.0
               with:
                   path: ~/.npm
