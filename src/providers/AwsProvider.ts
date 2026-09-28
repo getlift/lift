@@ -231,6 +231,10 @@ export class AwsProvider implements ProviderInterface {
     }
 
     appendCloudformationResources(): void {
+        // Without any construct, there is nothing to add (and CDK would warn about a template without resources)
+        if (this.stack.node.children.length === 0) {
+            return;
+        }
         merge(this.serverless.service, {
             resources: this.app.synth().getStackByName(this.stack.stackName).template as CloudformationTemplate,
         });

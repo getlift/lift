@@ -1,6 +1,6 @@
 import type { Construct as CdkConstruct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
-import { CfnOutput, Fn } from "aws-cdk-lib";
+import { CfnOutput, Fn, Validations } from "aws-cdk-lib";
 import { CfnAuthorizer, CfnIntegration, CfnRoute, HttpApi } from "aws-cdk-lib/aws-apigatewayv2";
 import { Function } from "aws-cdk-lib/aws-lambda";
 import type { CfnEventBus } from "aws-cdk-lib/aws-events";
@@ -140,6 +140,12 @@ export class Webhook extends AwsConstruct {
             });
             route.authorizerId = authorizer.ref;
             route.authorizationType = "CUSTOM";
+            // The authorizer function is created by the Serverless Framework, in the same CloudFormation stack but not
+            // in this CDK app (it is referenced by the authorizer and by the policy of the API Gateway role)
+            Validations.of(this).acknowledge({
+                id: "CloudFormation-Validate::F1020",
+                reason: "The authorizer function is created by the Serverless Framework in the same stack",
+            });
         }
 
         this.endpointPathOutput = new CfnOutput(this, "Endpoint", {

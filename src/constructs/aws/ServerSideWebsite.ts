@@ -14,7 +14,7 @@ import {
 } from "aws-cdk-lib/aws-cloudfront";
 import type { Construct } from "constructs";
 import type { CfnResource } from "aws-cdk-lib";
-import { CfnOutput, Duration, Fn, RemovalPolicy } from "aws-cdk-lib";
+import { CfnOutput, Duration, Fn, RemovalPolicy, Validations } from "aws-cdk-lib";
 import type { FromSchema } from "json-schema-to-ts";
 import { HttpOrigin, S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
@@ -184,6 +184,11 @@ export class ServerSideWebsite extends AwsConstruct {
             httpVersion: HttpVersion.HTTP2_AND_3,
             certificate: certificate,
             domainNames: this.domains,
+        });
+        // The API Gateway is created by the Serverless Framework, in the same CloudFormation stack but not in this CDK app
+        Validations.of(this.distribution).acknowledge({
+            id: "CloudFormation-Validate::F1020",
+            reason: "The API Gateway is created by the Serverless Framework in the same stack",
         });
 
         // CloudFormation outputs
