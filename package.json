@@ -18,7 +18,7 @@
     "mime-types": "^3.0.2",
     "ora": "^5.4.1",
     "stripe": "^22.6.1",
-    "toml": "^4.1.1",
+    "toml": "^5.0.1",
     "traverse": "^0.6.6"
   },
   "devDependencies": {
