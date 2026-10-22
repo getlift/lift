@@ -111,6 +111,66 @@ describe("databasesDynamoDBSingleTable", () => {
         );
     });
 
+    it("should use custom names for GSI", () => {
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithRenamedIndexes", "Table")].Properties
+                .AttributeDefinitions
+        ).toContainEqual({ AttributeName: `CustomPK1`, AttributeType: "S" });
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithRenamedIndexes", "Table")].Properties
+                .AttributeDefinitions
+        ).toContainEqual({ AttributeName: `CustomSK1`, AttributeType: "S" });
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithRenamedIndexes", "Table")].Properties
+                .GlobalSecondaryIndexes
+        ).toEqual([
+            {
+                IndexName: `GSI-1`,
+                KeySchema: [
+                    {
+                        AttributeName: `CustomPK1`,
+                        KeyType: "HASH",
+                    },
+                    {
+                        AttributeName: `CustomSK1`,
+                        KeyType: "RANGE",
+                    },
+                ],
+                Projection: { ProjectionType: "ALL" },
+            },
+        ]);
+    });
+
+    it("should use number types for GSI", () => {
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithNumberTypeIndexes", "Table")].Properties
+                .AttributeDefinitions
+        ).toContainEqual({ AttributeName: `GSI-1-PK`, AttributeType: "N" });
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithNumberTypeIndexes", "Table")].Properties
+                .AttributeDefinitions
+        ).toContainEqual({ AttributeName: `GSI-1-SK`, AttributeType: "N" });
+        expect(
+            cfTemplate.Resources[computeLogicalId("databaseWithNumberTypeIndexes", "Table")].Properties
+                .GlobalSecondaryIndexes
+        ).toEqual([
+            {
+                IndexName: `GSI-1`,
+                KeySchema: [
+                    {
+                        AttributeName: `GSI-1-PK`,
+                        KeyType: "HASH",
+                    },
+                    {
+                        AttributeName: `GSI-1-SK`,
+                        KeyType: "RANGE",
+                    },
+                ],
+                Projection: { ProjectionType: "ALL" },
+            },
+        ]);
+    });
+
     it("allows overriding table properties", () => {
         expect(cfTemplate.Resources[computeLogicalId("extendedDatabase", "Table")].Properties).toMatchObject({
             TableClass: "STANDARD_INFREQUENT_ACCESS",
