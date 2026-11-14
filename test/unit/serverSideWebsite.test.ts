@@ -557,6 +557,41 @@ describe("server-side website", () => {
         });
     });
 
+    it("should allow to add headers to the requests sent to the backend", async () => {
+        const { cfTemplate, computeLogicalId } = await runServerless({
+            command: "package",
+            config: Object.assign(baseConfig, {
+                constructs: {
+                    backend: {
+                        type: "server-side-website",
+                        assets: {
+                            "/assets/*": "public",
+                        },
+                        originHeaders: {
+                            "x-origin-secret": "s3cr3t",
+                        },
+                    },
+                },
+            }),
+        });
+        const cfDistributionLogicalId = computeLogicalId("backend", "CDN");
+        expect(cfTemplate.Resources[cfDistributionLogicalId]).toMatchObject({
+            Properties: {
+                DistributionConfig: {
+                    Origins: [
+                        {
+                            CustomOriginConfig: { OriginProtocolPolicy: "https-only" },
+                            OriginCustomHeaders: [{ HeaderName: "x-origin-secret", HeaderValue: "s3cr3t" }],
+                        },
+                        // Only the backend gets them, not S3
+                        { S3OriginConfig: { OriginAccessIdentity: "" } },
+                    ],
+                },
+            },
+        });
+        expect(JSON.stringify(cfTemplate.Resources[cfDistributionLogicalId])).toContain("x-origin-secret");
+    });
+
     it("should not error if 'forwardedHeaders' are configured", async () => {
         return runServerless({
             command: "package",

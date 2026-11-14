@@ -62,6 +62,10 @@ const SCHEMA = {
         redirectToMainDomain: { type: "boolean" },
         certificate: { type: "string" },
         forwardedHeaders: { type: "array", items: { type: "string" } },
+        originHeaders: {
+            type: "object",
+            additionalProperties: { type: "string" },
+        },
     },
     additionalProperties: false,
 } as const;
@@ -162,6 +166,8 @@ export class ServerSideWebsite extends AwsConstruct {
                     // API Gateway only supports HTTPS
                     protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
                     originPath,
+                    // Headers that CloudFront adds to the requests it sends to the backend
+                    customHeaders: configuration.originHeaders,
                 }),
                 // For a backend app we all all methods
                 allowedMethods: AllowedMethods.ALLOW_ALL,
