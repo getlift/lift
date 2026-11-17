@@ -98,6 +98,21 @@ GSI created on the table follow generic names principles:
 
 The first time you deploy your construct using `serverless deploy`, you can specify any amount of GSI between `1` and `20`. On subsequent deploys, any modification made to an already deployed construct cannot add or remove more than 1 GSI at a time. If you need 2 additional GSI after initial deployment of the exemple above, you must first update the `gsiCount` to `4`, deploy, and then finally update it to the final desired quantity of `5`.
 
+#### Global secondary index naming and types
+
+Global secondary indexes are created following [Global secondary indexes principles](#global-secondary-indexes) outlined above. If you need to deviate from the standard naming convention and types you can specify the settings for each GSI as follows:
+
+```yaml
+constructs:
+    myTable:
+        # ...
+        gsiCount: 1
+        gsis:
+            - index: GSI-1-SK
+              name: mySecondaryIndex1Sort # override the default naming
+              type: number # make the sort key numeric
+```
+
 ### Local secondary indexes
 
 Each DynamoDB table can includes up to 5 local secondary indexes. You can deploy a table with those 5 indexes using the `localSecondaryIndexes` property.
