@@ -177,6 +177,26 @@ resources:
                 # ...
 ```
 
+- `distributionId`: the Cloudfront Distribution Id
+
+This can be used to configure a Cloudfront Invalidation Policy
+
+```yaml
+constructs:
+    website:
+        type: server-side-website
+        # ...
+iam:
+  role:
+    statements:
+        - Effect: Allow
+          Action:
+            - 'cloudfront:CreateInvalidation'
+          Resource:
+            - 'arn:aws:cloudfront::${aws:accountId}:distribution/${construct:website.distributionId}'
+          # ...
+```
+
 ## Commands
 
 `serverless deploy` deploys everything configured in `serverless.yml` and uploads assets.
