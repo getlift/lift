@@ -37,23 +37,26 @@ export type Provider = {
     getRegion: () => string;
     /**
      * Fetch credentials resolved by the framework.
+     * Serverless Framework v4 resolves them asynchronously.
      */
-    getCredentials?: () => {
-        credentials?: {
-            accessKeyId?: string;
-            secretAccessKey?: string;
-            sessionToken?: string;
-            getPromise?: () => Promise<void>;
-        };
+    getCredentials?: () => FrameworkCredentials | Promise<FrameworkCredentials>;
+    /**
+     * Build AWS SDK v3 client configuration.
+     */
+    getAwsSdkV3Config?: () => Promise<AwsSdkV3Config>;
+};
+
+type FrameworkCredentials = {
+    credentials?: {
         accessKeyId?: string;
         secretAccessKey?: string;
         sessionToken?: string;
         getPromise?: () => Promise<void>;
     };
-    /**
-     * Build AWS SDK v3 client configuration.
-     */
-    getAwsSdkV3Config?: () => Promise<AwsSdkV3Config>;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    sessionToken?: string;
+    getPromise?: () => Promise<void>;
 };
 
 export type Serverless = {

@@ -11,7 +11,7 @@ export async function getAwsSdkV3Config(provider: LegacyAwsProvider): Promise<Aw
     const config: AwsSdkV3Config = {
         region: provider.getRegion(),
     };
-    const credentialsConfig = provider.getCredentials ? provider.getCredentials() : {};
+    const credentialsConfig = provider.getCredentials ? await provider.getCredentials() : {};
     const credentials = credentialsConfig.credentials ?? credentialsConfig;
     if (credentials.getPromise) {
         await credentials.getPromise();

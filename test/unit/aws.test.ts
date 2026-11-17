@@ -46,6 +46,26 @@ describe("AWS SDK v3 integration", () => {
         expect(credentials.getPromise.calledOnce).toBe(true);
     });
 
+    it("builds AWS SDK v3 config from asynchronous framework credentials", async () => {
+        const provider = {
+            getCredentials: sinon.stub().resolves({
+                accessKeyId: "access-key-id",
+                secretAccessKey: "secret-access-key",
+                sessionToken: "session-token",
+            }),
+            getRegion: sinon.stub().returns("eu-west-1"),
+        } as unknown as LegacyAwsProvider;
+
+        await expect(getAwsSdkV3Config(provider)).resolves.toEqual({
+            region: "eu-west-1",
+            credentials: {
+                accessKeyId: "access-key-id",
+                secretAccessKey: "secret-access-key",
+                sessionToken: "session-token",
+            },
+        });
+    });
+
     it("creates and caches AWS SDK v3 clients", async () => {
         const getAwsSdkV3ConfigStub = sinon.stub().resolves({ region: "eu-west-1" });
         const provider = createAwsProvider({
